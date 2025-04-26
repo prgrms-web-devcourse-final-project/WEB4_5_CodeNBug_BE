@@ -81,7 +81,7 @@ jobs:
       - name: set lower case owner name
         id: export_owner
         run: |
-          OWNER_LC="nbe-4-5-codenbug"
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
           echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
 
       - name: export image namex
