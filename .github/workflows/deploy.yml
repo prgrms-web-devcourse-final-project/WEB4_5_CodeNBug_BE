@@ -49,7 +49,7 @@ jobs:
           prerelease: false
 
   buildImageAndPushMainServer:
-    name: 메인 서버 도커 이미지 빌드와 푸시
+    name: 도커 이미지 빌드와 푸시
     needs: makeTagAndReleaseMainServer
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
