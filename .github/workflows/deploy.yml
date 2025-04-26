@@ -34,7 +34,7 @@ jobs:
           # Build the new semver, keeping major.minor and using SUFFIX as the patch
           # You could also parse major/minor dynamically, but if always 0.0, hardcode:
           NEW_VER="0.0.${SUFFIX}"
-          echo "clean_tag=${NEW_VER}" >> $GITHUB_OUTPUT
+          echo "clean_tag=v${NEW_VER}" >> $GITHUB_OUTPUT
 
       - name: Create Release
         id: create_release
