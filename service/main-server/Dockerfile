@@ -6,12 +6,9 @@ WORKDIR /app
 
 # 소스 코드와 Gradle 래퍼 복사
 COPY build.gradle settings.gradle ./
-COPY service/main-server/build.gradle service/main-server/settings.gradle ./main-server/
+COPY service/main-server/build.gradle service/main-server/settings.gradle ./service/main-server/
 
-RUN ls
-RUN ls ./main-server
-RUN cat main-server/build.gradle
-RUN cat settings.gradle
+
 # 종속성 설치
 RUN gradle dependencies --no-daemon
 

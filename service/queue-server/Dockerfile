@@ -6,12 +6,9 @@ WORKDIR /app
 
 # 소스 코드와 Gradle 래퍼 복사
 COPY build.gradle settings.gradle ./
-COPY service/queue-server/build.gradle service/queue-server/settings.gradle ./queue-server/
+COPY service/queue-server/build.gradle service/queue-server/settings.gradle ./service/queue-server/
 
-RUN ls
-RUN ls ./queue-server
-RUN cat queue-server/build.gradle
-RUN cat settings.gradle
+
 # 종속성 설치
 RUN gradle dependencies --no-daemon
 
