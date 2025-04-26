@@ -28,14 +28,13 @@ jobs:
       - name: Sanitize Tag
         id: sanitize_tag
         run: |
-            # raw tag, e.g. v0.0.1-----ci-cd.8
-            RAW="${{ steps.create_tag.outputs.new_tag }}"
-            # strip everything from the first '-----' onward
-            CLEAN="${RAW%%-----*}"
-            echo "Raw tag: $RAW"
-            echo "Clean tag: $CLEAN"
-            # set as a step output
-            echo "clean_tag=$CLEAN" >> $GITHUB_OUTPUT
+          RAW="${{ steps.create_tag.outputs.new_tag }}"      # e.g. 0.0.1-----ci-cd.10
+          # Extract the number after the last dot in the suffix
+          SUFFIX="${RAW##*ci-cd.}"                           # yields 10
+          # Build the new semver, keeping major.minor and using SUFFIX as the patch
+          # You could also parse major/minor dynamically, but if always 0.0, hardcode:
+          NEW_VER="0.0.${SUFFIX}"
+          echo "clean_tag=${NEW_VER}" >> $GITHUB_OUTPUT
 
       - name: Create Release
         id: create_release
