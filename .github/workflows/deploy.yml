@@ -50,6 +50,9 @@ jobs:
           prerelease: false
 
   buildImageAndPushMainServer:
+    permissions:
+      contents: read
+      packages: write
     name: 도커 이미지 빌드와 푸시
     needs: makeTagAndReleaseMainServer
     outputs:
