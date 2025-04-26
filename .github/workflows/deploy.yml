@@ -15,7 +15,7 @@ jobs:
   makeTagAndReleaseMainServer:
     runs-on: ubuntu-latest
     outputs:
-      tag_name: ${{ steps.create_tag.outputs.new_tag }}
+      tag_name: ${{ split(steps.create_tag.outputs.new_tag, '-----')[0] }}
     steps:
       - uses: actions/checkout@v4
       - name: Create Tag
