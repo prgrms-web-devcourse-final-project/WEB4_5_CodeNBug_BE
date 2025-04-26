@@ -15,7 +15,7 @@ jobs:
   makeTagAndReleaseMainServer:
     runs-on: ubuntu-latest
     outputs:
-      tag_name: ${{ split(steps.create_tag.outputs.new_tag, '-----')[0] }}
+      tag_name: ${{ steps.sanitize_tag.outputs.clean_tag }}
     steps:
       - uses: actions/checkout@v4
       - name: Create Tag
@@ -24,6 +24,17 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           tag_prefix: 'v'
+      - name: Sanitize Tag
+        id: sanitize_tag
+        run: |
+            # raw tag, e.g. v0.0.1-----ci-cd.8
+            RAW="${{ steps.create_tag.outputs.new_tag }}"
+            # strip everything from the first '-----' onward
+            CLEAN="${RAW%%-----*}"
+            echo "Raw tag: $RAW"
+            echo "Clean tag: $CLEAN"
+            # set as a step output
+            echo "clean_tag=$CLEAN" >> $GITHUB_OUTPUT
 
       - name: Create Release
         id: create_release
