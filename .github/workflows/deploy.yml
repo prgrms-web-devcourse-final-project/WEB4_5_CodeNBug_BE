@@ -62,11 +62,11 @@ jobs:
           OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"    echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
       - name: export image name
         id: export_image
-        run: echo "image_name=backend-queue-deploy" >> $GITHUB_OUTPUT
+        run: echo "image_name=backend-main-deploy" >> $GITHUB_OUTPUT
       - name: 빌드 앤 푸시
         uses: docker/build-push-action@v6
         with:
-          context: ./main-server
+          context: service/main-server
           push: true
           tags: |
             ghcr.io/${{ env.OWNER_LC }}/backend-main-deploy:${{ needs.makeTagAndReleaseMainServer.outputs.tag_name }},  
@@ -138,7 +138,7 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.QUEUE_APPLICATION_SECRET }}
-        run: echo "$APPLICATION_SECRET" > queue-server/src/main/resources/application-secret.yml
+        run: echo "$APPLICATION_SECRET" > service/queue-server/src/main/resources/application-secret.yml
       - name: Docker Buildx 설치
         uses: docker/setup-buildx-action@v3
       - name: 레지스트리 로그인
@@ -158,7 +158,7 @@ jobs:
       - name: 빌드 앤 푸시
         uses: docker/build-push-action@v6
         with:
-          context: ./queue-server
+          context: service/queue-server
           push: true
           tags: |
             ghcr.io/${{ env.OWNER_LC }}/backend-queue-deploy:${{ needs.makeTagAndReleaseQueueServer.outputs.tag_name }},  
@@ -191,7 +191,7 @@ jobs:
           working-directory: /
           comment: Deploy
           command: |
-            docker pull ghcr.io/${{ needs.buildImageAndPushMainServer.outputs.owner_lc }}/${{ needs.buildImageAndPushMainServer.outputs.image_name }}:latest && \    
+            docker pull ghcr.io/${{ needs.buildImageAndPushQueueServer.outputs.owner_lc }}/${{ needs.buildImageAndPushQueueServer.outputs.image_name }}:latest && \    
             docker stop app1 2>/dev/null || true && \  
             docker rm app1 2>/dev/null || true && \            docker run -d --name app1 --network common -p 8080:8080 ghcr.io/${{ needs.buildImageAndPushMainServer.outputs.owner_lc }}/${{ needs.buildImageAndPushMainServer.outputs.image_name }}:latest && \    
             docker rmi $(docker images -f "dangling=true" -q) || true
