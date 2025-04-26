@@ -15,7 +15,7 @@ jobs:
   makeTagAndReleaseMainServer:
     runs-on: ubuntu-latest
     outputs:
-      tag_name: main-${{ steps.create_tag.outputs.new_tag }}
+      tag_name: main${{ steps.create_tag.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
       - name: Create Tag
@@ -105,7 +105,7 @@ jobs:
   makeTagAndReleaseQueueServer:
     runs-on: ubuntu-latest
     outputs:
-      tag_name: queue-${{ steps.create_tag.outputs.new_tag }}
+      tag_name: queue${{ steps.create_tag.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
       - name: Create Tag
