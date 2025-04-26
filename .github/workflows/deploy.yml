@@ -83,8 +83,8 @@ jobs:
           context: service/main-server
           push: true
           tags: |
-            ghcr.io/${{ env.OWNER_LC }}/backend-main-deploy:${{ needs.makeTagAndReleaseMainServer.outputs.tag_name }},  
-            ghcr.io/${{ env.OWNER_LC }}/backend-main-deploy:latest
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseMainServer.outputs.tag_name }},  
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest
   deployMainServer:
     runs-on: ubuntu-latest
     needs: [ buildImageAndPushMainServer ]
@@ -175,8 +175,8 @@ jobs:
           context: service/queue-server
           push: true
           tags: |
-            ghcr.io/${{ env.OWNER_LC }}/backend-queue-deploy:${{ needs.makeTagAndReleaseQueueServer.outputs.tag_name }},  
-            ghcr.io/${{ env.OWNER_LC }}/backend-queue-deploy:latest  
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ needs.makeTagAndReleaseQueueServer.outputs.tag_name }},  
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest
   deployQueueServer:
     runs-on: ubuntu-latest
     needs: [ buildImageAndPushQueueServer ]
