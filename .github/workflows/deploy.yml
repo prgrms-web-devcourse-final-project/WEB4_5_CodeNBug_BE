@@ -82,7 +82,7 @@ jobs:
       - name: 빌드 앤 푸시
         uses: docker/build-push-action@v6
         with:
-          context: service/main-server
+          context: .
           push: true
           tags: |
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseMainServer.outputs.tag_name }}

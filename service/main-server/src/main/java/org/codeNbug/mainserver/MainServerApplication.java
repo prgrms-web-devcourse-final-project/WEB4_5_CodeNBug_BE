@@ -1,4 +1,4 @@
-package org.omegafrog.mainserver;
+package org.codeNbug.mainserver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
