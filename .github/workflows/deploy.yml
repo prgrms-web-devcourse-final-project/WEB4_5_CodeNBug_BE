@@ -3,12 +3,12 @@ on:
   push:
     paths:
       - ".github/workflows/**"
-      - "main-server/src/**"
-      - "main-server/build.gradle"
-      - "main-server/Dockerfile"
-      - "queue-server/src/**"
-      - "queue-server/build.gradle"
-      - "queue-server/Dockerfile"
+      - "service/main-server/src/**"
+      - "service/main-server/build.gradle"
+      - "service/main-server/Dockerfile"
+      - "service/queue-server/src/**"
+      - "service/queue-server/build.gradle"
+      - "service/queue-server/Dockerfile"
     branches:
       - "**"
 jobs:
@@ -47,7 +47,7 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
-        run: echo "$APPLICATION_SECRET" > main-server/src/main/resources/application-secret.yml
+        run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
       - name: Docker Buildx 설치
         uses: docker/setup-buildx-action@v3
       - name: 레지스트리 로그인
