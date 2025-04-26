@@ -85,7 +85,7 @@ jobs:
           context: service/main-server
           push: true
           tags: |
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseMainServer.outputs.tag_name }},  
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseMainServer.outputs.tag_name }}
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest
   deployMainServer:
     runs-on: ubuntu-latest
