@@ -1,7 +1,5 @@
 name: deploy
-permissions:
-  contents: read       # 소스 체크아웃 권한
-  packages: write      # GitHub Packages(ghcr.io)에 푸시할 권한
+
 on:
   push:
     paths:
