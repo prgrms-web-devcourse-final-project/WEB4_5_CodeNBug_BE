@@ -197,7 +197,7 @@ jobs:
           context: service/queue-server
           push: true
           tags: |
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ needs.makeTagAndReleaseQueueServer.outputs.tag_name }},  
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ needs.makeTagAndReleaseQueueServer.outputs.tag_name }}  
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest
   deployQueueServer:
     runs-on: ubuntu-latest
