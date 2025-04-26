@@ -10,7 +10,7 @@ on:
       - "queue-server/build.gradle"
       - "queue-server/Dockerfile"
     branches:
-      - *
+      - "**"
 jobs:
   makeTagAndReleaseMainServer:
     runs-on: ubuntu-latest
