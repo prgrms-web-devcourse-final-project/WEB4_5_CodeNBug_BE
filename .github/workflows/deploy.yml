@@ -76,13 +76,14 @@ jobs:
           OWNER_LC="team1"
           echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
 
-      - name: export image name
+      - name: export image namex
         id: export_image
         run: echo "image_name=backend-main-deploy" >> $GITHUB_OUTPUT
       - name: 빌드 앤 푸시
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: service/main-server/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseMainServer.outputs.tag_name }}
