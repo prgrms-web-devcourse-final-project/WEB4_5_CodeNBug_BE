@@ -32,7 +32,7 @@ public class Seat {
 
 	@ManyToOne
 	@JoinColumn(name = "layout_id", nullable = false)
-	private SeatLayout layoutId;
+	private SeatLayout layout;
 
 	@OneToOne
 	@JoinColumn(name = "ticket_id")
