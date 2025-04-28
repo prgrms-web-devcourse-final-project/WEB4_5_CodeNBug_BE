@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.domain.User.Entity;
+package org.codeNbug.mainserver.domain.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -6,7 +6,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 
 /**
  * User 엔티티 클래스
@@ -40,7 +39,7 @@ public class User {
     @Column(name = "phoneNum", length = 255)
     private String phoneNum;
 
-    @Column(name = "location", length = 255)
+    @Column(name = "addresses", length = 255)
     private String location;
 
     @Column(name = "role", length = 255)

@@ -28,6 +28,7 @@ out/
 .env
 .env/*
 ./env/*
+./service/main-server/src/main/resources/application-dev.yml
 
 ### NetBeans ###
 /nbproject/private/
