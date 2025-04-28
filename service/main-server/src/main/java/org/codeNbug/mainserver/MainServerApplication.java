@@ -1,13 +1,13 @@
-package org.omegafrog.queueserver;
+package org.codeNbug.mainserver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class QueueServerApplication {
+public class MainServerApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(QueueServerApplication.class, args);
+		SpringApplication.run(MainServerApplication.class, args);
 	}
 
 }

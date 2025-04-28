@@ -1,4 +1,4 @@
-package org.omegafrog.mainserver;
+package org.codeNbug.mainserver;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
