@@ -1,8 +1,0 @@
-db:
-  url: jdbc:mysql://localhost:3306/ticketing_platform
-  username: ticketon
-  password: ticketon1!
-
-redis:
-  port: 6379
-  host: localhost
