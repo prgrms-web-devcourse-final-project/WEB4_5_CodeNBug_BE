@@ -12,8 +12,6 @@ public class ManagerService {
     private final EventRepository eventRepository;
 
     public EventRegisterResponse eventRegister(EventRegisterRequest request) {
-
-
         return null;
     }
 }

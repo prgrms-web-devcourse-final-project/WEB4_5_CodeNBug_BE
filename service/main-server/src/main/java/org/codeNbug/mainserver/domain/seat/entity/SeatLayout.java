@@ -1,6 +1,5 @@
 package org.codeNbug.mainserver.domain.seat.entity;
 
-import org.codeNbug.mainserver.manager.entity.Event;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.OneToOne;
 import lombok.Data;
+import org.codeNbug.mainserver.domain.manager.entity.Event;
 
 @Entity
 @Data
