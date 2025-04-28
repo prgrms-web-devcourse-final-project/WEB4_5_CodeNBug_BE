@@ -39,3 +39,7 @@ out/
 ### custom ###
 application-dev.yml
 application-secret.yml
+
+### cursor ###
+.cursor/rules/*
+.cursor/*

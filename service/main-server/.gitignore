@@ -39,3 +39,8 @@ out/
 ### custom ###
 application-dev.yml
 application-secret.yml
+
+### cursor ###
+./cursor/*
+./cursor/rules/*
+./cursor/rules/java.mdc
