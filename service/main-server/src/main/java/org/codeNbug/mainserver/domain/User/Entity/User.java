@@ -1,0 +1,63 @@
+package org.codeNbug.mainserver.domain.User.Entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+
+/**
+ * User 엔티티 클래스
+ */
+@Entity
+@Table(name = "users")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
+    private Long userId;
+
+    @Column(name = "email", length = 255, nullable = false)
+    private String email;
+
+    @Column(name = "password", length = 255, nullable = false)
+    private String password;
+
+    @Column(name = "name", length = 255)
+    private String name;
+
+    @Column(name = "join", length = 255)
+    private String join;
+
+    @Column(name = "phoneNum", length = 255)
+    private String phoneNum;
+
+    @Column(name = "location", length = 255)
+    private String location;
+
+    @Column(name = "role", length = 255)
+    private String role;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "modified_at")
+    private LocalDateTime modifiedAt;
+
+    @Column(name = "thumbnail_url", length = 255)
+    private String thumbnailUrl;
+
+    /*@Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notification> notifications = new ArrayList<>();*/
+}
