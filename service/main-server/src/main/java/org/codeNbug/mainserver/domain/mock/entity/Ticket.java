@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.mock.entity;
+package org.codeNbug.mainserver.domain.mock.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

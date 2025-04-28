@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.seat.entity;
+package org.codeNbug.mainserver.domain.seat.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

@@ -1,6 +1,6 @@
-package org.codeNbug.mainserver.seat.entity;
+package org.codeNbug.mainserver.domain.seat.entity;
 
-import org.codeNbug.mainserver.mock.entity.Ticket;
+import org.codeNbug.mainserver.domain.mock.entity.Ticket;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
