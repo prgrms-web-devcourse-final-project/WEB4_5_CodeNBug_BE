@@ -62,7 +62,7 @@ public class Event {
     private LocalDateTime modifiedAt;
 
     @Enumerated(EnumType.STRING)
-    private org.codeNbug.mainserver.manager.entity.EventStatus status;
+    private EventStatus status;
 
     @Column(columnDefinition = "boolean default true")
     private Boolean seatSelectable;
