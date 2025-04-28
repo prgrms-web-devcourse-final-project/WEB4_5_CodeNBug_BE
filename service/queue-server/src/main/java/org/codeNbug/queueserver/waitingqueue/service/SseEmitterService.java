@@ -30,4 +30,8 @@ public class SseEmitterService {
 
 		return emitter;
 	}
+
+	public Map<Long, SseEmitter> getEmitterMap() {
+		return emitterMap;
+	}
 }
