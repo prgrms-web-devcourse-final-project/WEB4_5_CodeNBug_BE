@@ -34,8 +34,8 @@ public class User {
     @Column(name = "name", length = 255)
     private String name;
 
-    @Column(name = "join", length = 255)
-    private String join;
+    @Column(name = "sex", nullable = false)
+    private String sex;
 
     @Column(name = "phoneNum", length = 255)
     private String phoneNum;
@@ -45,6 +45,9 @@ public class User {
 
     @Column(name = "role", length = 255)
     private String role;
+
+    @Column(name = "age", nullable = false)
+    private Integer age;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
