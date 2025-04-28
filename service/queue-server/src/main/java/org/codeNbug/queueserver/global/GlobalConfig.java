@@ -13,8 +13,12 @@ public class GlobalConfig {
 		return new UserService() {
 			@Override
 			public User getLoggedInUser() {
-				throw new UnsupportedOperationException("아직 구현되지 않았습니다.");
-
+				return new User() {
+					@Override
+					public Long getId() {
+						return 1L;
+					}
+				};
 			}
 		};
 	}
