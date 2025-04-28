@@ -2,6 +2,8 @@ package org.codeNbug.mainserver.global.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.springframework.lang.NonNull;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
