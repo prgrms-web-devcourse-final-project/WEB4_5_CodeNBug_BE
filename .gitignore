@@ -41,4 +41,5 @@ application-dev.yml
 application-secret.yml
 
 ### cursor ###
-.cursor/rules/
+.cursor/rules/*
+.cursor/*
