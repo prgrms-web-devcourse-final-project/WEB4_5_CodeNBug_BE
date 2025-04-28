@@ -3,6 +3,7 @@ package org.codeNbug.queueserver.waitingqueue.service;
 import org.codeNbug.mainserver.user.entity.User;
 import org.codeNbug.mainserver.user.service.UserService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Service
 public class WaitingQueueService {
@@ -15,14 +16,15 @@ public class WaitingQueueService {
 		this.sseEmitterService = sseEmitterService;
 	}
 
-	public void entry(Long eventId) {
+	public SseEmitter entry(Long eventId) {
 		// 로그인한 유저 조회
 		User loggedInUser = userService.getLoggedInUser();
 
 		// emitter 생성 및 저장
-		sseEmitterService.add(loggedInUser.getId(), eventId);
+		SseEmitter emitter = sseEmitterService.add(loggedInUser.getId(), eventId);
 
 		// TODO: waiting thread에 유저를 추가하도록 전달
 
+		return emitter;
 	}
 }

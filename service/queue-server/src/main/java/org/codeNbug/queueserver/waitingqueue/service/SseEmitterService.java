@@ -11,9 +11,9 @@ public class SseEmitterService {
 
 	private static Map<Long, SseEmitter> emitterMap = new ConcurrentHashMap<Long, SseEmitter>();
 
-	public void add(Long userId, Long eventId) {
+	public SseEmitter add(Long userId, Long eventId) {
 		// 새로운 emitter 생성
-		SseEmitter emitter = new SseEmitter();
+		SseEmitter emitter = new SseEmitter(0L);
 		emitter.onCompletion(() -> emitterMap.remove(userId));
 
 		// 초기 메시지 전달
@@ -27,5 +27,7 @@ public class SseEmitterService {
 
 		// 전역 공간에 emitter 저장
 		emitterMap.put(userId, emitter);
+
+		return emitter;
 	}
 }
