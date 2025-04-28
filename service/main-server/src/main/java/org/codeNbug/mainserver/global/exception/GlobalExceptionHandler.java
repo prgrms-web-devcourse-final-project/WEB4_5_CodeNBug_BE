@@ -1,9 +1,9 @@
 package org.codeNbug.mainserver.global.exception;
 
 import jakarta.validation.ConstraintViolationException;
-import org.codeNbug.mainserver.global.dto.ApiResponse;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
+import org.codeNbug.mainserver.global.dto.RsData;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -30,9 +30,9 @@ public class GlobalExceptionHandler {
      * @return API 응답
      */
     @ExceptionHandler(DuplicateEmailException.class)
-    public ResponseEntity<ApiResponse<Object>> handleDuplicateEmailException(DuplicateEmailException e) {
+    public ResponseEntity<RsData<Object>> handleDuplicateEmailException(DuplicateEmailException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error(409, e.getMessage()));
+                .body(new RsData<>("409-CONFLICT", e.getMessage()));
     }
 
     /**
@@ -43,9 +43,9 @@ public class GlobalExceptionHandler {
      * @return API 응답
      */
     @ExceptionHandler(AuthenticationFailedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAuthenticationFailedException(AuthenticationFailedException e) {
+    public ResponseEntity<RsData<Object>> handleAuthenticationFailedException(AuthenticationFailedException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(401, e.getMessage()));
+                .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
     }
 
     /**
@@ -56,9 +56,9 @@ public class GlobalExceptionHandler {
      * @return API 응답
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Object>> handleValidationExceptions(MethodArgumentNotValidException e) {
+    public ResponseEntity<RsData<Object>> handleValidationExceptions(MethodArgumentNotValidException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, "데이터 형식이 잘못되었습니다."));
+                .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
     }
 
     /**
@@ -69,9 +69,9 @@ public class GlobalExceptionHandler {
      * @return API 응답
      */
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<ApiResponse<Object>> handleBindException(BindException e) {
+    public ResponseEntity<RsData<Object>> handleBindException(BindException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, "데이터 형식이 잘못되었습니다."));
+                .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
     }
 
     /**
@@ -82,9 +82,9 @@ public class GlobalExceptionHandler {
      * @return API 응답
      */
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleConstraintViolationException(ConstraintViolationException e) {
+    public ResponseEntity<RsData<Object>> handleConstraintViolationException(ConstraintViolationException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, "데이터 형식이 잘못되었습니다."));
+                .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
     }
 
     /**
@@ -95,9 +95,9 @@ public class GlobalExceptionHandler {
      * @return API 응답
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
+    public ResponseEntity<RsData<Object>> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, "필수 데이터가 누락되었습니다."));
+                .body(new RsData<>("400-BAD_REQUEST", "필수 데이터가 누락되었습니다."));
     }
 
     /**
@@ -108,9 +108,9 @@ public class GlobalExceptionHandler {
      * @return API 응답
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+    public ResponseEntity<RsData<Object>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400, "데이터 형식이 잘못되었습니다."));
+                .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
     }
 
     /**
@@ -121,8 +121,8 @@ public class GlobalExceptionHandler {
      * @return API 응답
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handleAllExceptions(Exception e) {
+    public ResponseEntity<RsData<Object>> handleAllExceptions(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500, "서버 오류가 발생했습니다."));
+                .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
     }
 } 

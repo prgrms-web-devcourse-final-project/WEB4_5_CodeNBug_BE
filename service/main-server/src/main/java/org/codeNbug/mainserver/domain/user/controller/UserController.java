@@ -9,7 +9,7 @@ import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.service.UserService;
-import org.codeNbug.mainserver.global.dto.ApiResponse;
+import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
 import org.springframework.http.HttpStatus;
@@ -34,27 +34,27 @@ public class UserController {
      * @return API 응답
      */
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<SignupResponse>> signup(
+    public ResponseEntity<RsData<SignupResponse>> signup(
             @Valid @RequestBody SignupRequest request,
             BindingResult bindingResult) {
 
         // 입력값 유효성 검사
         if (bindingResult.hasErrors()) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(400, "데이터 형식이 잘못되었습니다."));
+                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
         }
 
         try {
             // 회원가입 처리
             SignupResponse response = userService.signup(request);
             return ResponseEntity.ok(
-                    ApiResponse.success("회원가입 성공", response));
+                    new RsData<>("200-SUCCESS", "회원가입 성공", response));
         } catch (DuplicateEmailException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.error(409, e.getMessage()));
+                    .body(new RsData<>("409-CONFLICT", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error(500, "서버 오류가 발생했습니다."));
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
     }
 
@@ -67,7 +67,7 @@ public class UserController {
      * @return API 응답
      */
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(
+    public ResponseEntity<RsData<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
             BindingResult bindingResult,
             HttpServletResponse response) {
@@ -75,7 +75,7 @@ public class UserController {
         // 입력값 유효성 검사
         if (bindingResult.hasErrors()) {
             return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(400, "데이터 형식이 잘못되었습니다."));
+                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
         }
 
         try {
@@ -99,14 +99,14 @@ public class UserController {
             response.addCookie(refreshTokenCookie);
             
             return ResponseEntity.ok(
-                    ApiResponse.success("로그인 성공", loginResponse));
+                    new RsData<>("200-SUCCESS", "로그인 성공", loginResponse));
             
         } catch (AuthenticationFailedException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error(401, e.getMessage()));
+                    .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError()
-                    .body(ApiResponse.error(500, "서버 오류가 발생했습니다."));
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
     }
 }

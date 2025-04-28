@@ -29,7 +29,7 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: ${jwt.secret:VGhpcyBpcyBhIHNlY3JldCBrZXkgdGhhdCBzaG91bGQgYmUgc3RvcmVkIHNlY3VyZWx5IHdpdGggYXQgbGVhc3QgMjU2IGJpdHM=}
+  secret: VGhpcyBpcyBhIHNlY3JldCBrZXkgdGhhdCBzaG91bGQgYmUgc3RvcmVkIHNlY3VyZWx5IHdpdGggYXQgbGVhc3QgMjU2IGJpdHM=
   expiration: 86400000 # 24 hours in milliseconds
 
 # CORS Configuration
