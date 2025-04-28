@@ -2,19 +2,18 @@ server:
   port: 9000
 
 spring:
+  profiles:
+    active: dev
+
   data:
     redis:
-      port: 6379
-      host: localhost
+      port: ${redis.port}
+      host: ${redis.host}
 
   datasource:
-    url: jdbc:mysql://localhost:3306
-    username: root
-    hikari:
-      auto-commit: false
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    password: password
-
+    url: ${db.url}
+    username: ${db.username}
+    password: ${db.password}
   jpa:
     hibernate:
       ddl-auto: update
