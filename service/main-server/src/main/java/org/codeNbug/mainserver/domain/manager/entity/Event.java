@@ -62,7 +62,7 @@ public class Event {
     private LocalDateTime modifiedAt;
 
     @Enumerated(EnumType.STRING)
-    private EventStatus status;
+    private EventStatusEnum status;
 
     @Column(columnDefinition = "boolean default true")
     private Boolean seatSelectable;
