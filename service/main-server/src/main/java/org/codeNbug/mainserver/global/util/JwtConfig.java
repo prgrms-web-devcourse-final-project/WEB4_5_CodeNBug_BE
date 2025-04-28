@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.global.security.config;
+package org.codeNbug.mainserver.global.util;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -27,7 +27,7 @@ public class JwtConfig {
 
     /**
      * JWT 서명에 사용할 키를 생
-     * 
+     *
      * @return 서명용 암호화 키
      */
     private Key getSigningKey() {
