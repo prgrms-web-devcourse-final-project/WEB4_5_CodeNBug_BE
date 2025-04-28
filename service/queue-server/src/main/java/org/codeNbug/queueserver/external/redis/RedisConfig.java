@@ -17,7 +17,7 @@ public class RedisConfig {
 	// 메시지의 idx 값을 저장하기 위한 space의 key값
 	public static final String WAITING_QUEUE_IDX_KEY_NAME = "WAITING_QUEUE_IDX";
 	// 메시지 내부의 userId 속성의 키 값
-	public static final String WAITING_QUEUE_MESSAGE_USER_ID_KEY_NAME = "usrId";
+	public static final String WAITING_QUEUE_MESSAGE_USER_ID_KEY_NAME = "userId";
 	// 메시지 내부의 eventId 속성의 키 값
 	public static final String WAITING_QUEUE_MESSAGE_EVENT_ID_KEY_NAME = "eventId";
 	// 메시지 내부의 idx 속성의 키 값
