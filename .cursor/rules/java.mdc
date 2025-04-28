@@ -1,0 +1,79 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Spring Boot Configuration Guide
+
+This guide outlines best practices for developing a Spring Boot 3.4.4 application with MongoDB and MySQL databases, using Gradle as the build tool. It emphasizes clean code, scalability, and maintainability, adhering to modern Java and Spring Boot standards.
+
+## Code Style and Structure
+- Write clean, efficient, and well-documented Java code for Spring Boot 3.4.4.
+- Structure applications into layers: controllers, services, repositories, models, and configurations.
+- Use camelCase for methods and variables (e.g., findUserById, isOrderValid) and PascalCase for classes (e.g., UserController, OrderService).
+- Define constants in ALL_CAPS (e.g., MAX_RETRY_ATTEMPTS, DEFAULT_PAGE_SIZE).
+
+## Spring Boot Specifics
+- Use Spring Boot 3.4.4 starters for dependency management (e.g., spring-boot-starter-web, spring-boot-starter-data-jpa, spring-boot-starter-data-mongodb).
+- Apply annotations like @SpringBootApplication, @RestController, @Service, @Repository, and @Configuration.
+- Leverage Spring Boot's auto-configuration for MongoDB and MySQL.
+- Implement global exception handling with @ControllerAdvice and @ExceptionHandler.
+
+## Java and Spring Boot Usage
+- Utilize Java 21 features (e.g., records, sealed classes, pattern matching).
+- Design RESTful APIs with proper HTTP methods and status codes.
+- Use Spring Data JPA for MySQL and Spring Data MongoDB for MongoDB operations.
+- Apply Bean Validation with @Valid and custom validators.
+
+## Configuration and Properties
+- Use application.yml for configuration, with environment-specific settings via Spring Profiles (dev, test, prod).
+- Implement type-safe configuration with @ConfigurationProperties.
+
+## Dependency Injection and IoC
+- Prefer constructor injection for better testability.
+- Manage bean lifecycles using Spring's IoC container.
+
+## Build and Dependency Management
+- Use Gradle for build and dependency management, configured for Spring Boot 3.4.4.
+
+## Data Access and ORM
+- Use Spring Data JPA for MySQL with proper entity mappings and cascading.
+- Use Spring Data MongoDB for MongoDB with @Document and @MongoRepository.
+- Implement database migrations with Flyway for MySQL and Mongock for MongoDB.
+
+## Testing
+- Write unit tests with JUnit 5 and Spring Boot Test.
+- Use MockMvc for testing REST controllers.
+- Use @DataJpaTest for MySQL repository tests and @DataMongoTest for MongoDB repository tests.
+- Implement integration tests with @SpringBootTest.
+
+## Performance and Scalability
+- Implement caching with Spring Cache (e.g., @Cacheable, @CacheEvict).
+- Use @Async for non-blocking operations.
+- Optimize database queries with proper indexing for MySQL and MongoDB.
+
+## Security
+- Use Spring Security for authentication and authorization.
+- Encode passwords with BCrypt.
+- Configure CORS for cross-origin requests.
+
+## Logging and Monitoring
+- Use SLF4J with Logback for logging.
+- Implement log levels: ERROR, WARN, INFO, DEBUG.
+- Enable Spring Boot Actuator for monitoring and metrics.
+
+## API Documentation
+- Use Springdoc OpenAPI for generating Swagger UI documentation.
+
+## Deployment
+- Use Gradle for building the application.
+- Containerize with Docker for consistent deployments.
+
+## Best Practices
+- Follow RESTful API design principles (e.g., proper HTTP methods, status codes).
+- Adhere to SOLID principles for maintainable code.
+- Use Spring Profiles for environment-specific configurations.
+- Implement microservices architecture if applicable, using Spring Cloud for service discovery and configuration.
+
+This configuration ensures a robust, scalable, and maintainable Spring Boot 3.4.4 application with MongoDB and MySQL, built using Gradle.
+

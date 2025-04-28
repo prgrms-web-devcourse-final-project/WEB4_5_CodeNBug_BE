@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.manager.entity;
+package org.codeNbug.mainserver.domain.manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
