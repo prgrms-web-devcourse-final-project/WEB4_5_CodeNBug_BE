@@ -26,3 +26,9 @@ spring:
         default_batch_fetch_size: 100
         dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
+
+# CORS Configuration
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - https://your-production-domain.com

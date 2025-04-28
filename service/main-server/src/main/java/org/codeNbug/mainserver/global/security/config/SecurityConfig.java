@@ -36,16 +36,19 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService;
+    private final CorsProperties corsProperties;
 
     /**
      * SecurityConfig 생성자
      *
      * @param jwtAuthenticationFilter JWT 인증 필터
      * @param userDetailsService      사용자 상세 정보 서비스
+     * @param corsProperties          CORS 설정 프로퍼티
      */
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, UserDetailsService userDetailsService) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, UserDetailsService userDetailsService, CorsProperties corsProperties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.userDetailsService = userDetailsService;
+        this.corsProperties = corsProperties;
     }
 
     /**
@@ -122,7 +125,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://your-production-domain.com"));
+        
+        // application.yml에서 설정한 cors.allowed-origins 속성 사용
+        List<String> allowedOrigins = corsProperties.getAllowedOrigins();
+        if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
+            configuration.setAllowedOrigins(allowedOrigins);
+        } else {
+            // 기본값 설정
+            configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        }
+        
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);
