@@ -14,6 +14,9 @@ RUN gradle dependencies --no-daemon
 
 # 소스 코드 복사
 COPY service/main-server/src/main/java ./service/main-server/src/main/java
+COPY service/main-server/src/main/resources/application.yml ./service/main-server/src/main/resources/application.yml
+COPY service/main-server/src/main/resources/application-prod.yml ./service/main-server/src/main/resources/application-prod.yml
+
 RUN ls ./service/main-server/src
 RUN ls -al ./service/main-server/src/main/resources
 RUN cat ./service/main-server/src/main/resources/application-secret.yml
