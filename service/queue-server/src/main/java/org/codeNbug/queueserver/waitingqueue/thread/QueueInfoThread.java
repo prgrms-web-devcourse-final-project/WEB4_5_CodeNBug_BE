@@ -37,7 +37,7 @@ public class QueueInfoThread {
 	public void run() {
 
 		// emitter map 가져옵니다
-		Map<Long, SseEmitter> emitterMap = emitterService.getEmitterMap();
+		Map<Long, SseConnection> emitterMap = emitterService.getEmitterMap();
 
 		// redis waiting queue의 모든 요소를 가져옵니다
 		StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
@@ -65,7 +65,7 @@ public class QueueInfoThread {
 			}
 
 			// 파싱한 userId로 sse 연결 객체를 가져옵니다.
-			SseEmitter emitter = emitterMap.get(userId);
+			SseEmitter emitter = emitterMap.get(userId).getEmitter();
 			// 대기열 순번을 계산하고 sse 메시지를 전송합니다.
 			try {
 				emitter.send(
