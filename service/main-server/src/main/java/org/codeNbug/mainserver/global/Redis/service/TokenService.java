@@ -30,7 +30,7 @@ public class TokenService {
         String refreshToken = jwtConfig.generateRefreshToken(email);
 
         // Refresh Token을 Redis에 저장
-        redisRepository.saveRefreshToken(email, refreshToken, jwtConfig.getRefreshTokenExpiration());
+        redisRepository.saveRefreshToken(refreshToken, email, jwtConfig.getRefreshTokenExpiration());
 
         return TokenInfo.of(accessToken, refreshToken);
     }
@@ -38,16 +38,15 @@ public class TokenService {
     /**
      * Refresh Token을 이용해 새로운 Access Token을 발급
      *
-     * @param email 사용자 이메일
      * @param refreshToken Refresh Token
      * @return 새로운 Access Token
      * @throws InvalidTokenException Refresh Token이 유효하지 않은 경우
      */
     @Transactional
-    public String refreshAccessToken(String email, String refreshToken) {
-        // Redis에서 Refresh Token 조회
-        String storedRefreshToken = redisRepository.getRefreshToken(email);
-        if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
+    public String refreshAccessToken(String refreshToken) {
+        // Redis에서 Refresh Token으로 이메일 조회
+        String email = redisRepository.getEmailByRefreshToken(refreshToken);
+        if (email == null) {
             throw new InvalidTokenException("유효하지 않은 Refresh Token입니다.");
         }
 
@@ -58,11 +57,11 @@ public class TokenService {
     /**
      * 로그아웃 시 토큰을 무효화
      *
-     * @param email 사용자 이메일
+     * @param refreshToken Refresh Token
      */
     @Transactional
-    public void invalidateTokens(String email) {
-        redisRepository.deleteRefreshToken(email);
+    public void invalidateTokens(String refreshToken) {
+        redisRepository.deleteRefreshToken(refreshToken);
     }
 
     /**
