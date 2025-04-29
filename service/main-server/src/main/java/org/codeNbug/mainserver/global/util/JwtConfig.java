@@ -22,11 +22,14 @@ public class JwtConfig {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration:86400000}") // 24시간 (밀리초)
-    private long jwtExpiration;
+    @Value("${jwt.access-token-expiration:1800000}") // 30분 (밀리초)
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token-expiration:604800000}") // 7일 (밀리초)
+    private long refreshTokenExpiration;
 
     /**
-     * JWT 서명에 사용할 키를 생
+     * JWT 서명에 사용할 키를 생성
      *
      * @return 서명용 암호화 키
      */
@@ -36,14 +39,35 @@ public class JwtConfig {
     }
 
     /**
-     * 사용자 이름을 기반으로 JWT 토큰을 생성
+     * Access Token을 생성
      * 
      * @param username 토큰에 포함될 사용자 이름
+     * @return 생성된 Access Token 문자열
+     */
+    public String generateAccessToken(String username) {
+        return generateToken(username, accessTokenExpiration);
+    }
+
+    /**
+     * Refresh Token을 생성
+     * 
+     * @param username 토큰에 포함될 사용자 이름
+     * @return 생성된 Refresh Token 문자열
+     */
+    public String generateRefreshToken(String username) {
+        return generateToken(username, refreshTokenExpiration);
+    }
+
+    /**
+     * JWT 토큰을 생성
+     * 
+     * @param username 토큰에 포함될 사용자 이름
+     * @param expiration 만료 시간 (밀리초)
      * @return 생성된 JWT 토큰 문자열
      */
-    public String generateToken(String username) {
+    private String generateToken(String username, long expiration) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpiration);
+        Date expiryDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .setSubject(username)
@@ -124,5 +148,14 @@ public class JwtConfig {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * Refresh Token의 만료 시간을 반환
+     *
+     * @return Refresh Token의 만료 시간 (밀리초)
+     */
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpiration;
     }
 } 
