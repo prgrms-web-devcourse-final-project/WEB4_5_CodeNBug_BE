@@ -4,19 +4,18 @@ package org.codeNbug.mainserver.domain.manager.controller;
 import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterResponse;
-import org.codeNbug.mainserver.domain.manager.service.ManagerService;
+import org.codeNbug.mainserver.domain.manager.service.EventEditService;
+import org.codeNbug.mainserver.domain.manager.service.EventRegisterService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/manager/events")
 public class ManagerController {
-    private final ManagerService managerService;
+    private final EventRegisterService eventRegisterService;
+    private final EventEditService eventEditService;
 
     /**
      * 이벤트 등록 API
@@ -25,7 +24,24 @@ public class ManagerController {
      */
     @PostMapping
     public ResponseEntity<RsData<EventRegisterResponse>> eventRegister(@RequestBody EventRegisterRequest request) {
-        EventRegisterResponse response = managerService.registerEvent(request);
-        return ResponseEntity.ok(RsData.success("이벤트 등록 성공", response));
+        EventRegisterResponse response = eventRegisterService.registerEvent(request);
+        return ResponseEntity.ok(new RsData<>(
+                "200",
+                "이벤트 등록 성공",
+                response
+        ));
+    }
+
+    @PutMapping("/{eventId}")
+    public ResponseEntity<RsData<EventRegisterResponse>> updateEvent(
+            @PathVariable Long eventId,
+            @RequestBody EventRegisterRequest request
+    ) {
+        EventRegisterResponse response = eventEditService.editEvent(eventId, request);
+        return ResponseEntity.ok(new RsData<>(
+                "200",
+                "이벤트 수정 성공",
+                response
+        ));
     }
 }
