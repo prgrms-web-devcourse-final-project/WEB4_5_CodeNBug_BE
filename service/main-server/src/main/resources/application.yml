@@ -4,6 +4,7 @@ server:
 spring:
   profiles:
     active: dev
+    include: secret
   data:
     redis:
       port: ${redis.port}
