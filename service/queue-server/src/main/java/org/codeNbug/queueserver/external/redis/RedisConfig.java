@@ -21,6 +21,8 @@ public class RedisConfig {
 	public static final String ENTRY_QUEUE_KEY_NAME = "ENTRY";
 	// 메시지의 idx 값을 저장하기 위한 space의 key값
 	public static final String WAITING_QUEUE_IDX_KEY_NAME = "WAITING_QUEUE_IDX";
+	// entry queue의 현재 인원을  저장하기 위한 space의 key값
+	public static final String ENTRY_QUEUE_COUNT_KEY_NAME = "ENTRY_QUEUE_COUNT";
 	// 메시지 내부의 userId 속성의 키 값
 	public static final String QUEUE_MESSAGE_USER_ID_KEY_NAME = "userId";
 	// 메시지 내부의 eventId 속성의 키 값
@@ -58,6 +60,11 @@ public class RedisConfig {
 		if (redisTemplate.opsForValue().get(WAITING_QUEUE_IDX_KEY_NAME) == null) {
 			redisTemplate.opsForValue()
 				.set(WAITING_QUEUE_IDX_KEY_NAME, 0L);
+		}
+		// entry queue count 데이터가 없다면 생성
+		if (redisTemplate.opsForValue().get(ENTRY_QUEUE_COUNT_KEY_NAME) == null) {
+			redisTemplate.opsForValue()
+				.set(ENTRY_QUEUE_COUNT_KEY_NAME, 0L);
 		}
 		return redisTemplate;
 	}
