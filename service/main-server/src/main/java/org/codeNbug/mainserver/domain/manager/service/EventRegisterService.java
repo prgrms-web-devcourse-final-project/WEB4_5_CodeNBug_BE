@@ -73,7 +73,8 @@ public class EventRegisterService {
                 null, // createdAt
                 null, // modifiedAt
                 EventStatusEnum.OPEN,
-                true
+                true,
+                false
         );
 
         return eventRepository.save(event);
