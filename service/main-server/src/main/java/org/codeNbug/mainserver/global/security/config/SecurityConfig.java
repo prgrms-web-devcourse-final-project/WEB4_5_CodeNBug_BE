@@ -110,9 +110,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/v1/email/**").permitAll()
+                        .requestMatchers("/api/v1/manager/**").permitAll()
                         // Swagger UI 관련 경로 허용
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/api/v1/manager/**").permitAll()
                         // 나머지 경로는 인증 필요
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())

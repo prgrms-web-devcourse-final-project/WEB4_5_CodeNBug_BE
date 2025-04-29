@@ -73,12 +73,53 @@ public class UserService {
     }
 
     /**
-     * 로그아웃 서비스
+     * 로그아웃 처리
+     * 토큰을 블랙리스트에 추가하고 Redis에서 RefreshToken을 삭제합니다.
      *
-     * @param refreshToken Refresh Token
+     * @param accessToken  액세스 토큰
+     * @param refreshToken 리프레시 토큰
      */
     @Transactional
-    public void logout(String refreshToken) {
-        tokenService.invalidateTokens(refreshToken);
+    public void logout(String accessToken, String refreshToken) {
+        if (accessToken == null || refreshToken == null) {
+            throw new AuthenticationFailedException("인증 정보가 필요합니다.");
+        }
+
+        // RefreshToken 삭제
+        String email = tokenService.getEmailFromToken(refreshToken);
+        tokenService.deleteRefreshToken(email);
+
+        // AccessToken 블랙리스트 처리
+        long expirationTime = tokenService.getExpirationTimeFromToken(accessToken);
+        tokenService.addToBlacklist(accessToken, expirationTime);
+    }
+
+    /**
+     * 회원 탈퇴 처리
+     * 사용자 정보를 삭제하고 토큰을 무효화합니다.
+     *
+     * @param email 사용자 이메일
+     * @param accessToken 액세스 토큰
+     * @param refreshToken 리프레시 토큰
+     */
+    @Transactional
+    public void withdrawUser(String email, String accessToken, String refreshToken) {
+        if (email == null || accessToken == null || refreshToken == null) {
+            throw new AuthenticationFailedException("인증 정보가 필요합니다.");
+        }
+
+        // 사용자 존재 여부 확인
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 사용자 삭제
+        userRepository.delete(user);
+
+        // RefreshToken 삭제
+        tokenService.deleteRefreshToken(email);
+
+        // AccessToken 블랙리스트 처리
+        long expirationTime = tokenService.getExpirationTimeFromToken(accessToken);
+        tokenService.addToBlacklist(accessToken, expirationTime);
     }
 }

@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.global.util;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,54 +18,80 @@ public class CookieUtil {
     @Value("${jwt.refresh-token-expiration:604800000}")
     private long refreshTokenExpiration;
 
+    private static final String ACCESS_TOKEN_COOKIE_NAME = "accessToken";
+    private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+    private static final int COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7일
+    private static final String COOKIE_PATH = "/";
+
+    /**
+     * 액세스 토큰 쿠키 설정
+     */
     public void setAccessTokenCookie(HttpServletResponse response, String token) {
-        Cookie cookie = new Cookie("accessToken", token);
-        cookie.setPath("/");
-        cookie.setMaxAge((int) (accessTokenExpiration / 1000)); // 밀리초를 초로 변환
-        
-        // 기본 쿠키 속성 설정
+        Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE_NAME, token);
+        cookie.setMaxAge(COOKIE_MAX_AGE);
+        cookie.setPath(COOKIE_PATH);
         cookie.setHttpOnly(true);
-        
-        // 프로덕션 환경에서 보안 설정 추가
-        if (!"dev".equals(activeProfile)) {
-            cookie.setSecure(true);
-            // SameSite=None 설정을 위한 헤더 추가
-            response.addHeader("Set-Cookie", 
-                String.format("%s=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None", 
-                cookie.getName(), 
-                cookie.getValue(), 
-                cookie.getMaxAge()));
-        } else {
-            response.addCookie(cookie);
-        }
+        response.addCookie(cookie);
     }
 
+    /**
+     * 리프레시 토큰 쿠키 설정
+     */
     public void setRefreshTokenCookie(HttpServletResponse response, String token) {
-        // 기존 refresh token 쿠키를 삭제
-        Cookie deleteCookie = new Cookie("refreshToken", null);
-        deleteCookie.setPath("/");
-        deleteCookie.setMaxAge(0);
-        response.addCookie(deleteCookie);
-
-        // 새로운 refresh token 쿠키를 설정
-        Cookie cookie = new Cookie("refreshToken", token);
-        cookie.setPath("/");
-        cookie.setMaxAge((int) (refreshTokenExpiration / 1000));
-        
-        // 기본 쿠키 속성 설정
+        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, token);
+        cookie.setMaxAge(COOKIE_MAX_AGE);
+        cookie.setPath(COOKIE_PATH);
         cookie.setHttpOnly(true);
-        
-        // 프로덕션 환경에서 보안 설정 추가
-        if (!"dev".equals(activeProfile)) {
-            cookie.setSecure(true);
-            // SameSite=None 설정을 위한 헤더 추가
-            response.addHeader("Set-Cookie", 
-                String.format("%s=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None", 
-                cookie.getName(), 
-                cookie.getValue(), 
-                cookie.getMaxAge()));
-        } else {
-            response.addCookie(cookie);
+        response.addCookie(cookie);
+    }
+
+    /**
+     * 액세스 토큰 쿠키 삭제
+     */
+    public void deleteAccessTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE_NAME, null);
+        cookie.setMaxAge(0);
+        cookie.setPath(COOKIE_PATH);
+        response.addCookie(cookie);
+    }
+
+    /**
+     * 리프레시 토큰 쿠키 삭제
+     */
+    public void deleteRefreshTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, null);
+        cookie.setMaxAge(0);
+        cookie.setPath(COOKIE_PATH);
+        response.addCookie(cookie);
+    }
+
+    /**
+     * 요청에서 액세스 토큰 추출
+     */
+    public String getAccessTokenFromCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
         }
+        return null;
+    }
+
+    /**
+     * 요청에서 리프레시 토큰 추출
+     */
+    public String getRefreshTokenFromCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 } 

@@ -7,6 +7,9 @@ import org.codeNbug.mainserver.global.Redis.repository.RedisRepository;
 import org.codeNbug.mainserver.global.util.JwtConfig;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.redis.core.RedisTemplate;
+import java.util.concurrent.TimeUnit;
+import java.util.Date;
 
 /**
  * 토큰 관리를 위한 서비스
@@ -17,6 +20,10 @@ public class TokenService {
 
     private final JwtConfig jwtConfig;
     private final RedisRepository redisRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private static final String BLACKLIST_PREFIX = "blacklist:";
+    private static final String EMAIL_PREFIX = "email:";
 
     /**
      * Access Token과 Refresh Token을 생성하고, Refresh Token을 Redis에 저장
@@ -67,6 +74,44 @@ public class TokenService {
     @Transactional
     public void invalidateTokens(String refreshToken) {
         redisRepository.deleteRefreshToken(refreshToken);
+    }
+
+    /**
+     * 토큰을 블랙리스트에 추가
+     */
+    public void addToBlacklist(String token, long expirationTime) {
+        String key = BLACKLIST_PREFIX + token;
+        redisTemplate.opsForValue().set(key, "blacklisted", expirationTime, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * 토큰이 블랙리스트에 있는지 확인
+     */
+    public boolean isBlacklisted(String token) {
+        String key = BLACKLIST_PREFIX + token;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+    }
+
+    /**
+     * RefreshToken 삭제
+     */
+    public void deleteRefreshToken(String email) {
+        String key = EMAIL_PREFIX + email;
+        redisTemplate.delete(key);
+    }
+
+    /**
+     * 토큰에서 이메일 추출
+     */
+    public String getEmailFromToken(String token) {
+        return jwtConfig.extractUsername(token);
+    }
+
+    /**
+     * 토큰의 남은 만료 시간 계산
+     */
+    public long getExpirationTimeFromToken(String token) {
+        return jwtConfig.getRemainingTime(token);
     }
 
     /**
