@@ -13,6 +13,9 @@ import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * Seat 엔티티 클래스
+ */
 @Entity
 @Data
 public class Seat {

@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Redis TTL 만료 이벤트 감지 서비스 클래스
+ */
 @Service
 @RequiredArgsConstructor
 public class RedisListenerService implements MessageListener {
@@ -20,6 +23,13 @@ public class RedisListenerService implements MessageListener {
 	@Value("${spring.redis.prefix:seat:lock:}")
 	private String lockKeyPrefix;
 
+	/**
+	 * Redis에서 TTL 만료된 키 이벤트를 수신하여,
+	 * 좌석을 available 상태로 복구하는 메서드
+	 *
+	 * @param message 만료된 Redis 키에 대한 메시지
+	 * @param pattern 패턴 (사용하지 않음)
+	 */
 	@Override
 	public void onMessage(Message message, byte[] pattern) {
 		String messageBody = new String(message.getBody());

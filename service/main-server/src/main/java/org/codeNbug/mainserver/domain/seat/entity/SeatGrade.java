@@ -12,6 +12,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
+/**
+ * SeatGrade 엔티티 클래스
+ */
 @Entity
 @Data
 public class SeatGrade {

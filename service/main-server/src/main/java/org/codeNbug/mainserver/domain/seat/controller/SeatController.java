@@ -11,11 +11,21 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * 좌석 도메인 관련 요청을 처리하는 컨트롤러
+ */
 @RestController
 @RequestMapping("/api/v1/event")
 public class SeatController {
 	private SeatService seatService;
 
+	/**
+	 * 좌석 선택 API
+	 *
+	 * @param eventId           좌석이 포함된 이벤트 ID
+	 * @param seatSelectRequest 사용자가 선택한 좌석 ID 목록
+	 * @return 좌석 선택 결과 응답
+	 */
 	@PostMapping("/{event-id}/seats")
 	public ResponseEntity<RsData> selectSeat(@PathVariable("event-id") Long eventId,
 		@RequestBody SeatSelectRequest seatSelectRequest) {
