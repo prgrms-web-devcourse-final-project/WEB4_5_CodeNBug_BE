@@ -13,7 +13,10 @@ COPY service/main-server/build.gradle service/main-server/settings.gradle ./serv
 RUN gradle dependencies --no-daemon
 
 # 소스 코드 복사
-COPY service/main-server/src ./service/main-server/src
+COPY service/main-server/src/main/java ./service/main-server/src/main/java
+RUN ls ./service/main-server/src
+RUN ls -al ./service/main-server/src/main/resources
+RUN cat ./service/main-server/src/main/resources/application-secret.yml
 
 # 애플리케이션 빌드
 RUN gradle  :service:main-server:bootJar
