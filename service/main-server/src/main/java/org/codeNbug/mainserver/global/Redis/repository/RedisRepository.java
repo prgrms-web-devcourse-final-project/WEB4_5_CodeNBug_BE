@@ -5,7 +5,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Repository;
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
@@ -18,6 +17,7 @@ public class RedisRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
     private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
+
     private final StringRedisTemplate template;
 
     /**
