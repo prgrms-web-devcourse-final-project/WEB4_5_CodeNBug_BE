@@ -19,10 +19,24 @@ public class CookieUtil {
 
     public void setAccessTokenCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie("accessToken", token);
-        setCommonCookieAttributes(cookie);
         cookie.setPath("/");
         cookie.setMaxAge((int) (accessTokenExpiration / 1000)); // 밀리초를 초로 변환
-        response.addCookie(cookie);
+        
+        // 기본 쿠키 속성 설정
+        cookie.setHttpOnly(true);
+        
+        // 프로덕션 환경에서 보안 설정 추가
+        if (!"dev".equals(activeProfile)) {
+            cookie.setSecure(true);
+            // SameSite=None 설정을 위한 헤더 추가
+            response.addHeader("Set-Cookie", 
+                String.format("%s=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None", 
+                cookie.getName(), 
+                cookie.getValue(), 
+                cookie.getMaxAge()));
+        } else {
+            response.addCookie(cookie);
+        }
     }
 
     public void setRefreshTokenCookie(HttpServletResponse response, String token) {
@@ -34,20 +48,23 @@ public class CookieUtil {
 
         // 새로운 refresh token 쿠키를 설정
         Cookie cookie = new Cookie("refreshToken", token);
-        setCommonCookieAttributes(cookie);
         cookie.setPath("/");
         cookie.setMaxAge((int) (refreshTokenExpiration / 1000));
-        response.addCookie(cookie);
-    }
-
-    private void setCommonCookieAttributes(Cookie cookie) {
+        
+        // 기본 쿠키 속성 설정
         cookie.setHttpOnly(true);
         
-        // 개발 환경에서는 Secure와 SameSite 설정을 하지 않음
+        // 프로덕션 환경에서 보안 설정 추가
         if (!"dev".equals(activeProfile)) {
             cookie.setSecure(true);
-            // SameSite 속성은 response header에 직접 설정해야 함
-            // cookie.setAttribute("SameSite", "None");
+            // SameSite=None 설정을 위한 헤더 추가
+            response.addHeader("Set-Cookie", 
+                String.format("%s=%s; Path=/; Max-Age=%d; HttpOnly; Secure; SameSite=None", 
+                cookie.getName(), 
+                cookie.getValue(), 
+                cookie.getMaxAge()));
+        } else {
+            response.addCookie(cookie);
         }
     }
 } 
