@@ -20,6 +20,7 @@ import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -151,12 +152,12 @@ public class ManagerService {
 
                 SeatInfoDto seatInfo = layoutDto.getSeat().get(seatName);
                 if (seatInfo == null) {
-                    throw new IllegalStateException("SeatInfo not found for seat name: " + seatName);
+                    throw new BadRequestException("좌석 정보가 존재하지 않습니다: " + seatName);
                 }
 
                 SeatGrade seatGrade = seatGradeMap.get(seatInfo.getGrade());
                 if (seatGrade == null) {
-                    throw new IllegalStateException("SeatGrade not found for grade: " + seatInfo.getGrade());
+                    throw new BadRequestException("좌석 등급 정보가 존재하지 않습니다: " + seatInfo.getGrade());
                 }
 
                 Seat seat = new Seat(
