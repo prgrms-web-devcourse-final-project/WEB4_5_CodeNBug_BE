@@ -8,8 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface SeatRepository extends JpaRepository<Seat, Long> {
-	List<Seat> findAllByLayout_Id(Long layoutId);
-
 	@Query("SELECT s FROM Seat s JOIN FETCH s.gradeId WHERE s.layout.id = :layoutId ORDER BY s.location ASC")
 	List<Seat> findAllByLayoutIdWithGrade(@Param("layoutId") Long layoutId);
 }

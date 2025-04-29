@@ -1,6 +1,8 @@
 package org.codeNbug.mainserver.domain.manager.dto;
 
 import lombok.*;
+import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
+import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.manager.entity.EventStatusEnum;
 
 import java.time.LocalDateTime;
@@ -23,8 +25,8 @@ public class EventRegisterResponse {
     private String location;
     private String hallName;
     private int seatCount;
-    private Layout layout;
-    private List<Price> price;
+    private LayoutDto layout;
+    private List<PriceDto> price;
     private LocalDateTime bookingStart;
     private LocalDateTime bookingEnd;
     private int agelimit;
@@ -32,29 +34,4 @@ public class EventRegisterResponse {
     private LocalDateTime modifiedAt;
     private EventStatusEnum status;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Layout {
-        private List<List<String>> layout;
-        private Map<String, SeatInfo> seat;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class SeatInfo {
-        private String grade;
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Price {
-        private String grade;
-        private int amount;
-    }
 }

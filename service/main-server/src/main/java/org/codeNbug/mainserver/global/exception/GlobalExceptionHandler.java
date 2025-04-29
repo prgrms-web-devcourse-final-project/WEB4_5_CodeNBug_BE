@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.global.exception;
 
 import org.codeNbug.mainserver.global.dto.RsData;
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
 import org.springframework.http.HttpStatus;
@@ -130,6 +131,19 @@ public class GlobalExceptionHandler {
 	}
 
 	/**
+	 * BadRequestException 처리
+	 * 요청에 대한 조회 데이터를 찾지 못할 때 발생하는 예외를 처라힙니다.
+	 *
+	 * @param e 예외 객체
+	 * @return API 응답
+	 */
+	@ExceptionHandler(BadRequestException.class)
+	public ResponseEntity<RsData<Object>> handleBadRequestException(BadRequestException e) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
+	}
+
+	/**
 	 * 일반 예외 처리
 	 * 위에서 처리되지 않은 모든 예외를 처리합니다.
 	 *
@@ -141,4 +155,6 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 			.body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
 	}
+
+
 }

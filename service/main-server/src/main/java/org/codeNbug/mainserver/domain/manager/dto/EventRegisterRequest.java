@@ -1,6 +1,8 @@
 package org.codeNbug.mainserver.domain.manager.dto;
 
 import lombok.*;
+import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
+import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,35 +23,10 @@ public class EventRegisterRequest {
     private String location;
     private String hallName;
     private int seatCount;
-    private Layout layout;
-    private List<Price> price;
+    private LayoutDto layout;
+    private List<PriceDto> price;
     private LocalDateTime bookingStart;
     private LocalDateTime bookingEnd;
     private int agelimit;
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Layout {
-        private List<List<String>> layout; // 좌석 배치 (2차원 배열 구조)
-        private Map<String, SeatInfo> seat; // 좌석 상세 정보
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class SeatInfo {
-        private String grade; // 좌석 등급 (예: A, S 등)
-    }
-
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Price {
-        private String grade; // 좌석 등급
-        private int amount;   // 가격
-    }
 }
