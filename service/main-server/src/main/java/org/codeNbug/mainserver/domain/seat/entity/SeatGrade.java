@@ -13,7 +13,6 @@ import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * SeatGrade 엔티티 클래스
@@ -22,7 +21,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
-@Setter
 public class SeatGrade {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

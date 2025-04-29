@@ -12,7 +12,6 @@ import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 /**
  * SeatLayout 엔티티 클래스
@@ -21,7 +20,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
-@Setter
 public class SeatLayout {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
