@@ -11,10 +11,18 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+/**
+ * Seat 엔티티 클래스
+ */
 @Entity
-@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
 public class Seat {
 
 	@Id
@@ -24,6 +32,7 @@ public class Seat {
 	@NotNull
 	private String location;
 
+	@Setter
 	@NotNull
 	private boolean available = true;
 

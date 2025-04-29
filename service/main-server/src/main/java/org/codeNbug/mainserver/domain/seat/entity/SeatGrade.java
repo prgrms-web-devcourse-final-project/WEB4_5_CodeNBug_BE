@@ -10,10 +10,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+/**
+ * SeatGrade 엔티티 클래스
+ */
 @Entity
-@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
 public class SeatGrade {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
