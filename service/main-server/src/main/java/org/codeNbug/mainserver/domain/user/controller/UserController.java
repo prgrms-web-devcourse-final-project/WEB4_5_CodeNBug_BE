@@ -1,6 +1,5 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +11,7 @@ import org.codeNbug.mainserver.domain.user.service.UserService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
+import org.codeNbug.mainserver.global.util.CookieUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/users")
 public class UserController {
     private final UserService userService;
+    private final CookieUtil cookieUtil;
 
     /**
      * 회원가입 API
@@ -82,21 +83,9 @@ public class UserController {
             // 로그인 처리
             LoginResponse loginResponse = userService.login(request);
             
-            // 쿠키에 토큰 설정
-            Cookie accessTokenCookie = new Cookie("accessToken", loginResponse.getAccessToken());
-            accessTokenCookie.setHttpOnly(true);
-            accessTokenCookie.setPath("/");
-            accessTokenCookie.setSecure(true); // HTTPS에서만 전송
-            accessTokenCookie.setAttribute("SameSite", "None"); // 크로스 사이트 요청 허용
-            
-            Cookie refreshTokenCookie = new Cookie("refreshToken", loginResponse.getRefreshToken());
-            refreshTokenCookie.setHttpOnly(true);
-            refreshTokenCookie.setPath("/auth/refresh");
-            refreshTokenCookie.setSecure(true);
-            refreshTokenCookie.setAttribute("SameSite", "None");
-            
-            response.addCookie(accessTokenCookie);
-            response.addCookie(refreshTokenCookie);
+            // Use CookieUtil to set cookies
+            cookieUtil.setAccessTokenCookie(response, loginResponse.getAccessToken());
+            cookieUtil.setRefreshTokenCookie(response, loginResponse.getRefreshToken());
             
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "로그인 성공", loginResponse));
