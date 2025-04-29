@@ -5,6 +5,7 @@ import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 import java.util.List;
 import java.util.Map;
 
+import org.codeNbug.queueserver.waitingqueue.entity.SseConnection;
 import org.codeNbug.queueserver.waitingqueue.service.SseEmitterService;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -77,6 +78,22 @@ public class QueueInfoThread {
 				emitter.complete();
 				emitterMap.remove(userId);
 				log.debug("user %d가 연결이 끊어진 상태입니다.".formatted(userId));
+			}
+		}
+	}
+
+	@Scheduled(cron = "*/5 * * * * *")
+	public void heartBeat() {
+		Map<Long, SseConnection> emitterMap = emitterService.getEmitterMap();
+		for (SseConnection conn : emitterMap.values()) {
+			SseEmitter emitter = conn.getEmitter();
+			try {
+				emitter.send(
+					SseEmitter.event()
+						.data(".")
+				);
+			} catch (Exception e) {
+				emitter.complete();
 			}
 		}
 	}

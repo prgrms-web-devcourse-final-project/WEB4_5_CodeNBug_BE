@@ -10,6 +10,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @Service
 public class SseEmitterService {
 
@@ -25,12 +28,18 @@ public class SseEmitterService {
 		SseEmitter emitter = new SseEmitter(0L);
 		// emitter연결이 끊어질 때 만약 entry상태라면 entry count를 1 증가
 		emitter.onCompletion(() -> {
-			emitterMap.remove(userId);
+			log.info("emitter completed");
 			if (emitterMap.get(userId).getStatus().equals(Status.IN_ENTRY)) {
 				redisTemplate.opsForValue()
 					.increment(RedisConfig.ENTRY_QUEUE_COUNT_KEY_NAME, 1);
 			}
-
+			emitterMap.remove(userId);
+		});
+		emitter.onError((e) -> {
+			log.info("emitter error");
+		});
+		emitter.onTimeout(() -> {
+			log.info("emitter timeout");
 		});
 
 		// 초기 메시지 전달
