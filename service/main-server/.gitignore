@@ -25,6 +25,10 @@ bin/
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
+.env
+.env/*
+./env/*
+./service/main-server/src/main/resources/application-dev.yml
 
 ### NetBeans ###
 /nbproject/private/
@@ -35,3 +39,12 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### custom ###
+application-dev.yml
+application-secret.yml
+
+### cursor ###
+./cursor/*
+./cursor/rules/*
+./cursor/rules/java.mdc
