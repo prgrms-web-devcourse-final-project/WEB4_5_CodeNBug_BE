@@ -6,6 +6,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.Data;
 
 @Entity
@@ -18,4 +20,8 @@ public class SeatGrade {
 	@Enumerated(EnumType.STRING)
 	private SeatGradeEnum grade;
 	private Integer amount;
+
+	@ManyToOne
+	@JoinColumn(name = "event_id", nullable = false)
+	private Event event;
 }

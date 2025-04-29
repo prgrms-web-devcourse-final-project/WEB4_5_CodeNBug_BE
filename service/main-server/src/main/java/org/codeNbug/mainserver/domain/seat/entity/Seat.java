@@ -38,6 +38,10 @@ public class Seat {
 	@JoinColumn(name = "ticket_id")
 	private Ticket ticketId;
 
+	@ManyToOne
+	@JoinColumn(name = "event_id", nullable = false)
+	private Event event;
+
 	public void reserve() {
 		if (!available) {
 			throw new IllegalStateException("좌석이 이미 예약되었습니다.");
