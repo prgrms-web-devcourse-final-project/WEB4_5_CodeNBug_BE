@@ -44,6 +44,7 @@ out/
 application-dev.yml
 application-secret.yml
 
+
 ### cursor ###
 ./cursor/*
 ./cursor/rules/*

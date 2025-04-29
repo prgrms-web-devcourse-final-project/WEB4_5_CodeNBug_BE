@@ -30,8 +30,8 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET_KEY}
-  expiration: ${JWT_EXPIRATION_TIME}
+  secret: ON_SECRET
+  expiration: 86400000
 
 # CORS Configuration
 cors:
