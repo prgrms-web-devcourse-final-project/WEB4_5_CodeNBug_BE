@@ -75,10 +75,10 @@ public class UserService {
     /**
      * 로그아웃 서비스
      *
-     * @param email 사용자 이메일
+     * @param refreshToken Refresh Token
      */
     @Transactional
-    public void logout(String email) {
-        tokenService.invalidateTokens(email);
+    public void logout(String refreshToken) {
+        tokenService.invalidateTokens(refreshToken);
     }
 }

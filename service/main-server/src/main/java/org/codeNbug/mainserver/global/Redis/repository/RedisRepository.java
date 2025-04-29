@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 public class RedisRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
 
     public RedisRepository(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -20,40 +21,44 @@ public class RedisRepository {
     /**
      * Refresh Token을 Redis에 저장
      *
-     * @param email 사용자 이메일
      * @param refreshToken Refresh Token
+     * @param email 사용자 이메일
      * @param expirationTime 만료 시간 (밀리초)
      */
-    public void saveRefreshToken(String email, String refreshToken, long expirationTime) {
-        redisTemplate.opsForValue().set(email, refreshToken, expirationTime, TimeUnit.MILLISECONDS);
+    public void saveRefreshToken(String refreshToken, String email, long expirationTime) {
+        String key = REFRESH_TOKEN_PREFIX + refreshToken;
+        redisTemplate.opsForValue().set(key, email, expirationTime, TimeUnit.MILLISECONDS);
     }
 
     /**
-     * Redis에서 Refresh Token을 조회
+     * Redis에서 Refresh Token으로 이메일을 조회
      *
-     * @param email 사용자 이메일
-     * @return Refresh Token
+     * @param refreshToken Refresh Token
+     * @return 사용자 이메일
      */
-    public String getRefreshToken(String email) {
-        return redisTemplate.opsForValue().get(email);
+    public String getEmailByRefreshToken(String refreshToken) {
+        String key = REFRESH_TOKEN_PREFIX + refreshToken;
+        return redisTemplate.opsForValue().get(key);
     }
 
     /**
      * Redis에서 Refresh Token을 삭제
      *
-     * @param email 사용자 이메일
+     * @param refreshToken Refresh Token
      */
-    public void deleteRefreshToken(String email) {
-        redisTemplate.delete(email);
+    public void deleteRefreshToken(String refreshToken) {
+        String key = REFRESH_TOKEN_PREFIX + refreshToken;
+        redisTemplate.delete(key);
     }
 
     /**
      * Refresh Token이 Redis에 존재하는지 확인
      *
-     * @param email 사용자 이메일
+     * @param refreshToken Refresh Token
      * @return 존재 여부
      */
-    public boolean existsRefreshToken(String email) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(email));
+    public boolean existsRefreshToken(String refreshToken) {
+        String key = REFRESH_TOKEN_PREFIX + refreshToken;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
     }
 } 
