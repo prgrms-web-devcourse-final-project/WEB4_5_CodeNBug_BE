@@ -4,3 +4,4 @@ include 'service'
 
 include 'service:main-server'
 include 'service:queue-server'
+include 'service:message-dispatcher'
