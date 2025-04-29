@@ -23,31 +23,8 @@ public class Event {
     @Column(nullable = false)
     private Long typeId;
 
-    @Column(nullable = false, length = 255)
-    private String title;
-
-    @Column(length = 255)
-    private String thumbnailUrl;
-
-    @Lob
-    private String description;
-
-    private Integer ageLimit;
-
-    @Lob
-    private String restrictions;
-
-    private Integer seatCount;
-
-    private LocalDateTime eventStart;
-
-    private LocalDateTime eventEnd;
-
-    @Column(length = 255)
-    private String location;
-
-    @Column(length = 255)
-    private String hallName;
+    @Embedded
+    private EventInformation information;
 
     private LocalDateTime bookingStart;
 
