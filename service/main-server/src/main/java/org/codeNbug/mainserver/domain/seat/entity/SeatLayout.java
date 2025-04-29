@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.seat.entity;
 
+import lombok.Setter;
 import org.codeNbug.mainserver.domain.manager.entity.Event;
 
 import jakarta.persistence.Entity;
@@ -24,6 +25,8 @@ public class SeatLayout {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
+
+	@Setter
 	@Lob
 	private String layout;
 	@OneToOne
