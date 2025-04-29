@@ -2,9 +2,12 @@ package org.codeNbug.queueserver.waitingqueue.entity;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import lombok.Setter;
+
 public class SseConnection {
 
 	private SseEmitter emitter;
+	@Setter
 	private Status status;
 
 	public SseConnection() {
