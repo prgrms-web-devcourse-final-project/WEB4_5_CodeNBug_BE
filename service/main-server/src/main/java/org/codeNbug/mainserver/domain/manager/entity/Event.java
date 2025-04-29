@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @Table(name = "event")
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public class Event {
 
