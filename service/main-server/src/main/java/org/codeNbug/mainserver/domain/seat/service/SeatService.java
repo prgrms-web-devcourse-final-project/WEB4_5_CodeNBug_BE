@@ -3,11 +3,13 @@ package org.codeNbug.mainserver.domain.seat.service;
 import java.time.Duration;
 import java.util.UUID;
 
+import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.springframework.stereotype.Service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -30,6 +32,7 @@ public class SeatService {
 	 * @throws IllegalStateException 이미 선택된 좌석이 있는 경우
 	 * @throws IllegalArgumentException 존재하지 않는 좌석이 포함된 경우
 	 */
+	@Transactional
 	public void selectSeat(Long eventId, SeatSelectRequest seatSelectRequest) {
 		for (Long seatId : seatSelectRequest.getSeatList()) {
 			String lockKey = SEAT_LOCK_KEY_PREFIX + eventId + ":" + seatId;
@@ -47,6 +50,18 @@ public class SeatService {
 			seatRepository.save(seat);
 
 			redisLockService.unlock(lockKey, lockValue);
+		}
+	}
+
+	@Transactional
+	public void cancelSeat(Long eventId, SeatCancelRequest seatCancelRequest) {
+		for (Long seatId : seatCancelRequest.getSeatList()) {
+			String lockKey = SEAT_LOCK_KEY_PREFIX + eventId + ":" + seatId;
+
+			Seat seat = seatRepository.findById(seatId)
+				.orElseThrow(() -> new IllegalArgumentException("좌석을 찾을 수 없습니다. seatId: " + seatId));
+			seat.cancelReserve();
+			redisLockService.unlock(lockKey, null);
 		}
 	}
 }

@@ -59,7 +59,7 @@ public class Seat {
 		this.available = false;
 	}
 
-	public void cancelReservation() {
+	public void cancelReserve() {
 		this.available = true;
 	}
 }
