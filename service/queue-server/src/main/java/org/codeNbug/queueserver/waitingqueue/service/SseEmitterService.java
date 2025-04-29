@@ -9,9 +9,9 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Service
 public class SseEmitterService {
 
-	private static Map<Long, SseEmitter> emitterMap = new ConcurrentHashMap<Long, SseEmitter>();
+	private static final Map<Long, SseEmitter> emitterMap = new ConcurrentHashMap<>();
 
-	public SseEmitter add(Long userId, Long eventId) {
+	public SseEmitter add(Long userId) {
 		// 새로운 emitter 생성
 		SseEmitter emitter = new SseEmitter(0L);
 		emitter.onCompletion(() -> emitterMap.remove(userId));
@@ -29,5 +29,9 @@ public class SseEmitterService {
 		emitterMap.put(userId, emitter);
 
 		return emitter;
+	}
+
+	public Map<Long, SseEmitter> getEmitterMap() {
+		return emitterMap;
 	}
 }
