@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.seat.entity;
 
+import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.mock.entity.Ticket;
 
 import jakarta.persistence.Entity;
@@ -26,7 +27,7 @@ public class Seat {
 	@NotNull
 	private boolean available = true;
 
-	@OneToOne
+	@ManyToOne
 	@JoinColumn(name = "grade_id", nullable = false)
 	private SeatGrade gradeId;
 

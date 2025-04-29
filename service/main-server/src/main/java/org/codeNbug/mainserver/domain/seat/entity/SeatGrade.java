@@ -1,5 +1,7 @@
 package org.codeNbug.mainserver.domain.seat.entity;
 
+import org.codeNbug.mainserver.domain.manager.entity.Event;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
