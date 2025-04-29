@@ -27,15 +27,4 @@ public class Ticket {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	private String seatInfo;
-
-	private LocalDateTime createdAt;
-
-	@ManyToOne
-	@JoinColumn(name = "event_id", nullable = false)
-	private Event event;
-
-	@ManyToOne
-	@JoinColumn(name = "purchase_id", nullable = false)
-	private Purchase purchase;
 }
