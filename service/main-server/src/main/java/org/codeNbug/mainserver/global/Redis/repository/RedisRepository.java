@@ -1,22 +1,24 @@
 package org.codeNbug.mainserver.global.Redis.repository;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Repository;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Redis를 사용한 토큰 관리를 위한 Repository
  */
 @Repository
+@RequiredArgsConstructor
 public class RedisRepository {
 
     private final RedisTemplate<String, String> redisTemplate;
     private static final String REFRESH_TOKEN_PREFIX = "refresh_token:";
-
-    public RedisRepository(RedisTemplate<String, String> redisTemplate) {
-        this.redisTemplate = redisTemplate;
-    }
+    private final StringRedisTemplate template;
 
     /**
      * Refresh Token을 Redis에 저장
@@ -60,5 +62,24 @@ public class RedisRepository {
     public boolean existsRefreshToken(String refreshToken) {
         String key = REFRESH_TOKEN_PREFIX + refreshToken;
         return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+    }
+
+    public String getData(String key) {
+        ValueOperations<String, String> valueOperations = template.opsForValue();
+        return valueOperations.get(key);
+    }
+
+    public boolean existData(String key) {
+        return Boolean.TRUE.equals(template.hasKey(key));
+    }
+
+    public void setDataExpire(String key, String value, long duration) {
+        ValueOperations<String, String> valueOperations = template.opsForValue();
+        Duration expireDuration = Duration.ofSeconds(duration);
+        valueOperations.set(key, value, expireDuration);
+    }
+
+    public void deleteData(String key) {
+        template.delete(key);
     }
 } 
