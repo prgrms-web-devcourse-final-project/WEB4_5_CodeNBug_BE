@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.codeNbug.mainserver.global.util.JwtConfig;
+import org.codeNbug.mainserver.global.util.CookieUtil;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,16 +27,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtConfig jwtConfig;
     private final UserDetailsService userDetailsService;
+    private final CookieUtil cookieUtil;
 
     /**
      * JwtAuthenticationFilter 생성자
      * 
      * @param jwtConfig JWT 설정 및 유틸리티
      * @param userDetailsService 사용자 상세 정보 서비스
+     * @param cookieUtil Cookie 유틸리티
      */
-    public JwtAuthenticationFilter(JwtConfig jwtConfig, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtConfig jwtConfig, UserDetailsService userDetailsService, CookieUtil cookieUtil) {
         this.jwtConfig = jwtConfig;
         this.userDetailsService = userDetailsService;
+        this.cookieUtil = cookieUtil;
     }
 
     /**
@@ -53,19 +57,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Authorization 헤더에서 JWT 토큰을 포함한 값을 가져옴 (예: "Bearer <token>")
+        String jwt = null;
+        
+        // Authorization 헤더에서 JWT 토큰을 확인
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+        }
+        
+        // 헤더에서 토큰을 찾지 못했다면 쿠키에서 확인
+        if (jwt == null) {
+            jwt = cookieUtil.getAccessTokenFromCookie(request);
+        }
 
-        // Authorization 헤더가 없거나 "Bearer "로 시작하지 않으면 인증 없이 다음 필터로 진행
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        // 토큰이 없으면 다음 필터로 진행
+        if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7); // JWT 토큰 부분만 추출
-        username = jwtConfig.extractUsername(jwt);
+        final String username = jwtConfig.extractUsername(jwt);
 
         // 사용자 이름이 존재하고, 현재 SecurityContext에 인증 정보가 없는 경우에만 인증 처리
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -75,8 +86,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtConfig.validateToken(jwt)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities());
-
-                // 요청 정보를 기반으로 인증 토큰에 추가 세부 정보 설정 (예: IP 주소, 세션 정보) -> 필요할지도 몰라서 일단 선언해 놓음
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
