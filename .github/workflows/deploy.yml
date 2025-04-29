@@ -67,12 +67,6 @@ jobs:
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
         run: echo "$MAIN_APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
 
-      - name: secret 확인
-        run: |
-          ls -al ./
-          ls -al ./service/main-server/src/main/resources
-          cat ./service/main-server/src/main/resources/application-secret.yml
-
       - name: Docker Buildx 설치
         uses: docker/setup-buildx-action@v3
 
