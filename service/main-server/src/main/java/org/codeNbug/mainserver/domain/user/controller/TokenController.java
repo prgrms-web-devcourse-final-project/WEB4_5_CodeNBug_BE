@@ -62,10 +62,10 @@ public class TokenController {
         // 새로운 access token을 쿠키에 설정
         cookieUtil.setAccessTokenCookie(response, newAccessToken);
         
-        return ResponseEntity.ok(LoginResponse.builder()
-                .tokenType("Bearer")
-                .accessToken(newAccessToken)
-                .refreshToken(refreshToken)
-                .build());
+        // 기존 refresh token 쿠키 삭제 및 재설정
+        cookieUtil.setRefreshTokenCookie(response, refreshToken);
+        
+        // refresh token은 이미 쿠키에 있으므로 응답 본문에서는 제외
+        return ResponseEntity.ok(LoginResponse.ofTokenTypeOnly());
     }
 } 
