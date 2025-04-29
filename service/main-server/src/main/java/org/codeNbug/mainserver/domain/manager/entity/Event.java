@@ -39,22 +39,23 @@ public class Event {
 
     private Integer seatCount;
 
-    private LocalDateTime bookingStart;
-
-    private LocalDateTime bookingEnd;
-
     private LocalDateTime eventStart;
 
     private LocalDateTime eventEnd;
-
-    @Column(columnDefinition = "int default 0")
-    private Integer viewCount;
 
     @Column(length = 255)
     private String location;
 
     @Column(length = 255)
     private String hallName;
+
+    private LocalDateTime bookingStart;
+
+    private LocalDateTime bookingEnd;
+
+    @Column(columnDefinition = "int default 0")
+    private Integer viewCount;
+
 
     @CreatedDate
     private LocalDateTime createdAt;
