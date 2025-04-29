@@ -39,8 +39,8 @@ public class WaitingControllerThread {
 
 		simpleRedisTemplate.opsForStream()
 			.add(StreamRecords.mapBacked(
-				Map.of(WAITING_QUEUE_MESSAGE_IDX_KEY_NAME, idx, WAITING_QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
-					WAITING_QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId)
+				Map.of(QUEUE_MESSAGE_IDX_KEY_NAME, idx, QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
+					QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId)
 			).withStreamKey(RedisConfig.WAITING_QUEUE_KEY_NAME));
 	}
 }
