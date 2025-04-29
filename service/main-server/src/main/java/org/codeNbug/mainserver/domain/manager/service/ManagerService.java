@@ -8,6 +8,7 @@ import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
 import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.manager.entity.EventInformation;
 import org.codeNbug.mainserver.domain.manager.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.entity.EventType;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
@@ -63,24 +64,27 @@ public class ManagerService {
         Event event = new Event(
                 null,
                 eventType.getEventTypeId(),
-                request.getTitle(),
-                request.getThumbnailUrl(),
-                request.getDescription(),
-                request.getAgelimit(),
-                request.getRestriction(),
-                request.getSeatCount(),
+                EventInformation.builder()
+                        .title(request.getTitle())
+                        .thumbnailUrl(request.getThumbnailUrl())
+                        .description(request.getDescription())
+                        .ageLimit(request.getAgelimit())
+                        .restrictions(request.getRestriction())
+                        .location(request.getLocation())
+                        .hallName(request.getHallName())
+                        .eventStart(request.getStartDate())
+                        .eventEnd(request.getEndDate())
+                        .seatCount(request.getSeatCount())
+                        .build(),
                 request.getBookingStart(),
                 request.getBookingEnd(),
-                request.getStartDate(),
-                request.getEndDate(),
-                0,
-                request.getLocation(),
-                request.getHallName(),
-                null,
-                null,
+                0, // viewCount 기본값
+                null, // createdAt
+                null, // modifiedAt
                 EventStatusEnum.OPEN,
                 true
         );
+
         return eventRepository.save(event);
     }
 
@@ -176,21 +180,21 @@ public class ManagerService {
     private EventRegisterResponse buildEventRegisterResponse(EventRegisterRequest request, Event event) {
         return EventRegisterResponse.builder()
                 .eventId(event.getEventId())
-                .title(event.getTitle())
+                .title(event.getInformation().getTitle())
                 .type(request.getType())
                 .description(request.getDescription())
                 .restriction(request.getRestriction())
-                .thumbnailUrl(event.getThumbnailUrl())
-                .startDate(event.getEventStart())
-                .endDate(event.getEventEnd())
-                .location(event.getLocation())
-                .hallName(event.getHallName())
-                .seatCount(event.getSeatCount())
+                .thumbnailUrl(event.getInformation().getThumbnailUrl())
+                .startDate(event.getInformation().getEventStart())
+                .endDate(event.getInformation().getEventEnd())
+                .location(event.getInformation().getLocation())
+                .hallName(event.getInformation().getHallName())
+                .seatCount(event.getInformation().getSeatCount())
                 .layout(request.getLayout())
                 .price(request.getPrice())
                 .bookingStart(event.getBookingStart())
                 .bookingEnd(event.getBookingEnd())
-                .agelimit(event.getAgeLimit())
+                .agelimit(event.getInformation().getAgeLimit())
                 .createdAt(event.getCreatedAt())
                 .modifiedAt(event.getModifiedAt())
                 .status(event.getStatus())
