@@ -32,7 +32,7 @@ public class Purchase {
 
 	private LocalDateTime purchaseDate;
 
-	private Integer totalAmount;
+	private Integer amount;
 
 	@Enumerated(EnumType.STRING)
 	private PaymentMethodEnum paymentMethod;

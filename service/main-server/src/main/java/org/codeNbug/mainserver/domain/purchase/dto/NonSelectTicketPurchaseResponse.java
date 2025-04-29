@@ -42,7 +42,7 @@ public class NonSelectTicketPurchaseResponse {
 				.map(ticket -> new TicketDto(ticket.getId()))
 				.collect(Collectors.toList()))
 			.ticketCount(ticketList.size())
-			.totalAmount(purchase.getTotalAmount())
+			.totalAmount(purchase.getAmount())
 			.paymentStatus(purchase.getPaymentStatus().name())
 			.purchaseDate(purchase.getPurchaseDate())
 			.build();
