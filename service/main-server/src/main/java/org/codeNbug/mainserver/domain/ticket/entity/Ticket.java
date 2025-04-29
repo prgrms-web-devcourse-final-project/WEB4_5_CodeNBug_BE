@@ -33,9 +33,9 @@ public class Ticket {
 
 	@ManyToOne
 	@JoinColumn(name = "event_id", nullable = false)
-	private Event eventId;
+	private Event event;
 
 	@ManyToOne
 	@JoinColumn(name = "purchase_id", nullable = false)
-	private Purchase purchaseId;
+	private Purchase purchase;
 }
