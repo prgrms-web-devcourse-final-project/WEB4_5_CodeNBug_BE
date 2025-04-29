@@ -14,6 +14,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Seat 엔티티 클래스
@@ -31,6 +32,7 @@ public class Seat {
 	@NotNull
 	private String location;
 
+	@Setter
 	@NotNull
 	private boolean available = true;
 
