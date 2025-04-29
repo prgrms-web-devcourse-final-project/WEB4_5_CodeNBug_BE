@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @ControllerAdvice
-public class GlobalExceptionHandler extends RuntimeException {
+public class GlobalExceptionHandler {
 	@ExceptionHandler(IllegalArgumentException.class)
 	public ResponseEntity<RsData> handleIllegalArgumentException(IllegalArgumentException e) {
 		log.error("[IllegalArgumentException] {}", e.getMessage(), e);
