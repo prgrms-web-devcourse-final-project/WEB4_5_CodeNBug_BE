@@ -8,6 +8,7 @@ import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
 import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.manager.entity.EventInformation;
 import org.codeNbug.mainserver.domain.manager.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.entity.EventType;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
@@ -19,6 +20,7 @@ import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,24 +65,27 @@ public class ManagerService {
         Event event = new Event(
                 null,
                 eventType.getEventTypeId(),
-                request.getTitle(),
-                request.getThumbnailUrl(),
-                request.getDescription(),
-                request.getAgelimit(),
-                request.getRestriction(),
-                request.getSeatCount(),
+                EventInformation.builder()
+                        .title(request.getTitle())
+                        .thumbnailUrl(request.getThumbnailUrl())
+                        .description(request.getDescription())
+                        .ageLimit(request.getAgelimit())
+                        .restrictions(request.getRestriction())
+                        .location(request.getLocation())
+                        .hallName(request.getHallName())
+                        .eventStart(request.getStartDate())
+                        .eventEnd(request.getEndDate())
+                        .seatCount(request.getSeatCount())
+                        .build(),
                 request.getBookingStart(),
                 request.getBookingEnd(),
-                request.getStartDate(),
-                request.getEndDate(),
-                0,
-                request.getLocation(),
-                request.getHallName(),
-                null,
-                null,
+                0, // viewCount 기본값
+                null, // createdAt
+                null, // modifiedAt
                 EventStatusEnum.OPEN,
                 true
         );
+
         return eventRepository.save(event);
     }
 
@@ -147,12 +152,12 @@ public class ManagerService {
 
                 SeatInfoDto seatInfo = layoutDto.getSeat().get(seatName);
                 if (seatInfo == null) {
-                    throw new IllegalStateException("SeatInfo not found for seat name: " + seatName);
+                    throw new BadRequestException("좌석 정보가 존재하지 않습니다: " + seatName);
                 }
 
                 SeatGrade seatGrade = seatGradeMap.get(seatInfo.getGrade());
                 if (seatGrade == null) {
-                    throw new IllegalStateException("SeatGrade not found for grade: " + seatInfo.getGrade());
+                    throw new BadRequestException("좌석 등급 정보가 존재하지 않습니다: " + seatInfo.getGrade());
                 }
 
                 Seat seat = new Seat(
@@ -176,21 +181,21 @@ public class ManagerService {
     private EventRegisterResponse buildEventRegisterResponse(EventRegisterRequest request, Event event) {
         return EventRegisterResponse.builder()
                 .eventId(event.getEventId())
-                .title(event.getTitle())
+                .title(event.getInformation().getTitle())
                 .type(request.getType())
                 .description(request.getDescription())
                 .restriction(request.getRestriction())
-                .thumbnailUrl(event.getThumbnailUrl())
-                .startDate(event.getEventStart())
-                .endDate(event.getEventEnd())
-                .location(event.getLocation())
-                .hallName(event.getHallName())
-                .seatCount(event.getSeatCount())
+                .thumbnailUrl(event.getInformation().getThumbnailUrl())
+                .startDate(event.getInformation().getEventStart())
+                .endDate(event.getInformation().getEventEnd())
+                .location(event.getInformation().getLocation())
+                .hallName(event.getInformation().getHallName())
+                .seatCount(event.getInformation().getSeatCount())
                 .layout(request.getLayout())
                 .price(request.getPrice())
                 .bookingStart(event.getBookingStart())
                 .bookingEnd(event.getBookingEnd())
-                .agelimit(event.getAgeLimit())
+                .agelimit(event.getInformation().getAgeLimit())
                 .createdAt(event.getCreatedAt())
                 .modifiedAt(event.getModifiedAt())
                 .status(event.getStatus())
