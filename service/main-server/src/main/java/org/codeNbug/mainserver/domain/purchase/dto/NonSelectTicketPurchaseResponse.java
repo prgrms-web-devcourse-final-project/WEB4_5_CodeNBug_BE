@@ -36,7 +36,7 @@ public class NonSelectTicketPurchaseResponse {
 	) {
 		return NonSelectTicketPurchaseResponse.builder()
 			.purchaseId(purchase.getId())
-			.eventId(ticketList.get(0).getEvent().getEventId())
+			.eventId(ticketList.getFirst().getEvent().getEventId())
 			.userId(purchase.getUser().getUserId())
 			.tickets(ticketList.stream()
 				.map(ticket -> new TicketDto(ticket.getId()))
