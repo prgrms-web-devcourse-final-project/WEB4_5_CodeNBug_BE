@@ -27,6 +27,11 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
 
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  expiration: ${JWT_EXPIRATION_TIME}
+
 # CORS Configuration
 cors:
   allowed-origins:
