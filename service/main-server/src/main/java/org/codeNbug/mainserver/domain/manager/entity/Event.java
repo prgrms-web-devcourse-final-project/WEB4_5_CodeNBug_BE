@@ -2,6 +2,10 @@ package org.codeNbug.mainserver.domain.manager.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+import org.hibernate.annotations.Where;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -14,6 +18,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
+@FilterDef(name = "activeEventFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
+@Filter(name = "activeEventFilter", condition = "is_deleted = :isDeleted")
 public class Event {
 
     @Id
@@ -45,4 +51,7 @@ public class Event {
 
     @Column(columnDefinition = "boolean default true")
     private Boolean seatSelectable;
+
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
 }

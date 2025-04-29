@@ -6,6 +6,7 @@ import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.manager.service.EventEditService;
 import org.codeNbug.mainserver.domain.manager.service.EventRegisterService;
+import org.codeNbug.mainserver.domain.manager.service.EventDeleteService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class ManagerController {
     private final EventRegisterService eventRegisterService;
     private final EventEditService eventEditService;
-
+    private final EventDeleteService eventDeleteService;
     /**
      * 이벤트 등록 API
      * @param request 이벤트 등록 요청 DTO
@@ -44,4 +45,15 @@ public class ManagerController {
                 response
         ));
     }
+
+    @PatchMapping("/{eventId}")
+    public ResponseEntity<RsData<Void>> deleteEvent(@PathVariable Long eventId) {
+        eventDeleteService.deleteEvent(eventId);
+        return ResponseEntity.ok(new RsData<> (
+                "200",
+                "이벤트 삭제 성공",
+                null
+        ));
+    }
+
 }
