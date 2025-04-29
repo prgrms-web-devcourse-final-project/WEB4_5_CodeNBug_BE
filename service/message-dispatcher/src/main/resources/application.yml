@@ -1,0 +1,16 @@
+server:
+  port: 9002
+
+spring:
+  data:
+    redis:
+      port: 6379
+      host: localhost
+
+  datasource:
+    url: jdbc:mysql://localhost:3306
+    username: root
+    hikari:
+      auto-commit: false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    password: password
