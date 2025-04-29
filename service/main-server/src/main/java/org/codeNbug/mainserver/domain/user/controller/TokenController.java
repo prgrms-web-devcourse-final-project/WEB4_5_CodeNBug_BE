@@ -56,14 +56,14 @@ public class TokenController {
                             .build());
         }
 
-        // 새로운 access token 발급
-        String newAccessToken = tokenService.refreshAccessToken(refreshToken);
+        // 토큰 재발급 시도
+        TokenService.TokenInfo tokenInfo = tokenService.refreshTokens(refreshToken);
         
         // 새로운 access token을 쿠키에 설정
-        cookieUtil.setAccessTokenCookie(response, newAccessToken);
+        cookieUtil.setAccessTokenCookie(response, tokenInfo.getAccessToken());
         
-        // 기존 refresh token 쿠키 삭제 및 재설정
-        cookieUtil.setRefreshTokenCookie(response, refreshToken);
+        // refresh token 쿠키 재설정
+        cookieUtil.setRefreshTokenCookie(response, tokenInfo.getRefreshToken());
         
         // refresh token은 이미 쿠키에 있으므로 응답 본문에서는 제외
         return ResponseEntity.ok(LoginResponse.ofTokenTypeOnly());

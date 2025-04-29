@@ -36,22 +36,27 @@ public class TokenService {
     }
 
     /**
-     * Refresh Token을 이용해 새로운 Access Token을 발급
+     * Refresh Token을 검증하고 새로운 토큰을 발급
      *
      * @param refreshToken Refresh Token
-     * @return 새로운 Access Token
+     * @return 토큰 정보 (Access Token과 필요한 경우 새 Refresh Token)
      * @throws InvalidTokenException Refresh Token이 유효하지 않은 경우
      */
     @Transactional
-    public String refreshAccessToken(String refreshToken) {
-        // Redis에서 Refresh Token으로 이메일 조회
+    public TokenInfo refreshTokens(String refreshToken) {
+        // Redis에서 Refresh Token으로 이메일 조회 및 JWT 유효성 검증
         String email = redisRepository.getEmailByRefreshToken(refreshToken);
-        if (email == null) {
+        boolean isJwtValid = jwtConfig.validateToken(refreshToken);
+
+        // Redis에 토큰이 없거나 JWT가 유효하지 않은 경우
+        if (email == null || !isJwtValid) {
             throw new InvalidTokenException("유효하지 않은 Refresh Token입니다.");
         }
 
-        // 새로운 Access Token 발급
-        return jwtConfig.generateAccessToken(email);
+        // Access Token만 새로 발급
+        String newAccessToken = jwtConfig.generateAccessToken(email);
+        
+        return TokenInfo.of(newAccessToken, refreshToken);
     }
 
     /**
