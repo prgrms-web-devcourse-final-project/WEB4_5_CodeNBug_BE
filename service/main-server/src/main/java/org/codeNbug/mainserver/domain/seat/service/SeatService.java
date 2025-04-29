@@ -53,6 +53,13 @@ public class SeatService {
 		}
 	}
 
+	/**
+	 * 좌석 취소 요청에 따라 Redis 락을 해제하고, DB에 좌석 예약을 반영
+	 *
+	 * @param eventId           좌석이 포함된 이벤트 ID
+	 * @param seatCancelRequest 선택한 좌석 ID 목록을 포함한 요청 객체
+	 * @throws IllegalArgumentException 존재하지 않는 좌석이 포함된 경우
+	 */
 	@Transactional
 	public void cancelSeat(Long eventId, SeatCancelRequest seatCancelRequest) {
 		for (Long seatId : seatCancelRequest.getSeatList()) {
