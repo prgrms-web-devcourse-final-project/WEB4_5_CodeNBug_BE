@@ -1,7 +1,7 @@
 
 redis:
   port: 6379
-  host: env-redis-1
+  host: localhost
 db:
-  url: jdbc:mysql://env-mysql-1:3306
+  url: jdbc:mysql://localhost:3306?serverTimeZone=Asia/seoul
   username: root
