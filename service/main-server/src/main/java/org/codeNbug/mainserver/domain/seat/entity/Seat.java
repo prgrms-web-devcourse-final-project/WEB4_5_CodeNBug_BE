@@ -38,7 +38,7 @@ public class Seat {
 
 	@ManyToOne
 	@JoinColumn(name = "grade_id", nullable = false)
-	private SeatGrade gradeId;
+	private SeatGrade grade;
 
 	@ManyToOne
 	@JoinColumn(name = "layout_id", nullable = false)
@@ -46,7 +46,7 @@ public class Seat {
 
 	@ManyToOne
 	@JoinColumn(name = "ticket_id")
-	private Ticket ticketId;
+	private Ticket ticket;
 
 	@ManyToOne
 	@JoinColumn(name = "event_id", nullable = false)
