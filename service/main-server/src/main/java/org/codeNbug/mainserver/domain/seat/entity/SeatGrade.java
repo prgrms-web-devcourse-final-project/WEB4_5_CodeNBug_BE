@@ -28,6 +28,7 @@ public class SeatGrade {
 
 	@Enumerated(EnumType.STRING)
 	private SeatGradeEnum grade;
+
 	private Integer amount;
 
 	@ManyToOne

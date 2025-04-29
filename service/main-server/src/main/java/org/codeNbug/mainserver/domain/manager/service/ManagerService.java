@@ -44,7 +44,7 @@ public class ManagerService {
         Event event = createAndSaveEvent(request, eventType);
         SeatLayout seatLayout = createAndSaveSeatLayout(request, event);
         Map<String, SeatGrade> seatGradeMap = createAndSaveSeatGrades(request, event);
-        createAndSaveSeats(request, event, seatLayout, seatGradeMap);
+        createAndSaveSeats(request, seatLayout, event, seatGradeMap);
         return buildEventRegisterResponse(request, event);
     }
 
@@ -86,18 +86,34 @@ public class ManagerService {
 
     /**
      * SeatLayout 생성 및 저장
+     * - 요청된 Layout 정보를 JSON으로 직렬화 후 저장
+     * - 저장된 SeatLayout은 해당 Event와 연결
+     *
+     * @param request 이벤트 등록 요청
+     * @param event 저장된 Event
+     * @return 저장된 SeatLayout
      */
     private SeatLayout createAndSaveSeatLayout(EventRegisterRequest request, Event event) {
+        String layoutJson = serializeLayoutToJson(request.getLayout());
+        SeatLayout seatLayout = new SeatLayout(
+                null,
+                layoutJson,
+                event
+        );
+        return seatLayoutRepository.save(seatLayout);
+    }
+
+    /**
+     * LayoutDto를 JSON 문자열로 변환
+     *
+     * @param layoutDto Layout 데이터
+     * @return 직렬화된 JSON 문자열
+     */
+    private String serializeLayoutToJson(LayoutDto layoutDto) {
         try {
-            String layoutJson = objectMapper.writeValueAsString(request.getLayout());
-            SeatLayout seatLayout = new SeatLayout(
-                    null,
-                    layoutJson,
-                    event
-            );
-            return seatLayoutRepository.save(seatLayout);
+            return objectMapper.writeValueAsString(layoutDto);
         } catch (Exception e) {
-            throw new RuntimeException("Seat layout 직렬화 실패", e);
+            throw new RuntimeException("좌석 레이아웃 직렬화 실패", e);
         }
     }
 
@@ -122,15 +138,16 @@ public class ManagerService {
     /**
      * Seat 개별 생성 및 저장
      */
-    private void createAndSaveSeats(EventRegisterRequest request, Event event, SeatLayout seatLayout, Map<String, SeatGrade> seatGradeMap) {
+    private void createAndSaveSeats(EventRegisterRequest request, SeatLayout seatLayout, Event event, Map<String, SeatGrade> seatGradeMap) {
         LayoutDto layoutDto = request.getLayout();
+
         for (List<String> row : layoutDto.getLayout()) {
             for (String seatName : row) {
                 if (seatName == null) continue;
 
                 SeatInfoDto seatInfo = layoutDto.getSeat().get(seatName);
                 if (seatInfo == null) {
-                    throw new IllegalStateException("SeatInfo not found for seat: " + seatName);
+                    throw new IllegalStateException("SeatInfo not found for seat name: " + seatName);
                 }
 
                 SeatGrade seatGrade = seatGradeMap.get(seatInfo.getGrade());
@@ -139,14 +156,15 @@ public class ManagerService {
                 }
 
                 Seat seat = new Seat(
-                        null,
-                        seatName,
-                        true,
-                        seatGrade,
-                        seatLayout,
-                        null,
-                        event
+                        null,           // id = auto increment
+                        seatName,       // location = A1, A2, ...
+                        true,           // available = true
+                        seatGrade,      // gradeId
+                        seatLayout,     // layout
+                        null,           // ticketId = null
+                        event           // event = 이번에 등록하는 공연
                 );
+
                 seatRepository.save(seat);
             }
         }

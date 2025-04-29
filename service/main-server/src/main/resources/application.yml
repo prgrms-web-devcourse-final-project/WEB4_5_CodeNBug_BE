@@ -16,7 +16,7 @@ spring:
     password: ${db.password}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: false
     properties:
       hibernate:
