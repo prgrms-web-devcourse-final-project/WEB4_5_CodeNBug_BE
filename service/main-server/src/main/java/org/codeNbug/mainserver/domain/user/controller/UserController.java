@@ -83,12 +83,13 @@ public class UserController {
             // 로그인 처리
             LoginResponse loginResponse = userService.login(request);
             
-            // Use CookieUtil to set cookies
+            // 쿠키에 토큰 설정
             cookieUtil.setAccessTokenCookie(response, loginResponse.getAccessToken());
             cookieUtil.setRefreshTokenCookie(response, loginResponse.getRefreshToken());
             
+            // 응답 본문에서는 토큰 정보 제외
             return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "로그인 성공", loginResponse));
+                    new RsData<>("200-SUCCESS", "로그인 성공", LoginResponse.ofTokenTypeOnly()));
             
         } catch (AuthenticationFailedException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

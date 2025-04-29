@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.user.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)  // null 값은 JSON에서 제외
 public class LoginResponse {
     private String tokenType;
     private String accessToken;
@@ -29,6 +31,17 @@ public class LoginResponse {
                 .tokenType("Bearer")
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .build();
+    }
+
+    /**
+     * 토큰 타입만 포함된 LoginResponse 생성
+     *
+     * @return LoginResponse 객체
+     */
+    public static LoginResponse ofTokenTypeOnly() {
+        return LoginResponse.builder()
+                .tokenType("Bearer")
                 .build();
     }
 } 
