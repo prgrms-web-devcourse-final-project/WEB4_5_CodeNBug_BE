@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -23,14 +24,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@Builder
 public class Purchase {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
 	private String paymentUuid;
-
-	private LocalDateTime purchaseDate;
 
 	private Integer amount;
 
@@ -40,10 +40,25 @@ public class Purchase {
 	@Enumerated(EnumType.STRING)
 	private PaymentStatusEnum paymentStatus;
 
-	// TODO itemName -> 추후 변경 예정
-	private String itemName;
+	private String orderName;
+
+	private LocalDateTime purchaseDate;
 
 	@ManyToOne
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
+
+	public void updatePaymentInfo(
+		int amount,
+		PaymentMethodEnum paymentMethod,
+		PaymentStatusEnum paymentStatus,
+		String orderName,
+		LocalDateTime purchaseDate
+	) {
+		this.amount = amount;
+		this.paymentMethod = paymentMethod;
+		this.paymentStatus = paymentStatus;
+		this.orderName = orderName;
+		this.purchaseDate = purchaseDate;
+	}
 }

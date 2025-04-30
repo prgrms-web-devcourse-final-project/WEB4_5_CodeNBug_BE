@@ -2,5 +2,5 @@ package org.codeNbug.mainserver.domain.purchase.entity;
 
 public enum PaymentMethodEnum {
 	CARD,
-	CASH
+	VIRTUAL_ACCOUNT
 }
