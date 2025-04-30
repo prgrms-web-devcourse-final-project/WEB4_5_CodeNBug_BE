@@ -93,13 +93,15 @@ public class PurchaseService {
 			.mapToObj(i -> {
 				Seat seat = availableSeats.get(i);
 				seat.reserve();
-				return new Ticket(
+				Ticket ticket = new Ticket(
 					null,
 					seat.getLocation(),
 					LocalDateTime.now(),
 					event,
 					purchase
 				);
+				seat.setTicket(ticket);
+				return ticket;
 			})
 			.toList();
 
@@ -154,7 +156,11 @@ public class PurchaseService {
 		}
 
 		List<Ticket> tickets = seats.stream()
-			.map(seat -> new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase))
+			.map(seat -> {
+				Ticket ticket = new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase);
+				seat.setTicket(ticket);
+				return ticket;
+			})
 			.toList();
 
 		ticketRepository.saveAll(tickets);
