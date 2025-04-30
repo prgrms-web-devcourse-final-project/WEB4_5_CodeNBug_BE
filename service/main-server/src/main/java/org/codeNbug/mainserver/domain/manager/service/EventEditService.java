@@ -8,6 +8,7 @@ import org.codeNbug.mainserver.domain.manager.entity.EventInformation;
 import org.codeNbug.mainserver.domain.manager.entity.EventType;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
+import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
@@ -31,12 +32,13 @@ public class EventEditService {
     private final SeatRepository seatRepository;
     private final EventDomainService eventDomainService;
     private final EventTypeRepository eventTypeRepository;
+    private final ManagerEventRepository managerEventRepository;
 
     /**
      * 이벤트 수정 메인 메서드
      */
     @Transactional
-    public EventRegisterResponse editEvent(Long eventId, EventRegisterRequest request) {
+    public EventRegisterResponse editEvent(Long eventId, EventRegisterRequest request, Long managerId) {
         // 1. 기존 이벤트 조회
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new BadRequestException("이벤트를 찾을 수 없습니다: id=" + eventId));
