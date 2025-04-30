@@ -5,11 +5,13 @@ import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
+import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
 import org.codeNbug.mainserver.global.Redis.service.TokenService;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -121,5 +123,20 @@ public class UserService {
         // AccessToken 블랙리스트 처리
         long expirationTime = tokenService.getExpirationTimeFromToken(accessToken);
         tokenService.addToBlacklist(accessToken, expirationTime);
+    }
+
+    /**
+     * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
+     *
+     * @return 사용자 프로필 정보
+     * @throws AuthenticationFailedException 인증된 사용자가 없는 경우 발생하는 예외
+     */
+    @Transactional(readOnly = true)
+    public UserProfileResponse getProfile() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AuthenticationFailedException("인증된 사용자를 찾을 수 없습니다."));
+        
+        return UserProfileResponse.fromEntity(user);
     }
 }
