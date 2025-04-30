@@ -44,6 +44,14 @@ public class PurchaseService {
 	private final EventRepository eventRepository;
 	private final UserRepository userRepository;
 
+	/**
+	 * 결제 준비를 위한 사전 등록
+	 * 결제 UUID를 생성하고, 결제 진행 상태로 Purchase 엔티티를 생성하여 저장
+	 *
+	 * @param request 결제 요청 정보
+	 * @param userId 로그인한 사용자 ID
+	 * @return 결제 준비 완료 응답
+	 */
 	public InitiatePaymentResponse initiatePayment(InitiatePaymentRequest request, Long userId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
@@ -63,11 +71,19 @@ public class PurchaseService {
 		return new InitiatePaymentResponse(uuid, purchase.getPaymentStatus().name());
 	}
 
+	/**
+	 * 미지정석 티켓 구매
+	 * 결제 후 Toss 결제 승인 요청을 처리하고, 결제 상태를 업데이트한 후 티켓을 생성하여 저장
+	 *
+	 * @param request 구매 요청 정보
+	 * @param userId 로그인한 사용자 ID
+	 * @return 티켓 구매 응답
+	 * @throws IOException,InterruptedException Toss 결제 요청 시 발생할 수 있는 예외
+	 */
 	@Transactional
 	public NonSelectTicketPurchaseResponse purchaseNonSelectTicket(NonSelectTicketPurchaseRequest request, Long userId)
 		throws IOException, InterruptedException {
 
-		// 1. Toss 결제 승인 요청
 		HttpResponse<String> tossResponse = tossPaymentClient.requestConfirm(
 			request.getPaymentUuid(),
 			request.getOrderId(),
@@ -78,15 +94,11 @@ public class PurchaseService {
 			throw new IllegalStateException("Toss 결제 승인 실패: " + tossResponse.body());
 		}
 
-		// 2. Toss 응답 JSON 파싱
 		ConfirmedPaymentInfo info = objectMapper.readValue(tossResponse.body(), ConfirmedPaymentInfo.class);
 
-		// 3. 유저 및 이벤트 조회
 		User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
 		Event event = eventRepository.findById(request.getEventId())
 			.orElseThrow(() -> new IllegalArgumentException("이벤트가 존재하지 않습니다."));
-
-		// 4. Purchase 업데이트
 		Purchase purchase = purchaseRepository.findByPaymentUuid(info.getPaymentUuid())
 			.orElseThrow(() -> new IllegalStateException("사전 등록된 결제가 없습니다."));
 
@@ -98,13 +110,11 @@ public class PurchaseService {
 			LocalDateTime.parse(info.getApprovedAt())
 		);
 
-		// 5. 사용 가능한 좌석 조회 및 검증
 		List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(event.getEventId());
 		if (availableSeats.size() < request.getTicketCount()) {
 			throw new IllegalStateException("선택 가능한 좌석이 부족합니다.");
 		}
 
-		// 6. Ticket 생성 + Seat 할당 및 상태 변경
 		List<Ticket> tickets = IntStream.range(0, request.getTicketCount())
 			.mapToObj(i -> {
 				Seat seat = availableSeats.get(i);
@@ -122,7 +132,6 @@ public class PurchaseService {
 		ticketRepository.saveAll(tickets);
 		seatRepository.saveAll(availableSeats.subList(0, request.getTicketCount()));
 
-		// 6. 응답 반환
 		return NonSelectTicketPurchaseResponse.builder()
 			.purchaseId(purchase.getId())
 			.eventId(event.getEventId())
