@@ -36,7 +36,10 @@ public class SeatService {
 	 * @return SeatLayoutResponse 좌석 레이아웃
 	 * @throws IllegalArgumentException 존재하지 않는 이벤트 ID일 경우
 	 */
-	public SeatLayoutResponse getSeatLayout(Long eventId) {
+	public SeatLayoutResponse getSeatLayout(Long eventId, Long userId) {
+		if (userId == null || userId <= 0) {
+			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
+		}
 		SeatLayout seatLayout = seatLayoutRepository.findById(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
@@ -49,11 +52,16 @@ public class SeatService {
 	 *
 	 * @param eventId           이벤트 ID
 	 * @param seatSelectRequest 선택한 좌석 ID 목록을 포함한 요청 객체
+	 *      @param userId           유저 ID
 	 * @throws IllegalStateException 이미 선택된 좌석이 있는 경우
 	 * @throws IllegalArgumentException 존재하지 않는 좌석이 포함된 경우
 	 */
 	@Transactional
-	public void selectSeat(Long eventId, SeatSelectRequest seatSelectRequest) {
+	public void selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) {
+		if (userId == null || userId <= 0) {
+			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
+		}
+
 		for (Long seatId : seatSelectRequest.getSeatList()) {
 			String lockKey = SEAT_LOCK_KEY_PREFIX + eventId + ":" + seatId;
 			String lockValue = UUID.randomUUID().toString();
@@ -78,10 +86,15 @@ public class SeatService {
 	 *
 	 * @param eventId           이벤트 ID
 	 * @param seatCancelRequest 선택한 좌석 ID 목록을 포함한 요청 객체
+	 * @param userId            유저 ID
 	 * @throws IllegalArgumentException 존재하지 않는 좌석이 포함된 경우
 	 */
 	@Transactional
-	public void cancelSeat(Long eventId, SeatCancelRequest seatCancelRequest) {
+	public void cancelSeat(Long eventId, SeatCancelRequest seatCancelRequest, Long userId) {
+		if (userId == null || userId <= 0) {
+			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
+		}
+
 		for (Long seatId : seatCancelRequest.getSeatList()) {
 			String lockKey = SEAT_LOCK_KEY_PREFIX + eventId + ":" + seatId;
 

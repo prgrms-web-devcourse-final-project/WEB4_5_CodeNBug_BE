@@ -27,7 +27,7 @@ public class SeatLayoutResponse {
 
 	public SeatLayoutResponse(List<Seat> seatList) {
 		this.seats = seatList.stream()
-			.map(seat -> new SeatDto(seat.getLocation(), seat.getGradeId().getGrade().name(), seat.isAvailable()))
+			.map(seat -> new SeatDto(seat.getLocation(), seat.getGrade().getGrade().name(), seat.isAvailable()))
 			.toList();
 	}
 }

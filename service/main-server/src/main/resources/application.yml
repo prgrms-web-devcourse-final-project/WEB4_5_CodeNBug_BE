@@ -2,6 +2,9 @@ server:
   port: 9000
 
 spring:
+  config:
+    import: optional:application-secret.yml
+
   profiles:
     active: dev
 
@@ -37,3 +40,9 @@ cors:
   allowed-origins:
     - http://localhost:3000
     - https://your-production-domain.com
+
+# TOSS Payment
+payment:
+  toss:
+    secret-key: ${TOSS_SECRET_KEY}
+    api-url: ${TOSS_API_URL}

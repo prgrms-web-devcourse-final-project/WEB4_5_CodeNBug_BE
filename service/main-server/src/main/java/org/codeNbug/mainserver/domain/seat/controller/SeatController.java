@@ -5,6 +5,7 @@ import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.dto.RsData;
+import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,7 +31,8 @@ public class SeatController {
 	 */
 	@GetMapping("/{event-id}/seats")
 	public ResponseEntity<RsData> getSeatLayout(@PathVariable("event-id") Long eventId) {
-		SeatLayoutResponse seatLayoutResponse = seatService.getSeatLayout(eventId);
+		Long userId = SecurityUtil.getCurrentUserId();
+		SeatLayoutResponse seatLayoutResponse = seatService.getSeatLayout(eventId, userId);
 		RsData response = new RsData(
 			"200",
 			"좌석 선택 성공",
@@ -49,7 +51,8 @@ public class SeatController {
 	@PostMapping("/{event-id}/seats")
 	public ResponseEntity<RsData> selectSeat(@PathVariable("event-id") Long eventId,
 		@RequestBody SeatSelectRequest seatSelectRequest) {
-		seatService.selectSeat(eventId, seatSelectRequest);
+		Long userId = SecurityUtil.getCurrentUserId();
+		seatService.selectSeat(eventId, seatSelectRequest, userId);
 		RsData response = new RsData(
 			"200",
 			"좌석 선택 성공",
@@ -68,7 +71,8 @@ public class SeatController {
 	@DeleteMapping("/{event-id}/seats")
 	public ResponseEntity<RsData> CancelSeat(@PathVariable("event-id") Long eventId,
 		@RequestBody SeatCancelRequest seatCancelRequest) {
-		seatService.cancelSeat(eventId, seatCancelRequest);
+		Long userId = SecurityUtil.getCurrentUserId();
+		seatService.cancelSeat(eventId, seatCancelRequest, userId);
 		RsData response = new RsData(
 			"200",
 			"좌석 취소 성공"
