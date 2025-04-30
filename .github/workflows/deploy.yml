@@ -11,7 +11,7 @@ on:
       - "service/queue-server/build.gradle"
       - "service/queue-server/Dockerfile"
     branches:
-      - 김지우/ci-cd
+      - develop, main
 jobs:
   makeTagAndReleaseMainServer:
     runs-on: ubuntu-latest
@@ -66,13 +66,6 @@ jobs:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
         run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
-
-      - name: 확인
-        run: pwd service/main-server/src/main/resources/application-secret.yml
-      - name: 확인2
-        run: ls -al
-      - name: 확인3
-        run: ls -al service/main-server/src/main/resources
 
       - name: Docker Buildx 설치
         uses: docker/setup-buildx-action@v3
