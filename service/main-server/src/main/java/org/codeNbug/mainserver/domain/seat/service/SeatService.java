@@ -63,6 +63,11 @@ public class SeatService {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
 
+		List<Long> selectedSeats = seatSelectRequest.getSeatList();
+		if (selectedSeats.size() > 4) {
+			throw new IllegalArgumentException("최대 4개의 좌석만 선택할 수 있습니다.");
+		}
+
 		for (Long seatId : seatSelectRequest.getSeatList()) {
 			String lockKey = SEAT_LOCK_KEY_PREFIX + eventId + ":" + seatId;
 			String lockValue = UUID.randomUUID().toString();
