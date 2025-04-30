@@ -61,4 +61,17 @@ public class User {
     /*@Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Notification> notifications = new ArrayList<>();*/
+
+    /**
+     * 사용자 정보를 업데이트합니다.
+     *
+     * @param name 새로운 이름 (null인 경우 업데이트하지 않음)
+     * @param phoneNum 새로운 전화번호 (null인 경우 업데이트하지 않음)
+     * @param location 새로운 주소 (null인 경우 업데이트하지 않음)
+     */
+    public void update(String name, String phoneNum, String location) {
+        this.name = name;
+        this.phoneNum = phoneNum;
+        this.location = location;
+    }
 }
