@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.global.dto.RsData;
+import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -44,5 +45,32 @@ public class NotificationController {
 
         // API 명세서에 맞는 응답 형식 구성
         return new RsData<>("200-SUCCESS", "알림 목록 조회 성공", notifications);
+    }
+
+    /**
+     * 알림 상세 조회 API
+     * 특정 알림의 상세 내용을 조회하고, 읽음 상태를 업데이트합니다.
+     *
+     * @param id 조회할 알림 ID
+     * @return 알림 상세 조회 결과
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<RsData<NotificationDto>> getNotificationDetail(@PathVariable Long id) {
+        try {
+            // 현재 인증된 사용자 ID 가져오기 (실제 환경에서는 토큰에서 추출)
+            Long userId = SecurityUtil.getCurrentUserId();
+
+            // 서비스 호출하여 알림 상세 조회 및 읽음 처리
+            NotificationDto notification = notificationService.getNotificationById(id, userId);
+
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "알림 조회 성공", notification)
+            );
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
+        }
     }
 }
