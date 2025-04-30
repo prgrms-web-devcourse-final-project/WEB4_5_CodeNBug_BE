@@ -234,20 +234,11 @@ public class UserController {
      * 현재 로그인한 사용자의 프로필 정보를 수정합니다.
      *
      * @param request 수정할 프로필 정보
-     * @param bindingResult 유효성 검사 결과
      * @return ResponseEntity<RsData<UserProfileResponse>> 수정된 프로필 정보 응답
      */
     @PutMapping("/me")
     public ResponseEntity<RsData<UserProfileResponse>> updateProfile(
-            @Valid @RequestBody UserUpdateRequest request,
-            BindingResult bindingResult) {
-        
-        // 입력값 유효성 검사
-        if (bindingResult.hasErrors()) {
-            return ResponseEntity.badRequest()
-                    .body(new RsData<>("400-BAD_REQUEST", "입력 값이 유효하지 않습니다."));
-        }
-
+            @Valid @RequestBody UserUpdateRequest request) {
         try {
             // 프로필 수정 처리
             UserProfileResponse response = userService.updateProfile(request);
