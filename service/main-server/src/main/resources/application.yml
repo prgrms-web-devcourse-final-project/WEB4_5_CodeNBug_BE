@@ -56,4 +56,4 @@ jwt:
 cors:
   allowed-origins:
     - http://localhost:3000
-    - https://your-production-domain.com
+    - https://ticketone.site
