@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
+import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
 
 /**
  * 사용자 관련 컨트롤러
@@ -223,6 +224,29 @@ public class UserController {
         } catch (AuthenticationFailedException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+        }
+    }
+
+    /**
+     * 현재 로그인한 사용자의 프로필 정보를 수정합니다.
+     *
+     * @param request 수정할 프로필 정보
+     * @return ResponseEntity<RsData<UserProfileResponse>> 수정된 프로필 정보 응답
+     */
+    @PutMapping("/me")
+    public ResponseEntity<RsData<UserProfileResponse>> updateProfile(
+            @Valid @RequestBody UserUpdateRequest request) {
+        try {
+            // 프로필 수정 처리
+            UserProfileResponse response = userService.updateProfile(request);
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "프로필 수정 성공", response));
+        } catch (AuthenticationFailedException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new RsData<>("401-UNAUTHORIZED", "인증이 필요합니다."));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
