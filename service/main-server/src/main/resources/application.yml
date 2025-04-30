@@ -46,7 +46,6 @@ spring:
       auth-code-expiration-millis: 1800000  # 30 * 60 * 1000 == 30분
 # JWT Configuration
 jwt:
-  secret: ON_SECRET
   expiration: 86400000
 
 # CORS Configuration

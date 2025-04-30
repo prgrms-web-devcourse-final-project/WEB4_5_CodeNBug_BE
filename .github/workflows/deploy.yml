@@ -117,7 +117,12 @@ jobs:
         id: fetch_instance
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
-          --filters \         "Name=tag:Name,Values=main-1" \         "Name=instance-state-name,Values=running" \         --query "Reservations[].Instances[0].InstanceId" \         --output text)         echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+          --filters \
+          "Name=tag:Name,Values=team01-main" \
+          "Name=tag:team,Values=devcos5-team01" \
+          "Name=instance-state-name,Values=running" \
+          --query "Reservations[].Instances[0].InstanceId" \
+          --output text)         echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
       - name: AWS SSM Send-Command
         uses: peterkimzz/aws-ssm-send-command@master
         id: ssm
@@ -130,7 +135,9 @@ jobs:
           comment: Deploy
           command: |
             docker pull ghcr.io/${{ needs.buildImageAndPushMainServer.outputs.owner_lc }}/${{ needs.buildImageAndPushMainServer.outputs.image_name }}:latest && \
-            docker stop app1 2>/dev/null || true && \          docker rm app1 2>/dev/null || true && \          docker run -d --name app1 --network common -p 8080:8080 ghcr.io/${{ needs.buildImageAndPushMainServer.outputs.owner_lc }}/${{ needs.buildImageAndPushMainServer.outputs.image_name }}:latest && \
+            docker stop app1 2>/dev/null || true && \
+            docker rm app1 2>/dev/null || true && \
+            docker run -d --name app1 --network env_common -p 9000:9000 ghcr.io/${{ needs.buildImageAndPushMainServer.outputs.owner_lc }}/${{ needs.buildImageAndPushMainServer.outputs.image_name }}:latest && \
             docker rmi $(docker images -f "dangling=true" -q) || true
 
   makeTagAndReleaseQueueServer:
