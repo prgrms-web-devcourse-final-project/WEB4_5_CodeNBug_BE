@@ -161,9 +161,22 @@ class UserControllerTest {
     @Test
     @DisplayName("회원 탈퇴 성공 테스트")
     void withdrawal_success() throws Exception {
+        // given
+        TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
+        String accessToken = tokenInfo.getAccessToken();
+        String refreshToken = tokenInfo.getRefreshToken();
+
+        // Create refresh token cookie
+        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(false);  // 테스트 환경에서는 false로 설정
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+
         // when
         ResultActions result = mockMvc.perform(delete("/api/v1/users/me")
-                .header("Authorization", "Bearer " + testToken));
+                .header("Authorization", "Bearer " + accessToken)
+                .cookie(refreshTokenCookie));
 
         // then
         result.andExpect(status().isOk())
@@ -177,7 +190,7 @@ class UserControllerTest {
         // given
         String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" +  // header
                             ".eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ" +  // payload
-                            ".invalid_signature";  // invalid signature
+                            ".invalid_signature";  // 잘못된 signature
 
         // when
         ResultActions result = mockMvc.perform(delete("/api/v1/users/me")
