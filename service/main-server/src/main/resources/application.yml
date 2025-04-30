@@ -52,8 +52,14 @@ payment:
 jwt:
   expiration: 86400000
 
+# Cookie Configuration
+cookie:
+  domain: localhost
+  secure: false  # dev 환경에서는 false, prod 환경에서는 true로 설정
+
 # CORS Configuration
 cors:
   allowed-origins:
     - http://localhost:3000
-    - https://your-production-domain.com
+    - https://ticketone.site
+    - https://api.ticketone.site

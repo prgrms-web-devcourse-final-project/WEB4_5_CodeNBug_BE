@@ -1,7 +1,17 @@
-
 redis:
   port: 6379
   host: env-redis-1
 db:
   url: jdbc:mysql://env-mysql-1:3306/ticketone
   username: jiwoo
+
+# Cookie Configuration for Production
+cookie:
+  domain: .ticketone.site  # 실제 프로덕션 도메인
+  secure: true  # HTTPS 필수
+
+# CORS Configuration for Production
+cors:
+  allowed-origins:
+    - https://ticketone.site
+    - https://api.ticketone.site
