@@ -68,8 +68,7 @@ jobs:
         run: echo "$MAIN_APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
 
       - name: 확인
-        run: |
-          echo "pwd service/main-server/src/main/resources/application-secret.yml"
+        run: pwd service/main-server/src/main/resources/application-secret.yml
 
       - name: Docker Buildx 설치
         uses: docker/setup-buildx-action@v3
