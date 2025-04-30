@@ -4,16 +4,24 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.*;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.springframework.data.annotation.CreatedDate;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * Purchase 엔티티 클래스
@@ -37,6 +45,7 @@ public class Purchase {
 	private PaymentMethodEnum paymentMethod;
 
 	@Enumerated(EnumType.STRING)
+	@Column(name = "payment_status", length = 20)
 	private PaymentStatusEnum paymentStatus;
 
 	private String orderName;
