@@ -35,8 +35,23 @@ subprojects {
         developmentOnly 'org.springframework.boot:spring-boot-devtools'
         runtimeOnly 'com.mysql:mysql-connector-j'
         annotationProcessor 'org.projectlombok:lombok'
+        testCompileOnly 'org.projectlombok:lombok'
+        testAnnotationProcessor 'org.projectlombok:lombok'
+        
+        // Test Dependencies
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.junit.jupiter:junit-jupiter-api'
+        testImplementation 'org.junit.jupiter:junit-jupiter-params'
+        testImplementation 'org.mockito:mockito-core'
+        testImplementation 'org.mockito:mockito-junit-jupiter' // JUnit 5와 Mockito 통합
+        testImplementation 'org.assertj:assertj-core'
+        testImplementation 'com.h2database:h2'             // 테스트용 인메모리 데이터베이스
+        testImplementation 'org.testcontainers:junit-jupiter'
+        testImplementation 'org.testcontainers:mysql'      // MySQL 통합 테스트용
+        testImplementation 'io.rest-assured:rest-assured'  // REST API 테스트용
+        
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
     }
 
 }

@@ -57,40 +57,51 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String jwt = null;
-        
-        // Authorization 헤더에서 JWT 토큰을 확인
-        final String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwt = authHeader.substring(7);
-        }
-        
-        // 헤더에서 토큰을 찾지 못했다면 쿠키에서 확인
-        if (jwt == null) {
-            jwt = cookieUtil.getAccessTokenFromCookie(request);
-        }
-
-        // 토큰이 없으면 다음 필터로 진행
-        if (jwt == null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        final String username = jwtConfig.extractUsername(jwt);
-
-        // 사용자 이름이 존재하고, 현재 SecurityContext에 인증 정보가 없는 경우에만 인증 처리
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
-
-            // JWT 토큰이 유효성 검증
-            if (jwtConfig.validateToken(jwt)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+        try {
+            String jwt = null;
+            
+            // Authorization 헤더에서 JWT 토큰을 확인
+            final String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwt = authHeader.substring(7);
             }
+            
+            // 헤더에서 토큰을 찾지 못했다면 쿠키에서 확인
+            if (jwt == null) {
+                jwt = cookieUtil.getAccessTokenFromCookie(request);
+            }
+
+            // 토큰이 없으면 다음 필터로 진행
+            if (jwt == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            try {
+                final String username = jwtConfig.extractUsername(jwt);
+
+                // 사용자 이름이 존재하고, 현재 SecurityContext에 인증 정보가 없는 경우에만 인증 처리
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+
+                    // JWT 토큰이 유효성 검증
+                    if (jwtConfig.validateToken(jwt)) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
+                }
+            } catch (Exception e) {
+                // JWT 토큰 검증 실패 시 인증 컨텍스트를 클리어
+                SecurityContextHolder.clearContext();
+            }
+            
+            filterChain.doFilter(request, response);
+        } catch (Exception e) {
+            // 예외 발생 시 인증 컨텍스트를 클리어하고 다음 필터로 진행
+            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
         }
-        
-        filterChain.doFilter(request, response);
     }
 } 
