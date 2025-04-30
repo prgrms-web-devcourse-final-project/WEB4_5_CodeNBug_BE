@@ -162,8 +162,18 @@ public class UserController {
             HttpServletRequest request,
             HttpServletResponse response) {
         try {
-            // 쿠키에서 토큰 추출
-            String accessToken = cookieUtil.getAccessTokenFromCookie(request);
+            // 헤더에서 토큰 추출 시도
+            String authHeader = request.getHeader("Authorization");
+            String accessToken = null;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                accessToken = authHeader.substring(7);
+            }
+
+            // 헤더에 토큰이 없으면 쿠키에서 추출 시도
+            if (accessToken == null) {
+                accessToken = cookieUtil.getAccessTokenFromCookie(request);
+            }
+
             String refreshToken = cookieUtil.getRefreshTokenFromCookie(request);
 
             if (accessToken == null || refreshToken == null) {
