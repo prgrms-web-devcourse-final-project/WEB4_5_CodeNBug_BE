@@ -1,7 +1,7 @@
 package org.codeNbug.mainserver.domain.seat.entity;
 
 import org.codeNbug.mainserver.domain.manager.entity.Event;
-import org.codeNbug.mainserver.domain.mock.entity.Ticket;
+import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -38,7 +38,7 @@ public class Seat {
 
 	@ManyToOne
 	@JoinColumn(name = "grade_id", nullable = false)
-	private SeatGrade gradeId;
+	private SeatGrade grade;
 
 	@ManyToOne
 	@JoinColumn(name = "layout_id", nullable = false)
@@ -46,7 +46,7 @@ public class Seat {
 
 	@ManyToOne
 	@JoinColumn(name = "ticket_id")
-	private Ticket ticketId;
+	private Ticket ticket;
 
 	@ManyToOne
 	@JoinColumn(name = "event_id", nullable = false)
