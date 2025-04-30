@@ -3,6 +3,7 @@ package org.codeNbug.mainserver.domain.purchase.entity;
 import java.time.LocalDateTime;
 
 import org.codeNbug.mainserver.domain.user.entity.User;
+import org.springframework.data.annotation.CreatedDate;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -42,6 +43,7 @@ public class Purchase {
 
 	private String orderName;
 
+	@CreatedDate
 	private LocalDateTime purchaseDate;
 
 	@ManyToOne
