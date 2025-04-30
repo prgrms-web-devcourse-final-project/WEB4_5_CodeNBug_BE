@@ -1,7 +1,6 @@
 package org.codeNbug.mainserver.domain.purchase.service;
 
 import java.io.IOException;
-import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -13,7 +12,8 @@ import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseResponse;
-import org.codeNbug.mainserver.domain.purchase.entity.PaymentMethodEnum;
+import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
@@ -24,10 +24,8 @@ import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.external.toss.ConfirmedPaymentInfo;
-import org.codeNbug.mainserver.external.toss.TossPaymentClient;
+import org.codeNbug.mainserver.external.toss.TossPaymentServiceImpl;
 import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +34,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class PurchaseService {
 
-	private final TossPaymentClient tossPaymentClient;
-	private final ObjectMapper objectMapper;
+	private final TossPaymentServiceImpl tossPaymentService;
 	private final PurchaseRepository purchaseRepository;
 	private final TicketRepository ticketRepository;
 	private final SeatRepository seatRepository;
@@ -45,18 +42,16 @@ public class PurchaseService {
 	private final UserRepository userRepository;
 
 	/**
-	 * 결제 준비를 위한 사전 등록
-	 * 결제 UUID를 생성하고, 결제 진행 상태로 Purchase 엔티티를 생성하여 저장
+	 * 결제 사전 등록 처리
+	 * - 결제 UUID를 생성하고 결제 상태를 '진행 중'으로 설정하여 저장
 	 *
-	 * @param request 결제 요청 정보
-	 * @param userId 로그인한 사용자 ID
-	 * @return 결제 준비 완료 응답
+	 * @param request 이벤트 ID 정보가 포함된 요청 DTO
+	 * @param userId 현재 로그인한 사용자 ID
+	 * @return 결제 UUID 및 상태 정보를 포함한 응답 DTO
 	 */
 	public InitiatePaymentResponse initiatePayment(InitiatePaymentRequest request, Long userId) {
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
-		Event event = eventRepository.findById(request.getEventId())
-			.orElseThrow(() -> new IllegalArgumentException("이벤트가 존재하지 않습니다."));
+		User user = tossPaymentService.getUser(userId);
+		tossPaymentService.getEvent(request.getEventId());
 
 		String uuid = UUID.randomUUID().toString();
 
@@ -72,43 +67,30 @@ public class PurchaseService {
 	}
 
 	/**
-	 * 미지정석 티켓 구매
-	 * 결제 후 Toss 결제 승인 요청을 처리하고, 결제 상태를 업데이트한 후 티켓을 생성하여 저장
+	 * 미지정석 티켓 결제 처리
+	 * - Toss 결제 승인 → 결제 정보 업데이트 → 사용 가능한 좌석 자동 배정 → 티켓 생성
 	 *
-	 * @param request 구매 요청 정보
+	 * @param request 미지정석 티켓 결제 요청 정보
 	 * @param userId 로그인한 사용자 ID
-	 * @return 티켓 구매 응답
-	 * @throws IOException,InterruptedException Toss 결제 요청 시 발생할 수 있는 예외
+	 * @return 구매 완료 응답 DTO
+	 * @throws IOException Toss API 호출 실패 시
+	 * @throws InterruptedException Toss API 호출 실패 시
 	 */
 	@Transactional
 	public NonSelectTicketPurchaseResponse purchaseNonSelectTicket(NonSelectTicketPurchaseRequest request, Long userId)
 		throws IOException, InterruptedException {
 
-		HttpResponse<String> tossResponse = tossPaymentClient.requestConfirm(
+		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
 			request.getPaymentUuid(),
 			request.getOrderId(),
 			request.getOrderName(),
 			request.getAmount()
 		);
-		if (tossResponse.statusCode() != 200) {
-			throw new IllegalStateException("Toss 결제 승인 실패: " + tossResponse.body());
-		}
 
-		ConfirmedPaymentInfo info = objectMapper.readValue(tossResponse.body(), ConfirmedPaymentInfo.class);
-
-		User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
-		Event event = eventRepository.findById(request.getEventId())
-			.orElseThrow(() -> new IllegalArgumentException("이벤트가 존재하지 않습니다."));
-		Purchase purchase = purchaseRepository.findByPaymentUuid(info.getPaymentUuid())
-			.orElseThrow(() -> new IllegalStateException("사전 등록된 결제가 없습니다."));
-
-		purchase.updatePaymentInfo(
-			Integer.parseInt(info.getTotalAmount()),
-			PaymentMethodEnum.valueOf(request.getPaymentMethod()),
-			PaymentStatusEnum.valueOf(info.getStatus()),
-			request.getOrderName(),
-			LocalDateTime.parse(info.getApprovedAt())
-		);
+		User user = tossPaymentService.getUser(userId);
+		Event event = tossPaymentService.getEvent(request.getEventId());
+		Purchase purchase = tossPaymentService.loadAndUpdatePurchase(info, request.getPaymentMethod(),
+			request.getOrderName());
 
 		List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(event.getEventId());
 		if (availableSeats.size() < request.getTicketCount()) {
@@ -138,6 +120,67 @@ public class PurchaseService {
 			.userId(user.getUserId())
 			.tickets(tickets.stream()
 				.map(t -> new NonSelectTicketPurchaseResponse.TicketInfo(t.getId()))
+				.toList())
+			.ticketCount(tickets.size())
+			.amount(purchase.getAmount())
+			.paymentStatus(purchase.getPaymentStatus().name())
+			.purchaseDate(purchase.getPurchaseDate())
+			.build();
+	}
+
+	/**
+	 * 지정석 티켓 결제 처리
+	 * - Toss 결제 승인 → 좌석 유효성 및 예약 처리 → 결제 정보 업데이트 → 티켓 생성
+	 *
+	 * @param request 지정석 결제 요청 정보 (좌석 ID 포함)
+	 * @param userId 로그인한 사용자 ID
+	 * @return 구매 완료 응답 DTO
+	 * @throws IOException Toss API 호출 실패 시
+	 * @throws InterruptedException Toss API 호출 실패 시
+	 */
+	@Transactional
+	public SelectTicketPurchaseResponse purchaseSelectedSeats(SelectTicketPurchaseRequest request, Long userId)
+		throws IOException, InterruptedException {
+
+		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
+			request.getPaymentUuid(),
+			request.getOrderId(),
+			request.getOrderName(),
+			request.getAmount()
+		);
+
+		User user = tossPaymentService.getUser(userId);
+		Event event = tossPaymentService.getEvent(request.getEventId());
+		Purchase purchase = tossPaymentService.loadAndUpdatePurchase(info, request.getPaymentMethod(),
+			request.getOrderName());
+
+		List<Seat> seats = seatRepository.findAllById(request.getSeatIds());
+		if (seats.size() != request.getSeatIds().size()) {
+			throw new IllegalStateException("존재하지 않는 좌석이 포함되어 있습니다.");
+		}
+		for (Seat seat : seats) {
+			if (!seat.isAvailable()) {
+				throw new IllegalStateException("선택한 좌석 중 매진된 좌석이 있습니다: " + seat.getId());
+			}
+			seat.reserve();
+		}
+
+		List<Ticket> tickets = seats.stream()
+			.map(seat -> new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase))
+			.toList();
+
+		ticketRepository.saveAll(tickets);
+		seatRepository.saveAll(seats);
+
+		return SelectTicketPurchaseResponse.builder()
+			.purchaseId(purchase.getId())
+			.eventId(event.getEventId())
+			.userId(user.getUserId())
+			.tickets(IntStream.range(0, tickets.size())
+				.mapToObj(i -> new SelectTicketPurchaseResponse.TicketInfo(
+					tickets.get(i).getId(),
+					seats.get(i).getId()
+				))
 				.toList())
 			.ticketCount(tickets.size())
 			.amount(purchase.getAmount())

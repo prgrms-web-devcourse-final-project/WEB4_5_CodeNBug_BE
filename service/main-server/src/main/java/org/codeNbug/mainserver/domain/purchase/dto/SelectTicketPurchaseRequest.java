@@ -1,18 +1,16 @@
 package org.codeNbug.mainserver.domain.purchase.dto;
 
-import lombok.AllArgsConstructor;
+import java.util.List;
+
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class NonSelectTicketPurchaseRequest {
+public class SelectTicketPurchaseRequest {
 	private String paymentUuid;
 	private String orderId;
 	private String orderName;
 	private Integer amount;
 	private Long eventId;
-	private int ticketCount;
+	private List<Long> seatIds;
 	private String paymentMethod;
 }

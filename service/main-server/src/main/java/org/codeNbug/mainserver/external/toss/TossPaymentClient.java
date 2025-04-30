@@ -37,7 +37,7 @@ public class TossPaymentClient {
 	 * @return HttpResponse 결제 승인 응답
 	 * @throws IOException,InterruptedException
 	 */
-	public HttpResponse<String> requestConfirm(String paymentUuid, String orderId, String orderName, String amount)
+	public HttpResponse<String> requestConfirm(String paymentUuid, String orderId, String orderName, Integer amount)
 		throws IOException, InterruptedException {
 
 		String body = objectMapper.writeValueAsString(Map.of(

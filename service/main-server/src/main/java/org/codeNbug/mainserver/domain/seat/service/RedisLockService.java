@@ -32,11 +32,14 @@ public class RedisLockService {
 	 *
 	 * @param key   해제할 Redis 키
 	 * @param value 락 소유자 식별 값
+	 * @return true: 락 취소 성공, false: 락 걸려있는 key value 없음
 	 */
-	public void unlock(String key, String value) {
+	public boolean unlock(String key, String value) {
 		String storedValue = redisTemplate.opsForValue().get(key);
-		if (value.equals(storedValue)) {
+		if (value != null && value.equals(storedValue)) {
 			redisTemplate.delete(key);
+			return true;
 		}
+		return false;
 	}
 }
