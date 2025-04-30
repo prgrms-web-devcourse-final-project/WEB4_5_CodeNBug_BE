@@ -52,6 +52,7 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 			.orElseThrow(() -> new IllegalStateException("사전 등록된 결제가 없습니다."));
 
 		purchase.updatePaymentInfo(
+			info.getPaymentUuid(),
 			Integer.parseInt(info.getTotalAmount()),
 			PaymentMethodEnum.valueOf(paymentMethod),
 			PaymentStatusEnum.valueOf(info.getStatus()),

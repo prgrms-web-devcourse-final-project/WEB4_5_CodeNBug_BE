@@ -41,7 +41,7 @@ public class TossPaymentClient {
 		throws IOException, InterruptedException {
 
 		String body = objectMapper.writeValueAsString(Map.of(
-			"paymentUuid", paymentUuid,
+			"paymentKey", paymentUuid,
 			"orderId", orderId,
 			"orderName", orderName,
 			"amount", amount
