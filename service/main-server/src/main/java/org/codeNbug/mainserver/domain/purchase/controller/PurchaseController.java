@@ -8,6 +8,7 @@ import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseReques
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.dto.RsData;
+import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,7 +35,7 @@ public class PurchaseController {
 	public ResponseEntity<RsData> initiatePayment(
 		@RequestBody InitiatePaymentRequest request
 	) {
-		Long userId = 1L; // TODO: JWT 기반으로 사용자 식별 예정
+		Long userId = SecurityUtil.getCurrentUserId();
 		InitiatePaymentResponse response = purchaseService.initiatePayment(request, userId);
 		return ResponseEntity.ok(new RsData("200", "결제 준비 완료", response));
 	}
@@ -56,7 +57,7 @@ public class PurchaseController {
 				.body(new RsData<>("400", "지원하지 않는 티켓 타입입니다."));
 		}
 
-		Long userId = 1L; // TODO: JWT 기반으로 사용자 식별 예정
+		Long userId = SecurityUtil.getCurrentUserId();
 		NonSelectTicketPurchaseResponse response = purchaseService.purchaseNonSelectTicket(request, userId);
 		return ResponseEntity.ok(new RsData<>("200", "구매 완료", response));
 	}
