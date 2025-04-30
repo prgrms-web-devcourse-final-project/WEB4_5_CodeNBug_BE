@@ -119,7 +119,7 @@ jobs:
           INSTANCE_ID=$(aws ec2 describe-instances \
           --filters \
           "Name=tag:Name,Values=team01-main" \
-          "Name=tag:team,Values=devcos5-team01" \
+          "Name=tag:Team,Values=devcos5-team01" \
           "Name=instance-state-name,Values=running" \
           --query "Reservations[].Instances[0].InstanceId" \
           --output text)         echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
