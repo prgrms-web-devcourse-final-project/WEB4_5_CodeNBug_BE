@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.domain.purchase.service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -14,6 +15,7 @@ import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseReques
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseResponse;
+import org.codeNbug.mainserver.domain.purchase.entity.PaymentMethodEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
@@ -63,7 +65,7 @@ public class PurchaseService {
 
 		purchaseRepository.save(purchase);
 
-		return new InitiatePaymentResponse(uuid, purchase.getPaymentStatus().name());
+		return new InitiatePaymentResponse(purchase.getId(), purchase.getPaymentStatus().name());
 	}
 
 	/**
@@ -89,8 +91,17 @@ public class PurchaseService {
 
 		User user = tossPaymentService.getUser(userId);
 		Event event = tossPaymentService.getEvent(request.getEventId());
-		Purchase purchase = tossPaymentService.loadAndUpdatePurchase(info, request.getPaymentMethod(),
-			request.getOrderName());
+		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
+			.orElseThrow(() -> new IllegalStateException("등록된 사전 결제가 없습니다."));
+
+		purchase.updatePaymentInfo(
+			request.getPaymentUuid(),
+			Integer.parseInt(info.getTotalAmount()),
+			PaymentMethodEnum.valueOf(request.getPaymentMethod()),
+			PaymentStatusEnum.valueOf(info.getStatus()),
+			request.getOrderName(),
+			OffsetDateTime.parse(info.getApprovedAt()).toLocalDateTime()
+		);
 
 		List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(event.getEventId());
 		if (availableSeats.size() < request.getTicketCount()) {
