@@ -12,6 +12,7 @@ import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
@@ -186,6 +187,31 @@ public class PurchaseService {
 			.amount(purchase.getAmount())
 			.paymentStatus(purchase.getPaymentStatus().name())
 			.purchaseDate(purchase.getPurchaseDate())
+			.build();
+	}
+
+	/**
+	 * 사용자의 구매 이력을 조회합니다.
+	 *
+	 * @param userId 사용자 ID
+	 * @return 구매 이력 응답 DTO
+	 */
+	public PurchaseHistoryResponse getPurchaseHistory(Long userId) {
+		List<Purchase> purchases = purchaseRepository.findByUserUserIdOrderByPurchaseDateDesc(userId);
+		
+		List<PurchaseHistoryResponse.PurchaseDto> purchaseDtos = purchases.stream()
+			.map(purchase -> PurchaseHistoryResponse.PurchaseDto.builder()
+				.purchaseId(purchase.getId())
+				.itemName(purchase.getOrderName())
+				.amount(purchase.getAmount())
+				.purchaseDate(purchase.getPurchaseDate())
+				.paymentMethod(purchase.getPaymentMethod().name())
+				.paymentStatus(purchase.getPaymentStatus().name())
+				.build())
+			.toList();
+			
+		return PurchaseHistoryResponse.builder()
+			.purchases(purchaseDtos)
 			.build();
 	}
 }

@@ -3,6 +3,8 @@ package org.codeNbug.mainserver.domain.user.controller;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryResponse;
+import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
@@ -15,6 +17,7 @@ import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailEx
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
 import org.codeNbug.mainserver.global.util.CookieUtil;
 import org.codeNbug.mainserver.global.util.JwtConfig;
+import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -31,6 +34,7 @@ public class UserController {
     private final UserService userService;
     private final CookieUtil cookieUtil;
     private final TokenService tokenService;
+    private final PurchaseService purchaseService;
 
     /**
      * 회원가입 API
@@ -223,6 +227,27 @@ public class UserController {
         } catch (AuthenticationFailedException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+        }
+    }
+
+    /**
+     * 사용자의 구매 이력을 조회합니다.
+     *
+     * @return ResponseEntity<RsData<PurchaseHistoryResponse>> 구매 이력 응답
+     */
+    @GetMapping("/me/purchases")
+    public ResponseEntity<RsData<PurchaseHistoryResponse>> getPurchaseHistory() {
+        try {
+            Long userId = SecurityUtil.getCurrentUserId();
+            PurchaseHistoryResponse response = purchaseService.getPurchaseHistory(userId);
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
+        } catch (AuthenticationFailedException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
