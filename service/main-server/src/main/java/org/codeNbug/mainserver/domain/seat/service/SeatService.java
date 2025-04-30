@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
+import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
@@ -57,7 +58,7 @@ public class SeatService {
 	 * @throws IllegalArgumentException 존재하지 않는 좌석이 포함된 경우
 	 */
 	@Transactional
-	public void selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) {
+	public SeatSelectResponse selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) {
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
@@ -79,6 +80,9 @@ public class SeatService {
 
 			redisLockService.unlock(lockKey, lockValue);
 		}
+		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
+		seatSelectResponse.setSeatList(seatSelectRequest.getSeatList());
+		return seatSelectResponse;
 	}
 
 	/**

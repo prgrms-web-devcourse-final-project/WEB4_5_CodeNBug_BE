@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
+import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
 import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
@@ -50,16 +51,16 @@ public class SeatController {
 	 * @return 좌석 선택 결과 응답
 	 */
 	@PostMapping("/{event-id}/seats")
-	public ResponseEntity<RsData> selectSeat(@PathVariable("event-id") Long eventId,
-		@RequestBody SeatSelectRequest seatSelectRequest) {
+	public ResponseEntity<RsData<SeatSelectResponse>> selectSeat(
+			@PathVariable("event-id") Long eventId,
+			@RequestBody SeatSelectRequest seatSelectRequest) {
 		Long userId = SecurityUtil.getCurrentUserId();
-		seatService.selectSeat(eventId, seatSelectRequest, userId);
-		RsData response = new RsData(
-			"200",
-			"좌석 선택 성공",
-			seatSelectRequest
-		);
-		return ResponseEntity.ok(response);
+
+		return ResponseEntity.ok(new RsData<>(
+				"200",
+				"좌석 선택 성공",
+				seatService.selectSeat(eventId, seatSelectRequest, userId)
+		));
 	}
 
 	/**
@@ -70,14 +71,13 @@ public class SeatController {
 	 * @return 좌석 취소 결과 응답
 	 */
 	@DeleteMapping("/{event-id}/seats")
-	public ResponseEntity<RsData> CancelSeat(@PathVariable("event-id") Long eventId,
+	public ResponseEntity<RsData<Void>> cancelSeat(@PathVariable("event-id") Long eventId,
 		@RequestBody SeatCancelRequest seatCancelRequest) {
 		Long userId = SecurityUtil.getCurrentUserId();
 		seatService.cancelSeat(eventId, seatCancelRequest, userId);
-		RsData response = new RsData(
-			"200",
-			"좌석 취소 성공"
-		);
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(new RsData<>(
+				"200",
+				"좌석 취소 성공"
+		));
 	}
 }
