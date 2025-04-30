@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.domain.manager.controller;
 
 
 import lombok.RequiredArgsConstructor;
+import org.codeNbug.mainserver.domain.manager.dto.EventPurchaseResponse;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.manager.dto.ManagerEventListResponse;
@@ -80,4 +81,18 @@ public class ManagerController {
                 response
         ));
     }
+
+    @RoleRequired({UserRole.MANAGER})
+    @GetMapping("/{eventId}/purchases")
+    public ResponseEntity<RsData<List<EventPurchaseResponse>>> eventPurchaseList(
+            @PathVariable Long eventId
+    ) {
+        return ResponseEntity.ok(new RsData<>(
+                "200",
+                "구매 내역 조회 성공",
+                null
+        ));
+    }
+
+
 }
