@@ -15,6 +15,7 @@ public class SelectTicketPurchaseResponse {
 	private Long eventId;
 	private Long userId;
 	private List<TicketInfo> tickets;
+	private Integer ticketCount;
 	private Integer amount;
 	private String paymentStatus;
 	private LocalDateTime purchaseDate;
