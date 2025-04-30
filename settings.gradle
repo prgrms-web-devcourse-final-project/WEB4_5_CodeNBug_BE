@@ -1,6 +1,5 @@
 rootProject.name = 'ticketon'
 
-include 'service'
 
 include 'service:main-server'
 include 'service:queue-server'
