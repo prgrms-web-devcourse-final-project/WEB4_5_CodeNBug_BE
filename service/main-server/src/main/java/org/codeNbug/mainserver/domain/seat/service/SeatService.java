@@ -58,7 +58,8 @@ public class SeatService {
 	 * @throws IllegalArgumentException 존재하지 않는 좌석이 포함된 경우
 	 */
 	@Transactional
-	public SeatSelectResponse selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) {
+	public SeatSelectResponse selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) throws
+		InterruptedException {
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
