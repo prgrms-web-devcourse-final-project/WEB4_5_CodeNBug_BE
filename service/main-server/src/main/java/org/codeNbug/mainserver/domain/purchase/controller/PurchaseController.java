@@ -38,12 +38,12 @@ public class PurchaseController {
 	 * @return 결제 준비 완료 응답
 	 */
 	@PostMapping("/init")
-	public ResponseEntity<RsData> initiatePayment(
+	public ResponseEntity<RsData<InitiatePaymentResponse>> initiatePayment(
 		@RequestBody InitiatePaymentRequest request
 	) {
 		Long userId = SecurityUtil.getCurrentUserId();
 		InitiatePaymentResponse response = purchaseService.initiatePayment(request, userId);
-		return ResponseEntity.ok(new RsData("200", "결제 준비 완료", response));
+		return ResponseEntity.ok(new RsData<>("200", "결제 준비 완료", response));
 	}
 
 	/**
@@ -54,7 +54,7 @@ public class PurchaseController {
 	 * @return 티켓 구매 응답
 	 */
 	@PostMapping("/tickets")
-	public ResponseEntity<RsData> purchaseTicket(
+	public ResponseEntity<RsData<Object>> purchaseTicket(
 		@RequestParam("type") String type,
 		@RequestBody Map<String, Object> requestMap
 	) throws IOException, InterruptedException {
