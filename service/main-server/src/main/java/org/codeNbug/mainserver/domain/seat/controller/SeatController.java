@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.seat.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
@@ -20,8 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/v1/event")
+@RequiredArgsConstructor
 public class SeatController {
-	private SeatService seatService;
+	private final SeatService seatService;
 
 	/**
 	 * 좌석 조회 API
@@ -30,15 +32,14 @@ public class SeatController {
 	 * @return 좌석 선택 결과 응답
 	 */
 	@GetMapping("/{event-id}/seats")
-	public ResponseEntity<RsData> getSeatLayout(@PathVariable("event-id") Long eventId) {
+	public ResponseEntity<RsData<SeatLayoutResponse>> getSeatLayout(@PathVariable("event-id") Long eventId) {
 		Long userId = SecurityUtil.getCurrentUserId();
 		SeatLayoutResponse seatLayoutResponse = seatService.getSeatLayout(eventId, userId);
-		RsData response = new RsData(
-			"200",
-			"좌석 선택 성공",
-			seatLayoutResponse
-		);
-		return ResponseEntity.ok(response);
+		return ResponseEntity.ok(new RsData<>(
+				"200",
+				"좌석 조회 성공",
+				seatLayoutResponse
+		));
 	}
 
 	/**
