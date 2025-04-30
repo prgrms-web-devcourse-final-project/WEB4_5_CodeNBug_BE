@@ -7,6 +7,7 @@ import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
+import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
 import org.codeNbug.mainserver.domain.user.service.UserService;
 import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.codeNbug.mainserver.global.dto.RsData;
@@ -20,6 +21,9 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
+/**
+ * 사용자 관련 컨트롤러
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
@@ -199,6 +203,26 @@ public class UserController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new RsData<>("404-NOT_FOUND", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+        }
+    }
+
+    /**
+     * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
+     *
+     * @return ResponseEntity<RsData<UserProfileResponse>> 프로필 정보 응답
+     */
+    @GetMapping("/me")
+    public ResponseEntity<RsData<UserProfileResponse>> getProfile() {
+        try {
+            UserProfileResponse profile = userService.getProfile();
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "프로필 조회 성공", profile));
+        } catch (AuthenticationFailedException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));

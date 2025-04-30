@@ -12,6 +12,12 @@ public class CookieUtil {
     @Value("${spring.profiles.active:dev}")
     private String activeProfile;
 
+    @Value("${cookie.domain}")
+    private String cookieDomain;
+
+    @Value("${cookie.secure}")
+    private boolean isSecure;
+
     @Value("${jwt.access-token-expiration:1800000}")
     private long accessTokenExpiration;
 
@@ -28,9 +34,11 @@ public class CookieUtil {
      */
     public void setAccessTokenCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE_NAME, token);
-        cookie.setMaxAge(COOKIE_MAX_AGE);
+        cookie.setMaxAge((int) (accessTokenExpiration / 1000)); // milliseconds to seconds
         cookie.setPath(COOKIE_PATH);
+        cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
+        cookie.setSecure(isSecure);
         response.addCookie(cookie);
     }
 
@@ -39,9 +47,11 @@ public class CookieUtil {
      */
     public void setRefreshTokenCookie(HttpServletResponse response, String token) {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, token);
-        cookie.setMaxAge(COOKIE_MAX_AGE);
+        cookie.setMaxAge((int) (refreshTokenExpiration / 1000)); // milliseconds to seconds
         cookie.setPath(COOKIE_PATH);
+        cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
+        cookie.setSecure(isSecure);
         response.addCookie(cookie);
     }
 
@@ -52,6 +62,9 @@ public class CookieUtil {
         Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE_NAME, null);
         cookie.setMaxAge(0);
         cookie.setPath(COOKIE_PATH);
+        cookie.setDomain(cookieDomain);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(isSecure);
         response.addCookie(cookie);
     }
 
@@ -62,6 +75,9 @@ public class CookieUtil {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, null);
         cookie.setMaxAge(0);
         cookie.setPath(COOKIE_PATH);
+        cookie.setDomain(cookieDomain);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(isSecure);
         response.addCookie(cookie);
     }
 
