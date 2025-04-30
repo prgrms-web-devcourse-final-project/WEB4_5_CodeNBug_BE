@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.seat.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
