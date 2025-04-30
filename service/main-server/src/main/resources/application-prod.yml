@@ -4,4 +4,4 @@ redis:
   host: localhost
 db:
   url: jdbc:mysql://env-mysql-1:3306
-  username: root
+  username: jiwoo
