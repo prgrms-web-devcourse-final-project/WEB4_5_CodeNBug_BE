@@ -7,12 +7,12 @@ spring:
     include: secret
   data:
     redis:
-      port: ${redis.port}
-      host: ${redis.host}
+      port: 6379
+      host: localhost
   datasource:
-    url: ${db.url}
-    username: ${db.username}
-    password: ${db.password}
+    url: jdbc:mysql://localhost:3306/ticketone
+    username: root
+    password: password
     hikari:
       auto-commit: false
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -31,8 +31,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${mail.username}
-    password: ${mail.password}
+    username: ON_SECRET
+    password: ON_SECRET
     properties:
       mail:
         smtp:
@@ -46,8 +46,8 @@ spring:
       auth-code-expiration-millis: 1800000  # 30 * 60 * 1000 == 30분
 payment:
   toss:
-    secret-key: ${TOSS_SECRET_KEY}
-    api-url: ${TOSS_API_URL}
+    secret-key: ON_SECRET
+    api-url: https://api.tosspayments.com/v1/payments/confirm
 # JWT Configuration
 jwt:
   expiration: 86400000
