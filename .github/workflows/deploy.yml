@@ -71,6 +71,8 @@ jobs:
         run: pwd service/main-server/src/main/resources/application-secret.yml
       - name: 확인2
         run: ls -al
+      - name: 확인3
+        run: ls -al service/main-server/src/main/resources
 
 #      - name: Docker Buildx 설치
 #        uses: docker/setup-buildx-action@v3
