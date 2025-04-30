@@ -13,4 +13,7 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
 	List<Seat> findAllByLayoutIdWithGrade(@Param("layoutId") Long layoutId);
 
 	List<Seat> findByEvent(Event event);
+
+	@Query("SELECT s FROM Seat s WHERE s.event.eventId = :eventId AND s.available = true ORDER BY s.location ASC")
+	List<Seat> findAvailableSeatsByEventId(@Param("eventId") Long eventId);
 }
