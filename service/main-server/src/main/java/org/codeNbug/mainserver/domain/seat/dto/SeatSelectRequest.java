@@ -2,12 +2,15 @@ package org.codeNbug.mainserver.domain.seat.dto;
 
 import java.util.List;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-/**
- * SecurityConfig 생성자
- */
 @Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class SeatSelectRequest {
 	private List<Long> seatList;
 }

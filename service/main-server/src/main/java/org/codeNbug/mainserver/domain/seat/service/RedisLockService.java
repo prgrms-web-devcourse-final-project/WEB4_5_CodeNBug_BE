@@ -35,7 +35,7 @@ public class RedisLockService {
 	 */
 	public void unlock(String key, String value) {
 		String storedValue = redisTemplate.opsForValue().get(key);
-		if (value.equals(storedValue)) {
+		if (value != null && value.equals(storedValue)) {
 			redisTemplate.delete(key);
 		}
 	}

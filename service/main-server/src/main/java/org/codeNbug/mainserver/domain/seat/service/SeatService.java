@@ -16,10 +16,12 @@ import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 좌석 도메인 관련 로직을 처리하는 서비스
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SeatService {
@@ -41,7 +43,7 @@ public class SeatService {
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
-		SeatLayout seatLayout = seatLayoutRepository.findById(eventId)
+		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
 		List<Seat> seatList = seatRepository.findAllByLayoutIdWithGrade((seatLayout.getId()));
@@ -58,7 +60,8 @@ public class SeatService {
 	 * @throws IllegalArgumentException 존재하지 않는 좌석이 포함된 경우
 	 */
 	@Transactional
-	public SeatSelectResponse selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) {
+	public SeatSelectResponse selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) throws
+		InterruptedException {
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
@@ -77,9 +80,8 @@ public class SeatService {
 
 			seat.reserve();
 			seatRepository.save(seat);
-
-			redisLockService.unlock(lockKey, lockValue);
 		}
+
 		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
 		seatSelectResponse.setSeatList(seatSelectRequest.getSeatList());
 		return seatSelectResponse;
