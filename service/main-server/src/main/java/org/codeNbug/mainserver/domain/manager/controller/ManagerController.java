@@ -6,10 +6,7 @@ import org.codeNbug.mainserver.domain.manager.dto.EventPurchaseResponse;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.manager.dto.ManagerEventListResponse;
-import org.codeNbug.mainserver.domain.manager.service.EventEditService;
-import org.codeNbug.mainserver.domain.manager.service.EventRegisterService;
-import org.codeNbug.mainserver.domain.manager.service.EventDeleteService;
-import org.codeNbug.mainserver.domain.manager.service.ManagerEventSearchService;
+import org.codeNbug.mainserver.domain.manager.service.*;
 import org.codeNbug.mainserver.domain.user.constant.UserRole;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.security.annotation.RoleRequired;
@@ -27,7 +24,7 @@ public class ManagerController {
     private final EventEditService eventEditService;
     private final EventDeleteService eventDeleteService;
     private final ManagerEventSearchService eventSearchService;
-
+    private final ManagerPurchasesService managerPurchasesService;
     /**
      * 이벤트 등록 API
      * @param request 이벤트 등록 요청 DTO
@@ -87,10 +84,11 @@ public class ManagerController {
     public ResponseEntity<RsData<List<EventPurchaseResponse>>> eventPurchaseList(
             @PathVariable Long eventId
     ) {
+        List<EventPurchaseResponse> response = managerPurchasesService.getEventPurchaseList(eventId, SecurityUtil.getCurrentUser());
         return ResponseEntity.ok(new RsData<>(
                 "200",
                 "구매 내역 조회 성공",
-                null
+                response
         ));
     }
 
