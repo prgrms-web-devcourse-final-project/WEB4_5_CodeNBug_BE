@@ -1,11 +1,14 @@
 package org.codeNbug.mainserver.domain.purchase.controller;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
@@ -16,13 +19,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/tickets")
+@RequestMapping("/api/v1/purchase")
 public class PurchaseController {
 
+	private final ObjectMapper objectMapper;
 	private final PurchaseService purchaseService;
 
 	/**
@@ -41,24 +47,30 @@ public class PurchaseController {
 	}
 
 	/**
-	 * 미지정석 티켓 구매 (결제 완료 후 Toss 승인 요청)
+	 * 티켓 구매 (결제 완료 후 Toss 승인 요청)
 	 *
-	 * @param type "non-select"이어야 함
-	 * @param request 결제 관련 정보 (Toss 결제 후 전달됨)
+	 * @param type "non-select" or "select"
+	 * @param requestMap 결제 관련 정보 (Toss 결제 후 전달됨)
 	 * @return 티켓 구매 응답
 	 */
-	@PostMapping
+	@PostMapping("/tickets")
 	public ResponseEntity<RsData> purchaseTicket(
 		@RequestParam("type") String type,
-		@RequestBody NonSelectTicketPurchaseRequest request
+		@RequestBody Map<String, Object> requestMap
 	) throws IOException, InterruptedException {
-		if (!type.equals("non-select")) {
-			return ResponseEntity.badRequest()
-				.body(new RsData<>("400", "지원하지 않는 티켓 타입입니다."));
-		}
-
 		Long userId = SecurityUtil.getCurrentUserId();
-		NonSelectTicketPurchaseResponse response = purchaseService.purchaseNonSelectTicket(request, userId);
-		return ResponseEntity.ok(new RsData<>("200", "구매 완료", response));
+		if (type.equals("non-select")) {
+			NonSelectTicketPurchaseRequest request = objectMapper.convertValue(requestMap,
+				NonSelectTicketPurchaseRequest.class);
+			NonSelectTicketPurchaseResponse response = purchaseService.purchaseNonSelectTicket(request, userId);
+			return ResponseEntity.ok(new RsData<>("200", "구매 완료", response));
+		} else if (type.equals("select")) {
+			SelectTicketPurchaseRequest request = objectMapper.convertValue(requestMap,
+				SelectTicketPurchaseRequest.class);
+			SelectTicketPurchaseResponse response = purchaseService.purchaseSelectedSeats(request, userId);
+			return ResponseEntity.ok(new RsData<>("200", "구매 완료", response));
+		} else {
+			return ResponseEntity.badRequest().body(new RsData<>("400", "지원하지 않는 티켓 타입입니다."));
+		}
 	}
 }
