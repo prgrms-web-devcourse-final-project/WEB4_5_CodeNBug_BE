@@ -56,8 +56,7 @@ public class ManagerController {
     @RoleRequired({UserRole.MANAGER, UserRole.ADMIN})
     @PatchMapping("/{eventId}")
     public ResponseEntity<RsData<Void>> deleteEvent(@PathVariable Long eventId) {
-        Long userId = SecurityUtil.getCurrentUserId();
-        eventDeleteService.deleteEvent(eventId);
+        eventDeleteService.deleteEvent(eventId, SecurityUtil.getCurrentUserId());
         return ResponseEntity.ok(new RsData<> (
                 "200",
                 "이벤트 삭제 성공",
