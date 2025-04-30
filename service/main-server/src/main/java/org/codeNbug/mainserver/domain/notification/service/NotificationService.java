@@ -3,7 +3,9 @@ package org.codeNbug.mainserver.domain.notification.service;
 import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.entity.Notification;
+import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
 import org.codeNbug.mainserver.domain.notification.repository.NotificationRepository;
+import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
     /**
      * 특정 사용자의 알림 목록을 페이지네이션하여 조회
@@ -58,5 +61,34 @@ public class NotificationService {
         }
 
         return NotificationDto.from(notification);
+    }
+    /**
+     * 새로운 알림을 생성합니다
+     *
+     * @param userId 알림을 받을 사용자 ID
+     * @param type 알림 유형
+     * @param content 알림 내용
+     * @return 생성된 알림 DTO
+     * @throws BadRequestException 사용자를 찾을 수 없는 경우
+     */
+    @Transactional
+    public NotificationDto createNotification(Long userId, NotificationEnum type, String content) {
+        // 사용자 존재 여부 검증
+        if (!userRepository.existsById(userId)) {
+            throw new BadRequestException("해당 사용자를 찾을 수 없습니다.");
+        }
+
+        // 알림 엔티티 생성
+        Notification notification = Notification.builder()
+                .userId(userId)
+                .type(type)
+                .content(content)
+                .build();
+
+        // 저장
+        Notification savedNotification = notificationRepository.save(notification);
+
+        // DTO로 변환하여 반환
+        return NotificationDto.from(savedNotification);
     }
 }
