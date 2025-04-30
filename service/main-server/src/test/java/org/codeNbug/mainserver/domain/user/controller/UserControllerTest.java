@@ -125,18 +125,12 @@ class UserControllerTest {
     @DisplayName("로그아웃 성공 테스트")
     void logout_success() throws Exception {
         // given
-        TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
-        String accessToken = tokenInfo.getAccessToken();
-        String refreshToken = tokenInfo.getRefreshToken();
-
-        // Create refresh token cookie
-        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setHttpOnly(true);
+        TokenService.TokenInfo tokenInfo = generateTestTokens();
+        Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 
         // when
         ResultActions result = mockMvc.perform(post("/api/v1/users/logout")
-                .header("Authorization", "Bearer " + accessToken)
+                .header("Authorization", "Bearer " + tokenInfo.getAccessToken())
                 .cookie(refreshTokenCookie));
 
         // then
@@ -162,20 +156,12 @@ class UserControllerTest {
     @DisplayName("회원 탈퇴 성공 테스트")
     void withdrawal_success() throws Exception {
         // given
-        TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
-        String accessToken = tokenInfo.getAccessToken();
-        String refreshToken = tokenInfo.getRefreshToken();
-
-        // Create refresh token cookie
-        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
-        refreshTokenCookie.setHttpOnly(true);
-        refreshTokenCookie.setSecure(false);  // 테스트 환경에서는 false로 설정
-        refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+        TokenService.TokenInfo tokenInfo = generateTestTokens();
+        Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 
         // when
         ResultActions result = mockMvc.perform(delete("/api/v1/users/me")
-                .header("Authorization", "Bearer " + accessToken)
+                .header("Authorization", "Bearer " + tokenInfo.getAccessToken())
                 .cookie(refreshTokenCookie));
 
         // then
@@ -245,5 +231,27 @@ class UserControllerTest {
         result.andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
                 .andExpect(jsonPath("$.msg").value("이메일 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요."));
+    }
+
+    /**
+     * 테스트용 토큰 생성 헬퍼 메서드
+     * @return TokenInfo 객체
+     */
+    private TokenService.TokenInfo generateTestTokens() {
+        return tokenService.generateTokens(testUser.getEmail());
+    }
+
+    /**
+     * 테스트용 리프레시 토큰 쿠키 생성 헬퍼 메서드
+     * @param refreshToken 리프레시 토큰
+     * @return Cookie 객체
+     */
+    private Cookie createTestRefreshTokenCookie(String refreshToken) {
+        Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
+        refreshTokenCookie.setHttpOnly(true);
+        refreshTokenCookie.setSecure(false);  // 테스트 환경에서는 false로 설정
+        refreshTokenCookie.setPath("/");
+        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+        return refreshTokenCookie;
     }
 } 
