@@ -17,14 +17,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
-
 /**
  * 좌석 도메인 관련 요청을 처리하는 컨트롤러
  */
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/v1/event")
+@RequiredArgsConstructor
 public class SeatController {
 	private final SeatService seatService;
 
@@ -39,9 +37,9 @@ public class SeatController {
 		Long userId = SecurityUtil.getCurrentUserId();
 		SeatLayoutResponse seatLayoutResponse = seatService.getSeatLayout(eventId, userId);
 		return ResponseEntity.ok(new RsData<>(
-			"200",
-			"좌석 조회 성공",
-			seatLayoutResponse
+				"200",
+				"좌석 조회 성공",
+				seatLayoutResponse
 		));
 	}
 
@@ -53,13 +51,15 @@ public class SeatController {
 	 * @return 좌석 선택 결과 응답
 	 */
 	@PostMapping("/{event-id}/seats")
-	public ResponseEntity<RsData<SeatSelectResponse>> selectSeat(@PathVariable("event-id") Long eventId,
-		@RequestBody SeatSelectRequest seatSelectRequest) throws InterruptedException {
+	public ResponseEntity<RsData<SeatSelectResponse>> selectSeat(
+			@PathVariable("event-id") Long eventId,
+			@RequestBody SeatSelectRequest seatSelectRequest) {
 		Long userId = SecurityUtil.getCurrentUserId();
+
 		return ResponseEntity.ok(new RsData<>(
-			"200",
-			"좌석 선택 성공",
-			seatService.selectSeat(eventId, seatSelectRequest, userId)
+				"200",
+				"좌석 선택 성공",
+				seatService.selectSeat(eventId, seatSelectRequest, userId)
 		));
 	}
 
@@ -76,8 +76,8 @@ public class SeatController {
 		Long userId = SecurityUtil.getCurrentUserId();
 		seatService.cancelSeat(eventId, seatCancelRequest, userId);
 		return ResponseEntity.ok(new RsData<>(
-			"200",
-			"좌석 취소 성공"
+				"200",
+				"좌석 취소 성공"
 		));
 	}
 }

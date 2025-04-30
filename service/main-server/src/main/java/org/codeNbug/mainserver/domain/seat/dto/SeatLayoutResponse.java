@@ -21,7 +21,7 @@ public class SeatLayoutResponse {
 		private String grade;
 		private boolean available;
 
-		public SeatDto(Long seatId, String location, String grade, boolean available) {
+		public SeatDto(Long seatId,String location, String grade, boolean available) {
 			this.seatId = seatId;
 			this.location = location;
 			this.grade = grade;
@@ -31,14 +31,14 @@ public class SeatLayoutResponse {
 
 	public SeatLayoutResponse(List<Seat> seatList) {
 		this.seats = seatList.stream()
-			.sorted(Comparator.comparing(Seat::getId))
-			.map(seat -> new SeatDto(
-				seat.getId(),
-				seat.getLocation(),
-				seat.getGrade().getGrade().name(),
-				seat.isAvailable()
-			))
-			.toList();
+				.sorted(Comparator.comparing(Seat::getId))  // seatId 순 정렬 추가
+				.map(seat -> new SeatDto(
+						seat.getId(),
+						seat.getLocation(),
+						seat.getGrade().getGrade().name(),
+						seat.isAvailable()
+				))
+				.toList();
 	}
 
 }
