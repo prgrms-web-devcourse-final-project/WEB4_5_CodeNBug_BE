@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class SelectTicketPurchaseResponse {
+public class TicketPurchaseResponse {
 	private Long purchaseId;
 	private Long eventId;
 	private Long userId;

@@ -5,17 +5,19 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SelectTicketPurchaseRequest {
+public class SelectTicketPurchaseRequest implements TicketPurchaseRequest {
 	private Long purchaseId;
-	private String paymentUuid;
-	private String orderId;
-	private String orderName;
-	private Integer amount;
 	private Long eventId;
 	private List<Long> seatIds;
-	private String paymentMethod;
+
+	@Override
+	public int getTicketCount() {
+		return seatIds != null ? seatIds.size() : 0;
+	}
 }

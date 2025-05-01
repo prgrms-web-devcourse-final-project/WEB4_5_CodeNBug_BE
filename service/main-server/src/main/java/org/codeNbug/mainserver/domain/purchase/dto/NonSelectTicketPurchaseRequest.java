@@ -9,13 +9,8 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class NonSelectTicketPurchaseRequest {
+public class NonSelectTicketPurchaseRequest implements TicketPurchaseRequest {
 	private Long purchaseId;
-	private String paymentUuid;
-	private String orderId;
-	private String orderName;
-	private Integer amount;
 	private Long eventId;
 	private int ticketCount;
-	private String paymentMethod;
 }

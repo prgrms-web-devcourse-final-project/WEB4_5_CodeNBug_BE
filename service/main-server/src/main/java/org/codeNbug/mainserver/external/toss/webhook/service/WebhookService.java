@@ -1,13 +1,30 @@
 package org.codeNbug.mainserver.external.toss.webhook.service;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.IntStream;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.TicketPurchaseRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.TicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
+import org.codeNbug.mainserver.domain.seat.entity.Seat;
+import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
+import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
+import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
+import org.codeNbug.mainserver.domain.user.entity.User;
+import org.codeNbug.mainserver.domain.user.repository.UserRepository;
+import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
+import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,15 +35,18 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Webhook에서 받는 데이터 처리하는 서비스
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class WebhookService {
+
 	private final ObjectMapper objectMapper;
 	private final PurchaseRepository purchaseRepository;
+	private final TossPaymentService tossPaymentService;
+	private final SeatRepository seatRepository;
+	private final TicketRepository ticketRepository;
+	private final UserRepository userRepository;
+	private final EventRepository eventRepository;
 
 	@Value("${payment.toss.secret-key}")
 	private String TOSS_SECRET_KEY;
@@ -53,17 +73,110 @@ public class WebhookService {
 				case "PAYMENT_CANCELED" -> handlePaymentCanceled(purchase);
 				default -> throw new IllegalArgumentException("지원하지 않는 웹훅 이벤트: " + eventType);
 			}
+
 			purchaseRepository.save(purchase);
 		} catch (Exception e) {
 			throw new RuntimeException("웹훅 처리 중 오류 발생: " + e.getMessage(), e);
 		}
 	}
 
-	private void handlePaymentApproved(Purchase purchase) {
+	public TicketPurchaseResponse handlePaymentApproved(Purchase purchase) {
 		if (purchase.getPaymentStatus() != PaymentStatusEnum.IN_PROGRESS) {
-			log.info("결제 승인 처리: IN_PROGRESS -> DONE");
-			purchase.setPaymentStatus(PaymentStatusEnum.DONE);
+			log.info("이미 처리된 결제입니다.");
+			return null;
 		}
+
+		try {
+			ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
+				purchase.getPaymentUuid(),
+				purchase.getOrderId(),
+				purchase.getOrderName(),
+				purchase.getAmount()
+			);
+
+			purchase.updatePaymentInfo(
+				info.getPaymentUuid(),
+				info.getTotalAmount(),
+				info.getMethod(),
+				PaymentStatusEnum.DONE,
+				info.getOrderName(),
+				info.getApprovedAt()
+			);
+
+			Long eventId = purchase.getEventId();
+			Event event = eventRepository.findById(eventId)
+				.orElseThrow(() -> new IllegalStateException("해당 이벤트를 찾을 수 없습니다."));
+			;
+			User user = purchase.getUser();
+
+			if (event.getSeatSelectable()) {
+				SelectTicketPurchaseRequest request = new SelectTicketPurchaseRequest(
+					purchase.getId(),
+					event.getEventId(),
+					purchase.getSelectedSeatIds()
+				);
+				return processTicketPurchase(request, user.getUserId());
+			} else {
+				NonSelectTicketPurchaseRequest request = new NonSelectTicketPurchaseRequest(
+					purchase.getId(),
+					event.getEventId(),
+					purchase.getTicketCount()
+				);
+				return processTicketPurchase(request, user.getUserId());
+			}
+
+		} catch (Exception e) {
+			log.error("결제 승인 처리 실패", e);
+			throw new RuntimeException("결제 승인 처리 실패", e);
+		}
+	}
+
+	public TicketPurchaseResponse processTicketPurchase(TicketPurchaseRequest request, Long userId) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new IllegalStateException("사용자가 존재하지 않습니다."));
+		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
+			.orElseThrow(() -> new IllegalStateException("등록된 사전 결제가 없습니다."));
+		Event event = eventRepository.findById(request.getEventId())
+			.orElseThrow(() -> new IllegalStateException("해당 이벤트를 찾을 수 없습니다."));
+
+		int approvedAmount = purchaseRepository.findAmountById(purchase.getId());
+		if (approvedAmount != purchase.getAmount()) {
+			throw new IllegalStateException("결제 금액 불일치");
+		}
+
+		List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(event.getEventId());
+		if (availableSeats.size() < request.getTicketCount()) {
+			throw new IllegalStateException("좌석 수 부족");
+		}
+
+		List<Ticket> tickets = IntStream.range(0, request.getTicketCount())
+			.mapToObj(i -> {
+				Seat seat = availableSeats.get(i);
+				seat.reserve();
+				Ticket ticket = new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase);
+				seat.setTicket(ticket);
+				purchase.addTicket(ticket);
+				return ticket;
+			})
+			.toList();
+
+		ticketRepository.saveAll(tickets);
+		seatRepository.saveAll(availableSeats.subList(0, request.getTicketCount()));
+
+		return TicketPurchaseResponse.builder()
+			.purchaseId(purchase.getId())
+			.eventId(event.getEventId())
+			.userId(user.getUserId())
+			.tickets(IntStream.range(0, tickets.size())
+				.mapToObj(i -> new TicketPurchaseResponse.TicketInfo(
+					tickets.get(i).getId(),
+					event.getSeatSelectable() ? availableSeats.get(i).getId() : null
+				)).toList())
+			.ticketCount(tickets.size())
+			.amount(purchase.getAmount())
+			.paymentStatus(purchase.getPaymentStatus().name())
+			.purchaseDate(purchase.getPurchaseDate())
+			.build();
 	}
 
 	private void handlePaymentExpired(Purchase purchase) {
@@ -84,13 +197,10 @@ public class WebhookService {
 		try {
 			String algorithm = "HmacSHA256";
 			SecretKeySpec keySpec = new SecretKeySpec(TOSS_SECRET_KEY.getBytes(StandardCharsets.UTF_8), algorithm);
-
 			Mac mac = Mac.getInstance(algorithm);
 			mac.init(keySpec);
-
 			byte[] hash = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
 			String expectedSignature = bytesToHex(hash);
-
 			return expectedSignature.equals(receivedSignature);
 		} catch (Exception e) {
 			log.error("시그니처 검증 중 오류 발생", e);
