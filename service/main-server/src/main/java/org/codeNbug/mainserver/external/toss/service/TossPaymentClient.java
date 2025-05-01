@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.external.toss;
+package org.codeNbug.mainserver.external.toss.service;
 
 import java.io.IOException;
 import java.net.URI;
@@ -32,16 +32,18 @@ public class TossPaymentClient {
 	 * Toss 결제 승인 요청
 	 *
 	 * @param paymentUuid Toss에서 받은 결제 키
-	 * @param orderId    사용자 주문 ID
-	 * @param amount     결제 금액
+	 * @param orderId     사용자 주문 ID
+	 * @param amount      결제 금액
+	 * @param status
 	 * @return HttpResponse 결제 승인 응답
 	 * @throws IOException,InterruptedException
 	 */
-	public HttpResponse<String> requestConfirm(String paymentUuid, String orderId, String orderName, Integer amount)
+	public HttpResponse<String> requestConfirm(String paymentUuid, String orderId, String orderName, Integer amount,
+		String status)
 		throws IOException, InterruptedException {
 
 		String body = objectMapper.writeValueAsString(Map.of(
-			"paymentUuid", paymentUuid,
+			"paymentKey", paymentUuid,
 			"orderId", orderId,
 			"orderName", orderName,
 			"amount", amount

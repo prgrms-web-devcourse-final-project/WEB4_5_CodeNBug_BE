@@ -2,7 +2,9 @@ package org.codeNbug.mainserver.domain.seat.service;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
@@ -30,6 +32,8 @@ public class SeatService {
 
 	private static final String SEAT_LOCK_KEY_PREFIX = "seat:lock:";
 
+	private final Map<Long, String> seatLockMap = new ConcurrentHashMap<>();
+
 	/**
 	 * 주어진 이벤트 ID에 해당하는 좌석 목록 조회
 	 *
@@ -41,7 +45,7 @@ public class SeatService {
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
-		SeatLayout seatLayout = seatLayoutRepository.findById(eventId)
+		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
 		List<Seat> seatList = seatRepository.findAllByLayoutIdWithGrade((seatLayout.getId()));
@@ -63,6 +67,11 @@ public class SeatService {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
 
+		List<Long> selectedSeats = seatSelectRequest.getSeatList();
+		if (selectedSeats.size() > 4) {
+			throw new IllegalArgumentException("최대 4개의 좌석만 선택할 수 있습니다.");
+		}
+
 		for (Long seatId : seatSelectRequest.getSeatList()) {
 			String lockKey = SEAT_LOCK_KEY_PREFIX + eventId + ":" + seatId;
 			String lockValue = UUID.randomUUID().toString();
@@ -71,6 +80,8 @@ public class SeatService {
 			if (!lockSuccess) {
 				throw new IllegalStateException("이미 선택된 좌석이 있습니다.");
 			}
+
+			seatLockMap.put(seatId, lockValue);
 
 			Seat seat = seatRepository.findById(seatId)
 				.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
@@ -101,6 +112,11 @@ public class SeatService {
 
 		for (Long seatId : seatCancelRequest.getSeatList()) {
 			String lockKey = SEAT_LOCK_KEY_PREFIX + eventId + ":" + seatId;
+
+			String lockValue = seatLockMap.get(seatId);
+			if (lockValue == null || !redisLockService.unlock(lockKey, lockValue)) {
+				throw new IllegalStateException("잘못된 접근입니다.");
+			}
 
 			Seat seat = seatRepository.findById(seatId)
 				.orElseThrow(() -> new IllegalArgumentException("좌석을 찾을 수 없습니다. seatId: " + seatId));

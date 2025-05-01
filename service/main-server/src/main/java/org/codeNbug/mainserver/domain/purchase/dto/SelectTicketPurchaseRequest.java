@@ -2,10 +2,15 @@ package org.codeNbug.mainserver.domain.purchase.dto;
 
 import java.util.List;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class SelectTicketPurchaseRequest {
+	private Long purchaseId;
 	private String paymentUuid;
 	private String orderId;
 	private String orderName;

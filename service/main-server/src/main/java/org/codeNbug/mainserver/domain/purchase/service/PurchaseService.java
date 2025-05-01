@@ -2,12 +2,12 @@ package org.codeNbug.mainserver.domain.purchase.service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
 import org.codeNbug.mainserver.domain.manager.entity.Event;
-import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseRequest;
@@ -15,6 +15,7 @@ import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseRespon
 import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseResponse;
+import org.codeNbug.mainserver.domain.purchase.entity.PaymentMethodEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
@@ -23,9 +24,8 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
-import org.codeNbug.mainserver.external.toss.ConfirmedPaymentInfo;
-import org.codeNbug.mainserver.external.toss.TossPaymentServiceImpl;
+import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
+import org.codeNbug.mainserver.external.toss.service.TossPaymentServiceImpl;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -39,8 +39,6 @@ public class PurchaseService {
 	private final PurchaseRepository purchaseRepository;
 	private final TicketRepository ticketRepository;
 	private final SeatRepository seatRepository;
-	private final EventRepository eventRepository;
-	private final UserRepository userRepository;
 
 	/**
 	 * 결제 사전 등록 처리
@@ -59,12 +57,13 @@ public class PurchaseService {
 		Purchase purchase = Purchase.builder()
 			.paymentUuid(uuid)
 			.paymentStatus(PaymentStatusEnum.IN_PROGRESS)
+			.amount(request.getAmount())
 			.user(user)
 			.build();
 
 		purchaseRepository.save(purchase);
 
-		return new InitiatePaymentResponse(uuid, purchase.getPaymentStatus().name());
+		return new InitiatePaymentResponse(purchase.getId(), purchase.getPaymentStatus().name());
 	}
 
 	/**
@@ -81,39 +80,45 @@ public class PurchaseService {
 	public NonSelectTicketPurchaseResponse purchaseNonSelectTicket(NonSelectTicketPurchaseRequest request, Long userId)
 		throws IOException, InterruptedException {
 
-		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
-			request.getPaymentUuid(),
-			request.getOrderId(),
-			request.getOrderName(),
-			request.getAmount()
-		);
+		confirmAndUpdatePurchase(request);
 
-		User user = tossPaymentService.getUser(userId);
 		Event event = tossPaymentService.getEvent(request.getEventId());
-		Purchase purchase = tossPaymentService.loadAndUpdatePurchase(info, request.getPaymentMethod(),
-			request.getOrderName());
+		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
+			.orElseThrow(() -> new IllegalStateException("등록된 사전 결제가 없습니다."));
 
 		List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(event.getEventId());
 		if (availableSeats.size() < request.getTicketCount()) {
 			throw new IllegalStateException("선택 가능한 좌석이 부족합니다.");
 		}
 
+		int approvedAmount = purchaseRepository.findAmountById(purchase.getId());
+		int expectedAmount = purchase.getAmount();
+
+		if (expectedAmount != approvedAmount) {
+			throw new IllegalStateException("결제 금액이 일치하지 않습니다. 예상: " + expectedAmount + ", 승인됨: " + approvedAmount);
+		}
+
 		List<Ticket> tickets = IntStream.range(0, request.getTicketCount())
 			.mapToObj(i -> {
 				Seat seat = availableSeats.get(i);
 				seat.reserve();
-				return new Ticket(
+				Ticket ticket = new Ticket(
 					null,
 					seat.getLocation(),
 					LocalDateTime.now(),
 					event,
 					purchase
 				);
+				seat.setTicket(ticket);
+				purchase.addTicket(ticket);
+				return ticket;
 			})
 			.toList();
 
 		ticketRepository.saveAll(tickets);
 		seatRepository.saveAll(availableSeats.subList(0, request.getTicketCount()));
+
+		User user = tossPaymentService.getUser(userId);
 
 		return NonSelectTicketPurchaseResponse.builder()
 			.purchaseId(purchase.getId())
@@ -143,17 +148,11 @@ public class PurchaseService {
 	public SelectTicketPurchaseResponse purchaseSelectedSeats(SelectTicketPurchaseRequest request, Long userId)
 		throws IOException, InterruptedException {
 
-		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
-			request.getPaymentUuid(),
-			request.getOrderId(),
-			request.getOrderName(),
-			request.getAmount()
-		);
+		confirmAndUpdatePurchase(request);
 
-		User user = tossPaymentService.getUser(userId);
 		Event event = tossPaymentService.getEvent(request.getEventId());
-		Purchase purchase = tossPaymentService.loadAndUpdatePurchase(info, request.getPaymentMethod(),
-			request.getOrderName());
+		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
+			.orElseThrow(() -> new IllegalStateException("등록된 사전 결제가 없습니다."));
 
 		List<Seat> seats = seatRepository.findAllById(request.getSeatIds());
 		if (seats.size() != request.getSeatIds().size()) {
@@ -167,11 +166,18 @@ public class PurchaseService {
 		}
 
 		List<Ticket> tickets = seats.stream()
-			.map(seat -> new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase))
+			.map(seat -> {
+				Ticket ticket = new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase);
+				seat.setTicket(ticket);
+				purchase.addTicket(ticket);
+				return ticket;
+			})
 			.toList();
 
 		ticketRepository.saveAll(tickets);
 		seatRepository.saveAll(seats);
+
+		User user = tossPaymentService.getUser(userId);
 
 		return SelectTicketPurchaseResponse.builder()
 			.purchaseId(purchase.getId())
@@ -230,5 +236,62 @@ public class PurchaseService {
 		return PurchaseHistoryResponse.builder()
 			.purchases(purchaseDtos)
 			.build();
+
+  /**
+	 * Toss 결제 승인 요청 및 구매 정보 업데이트 공통 처리 메서드
+	 *
+	 * @param request 결제 요청 정보 (지정석/미지정석 공통)
+	 * @throws IOException          Toss API 호출 실패 시
+	 * @throws InterruptedException Toss API 호출 실패 시
+	 */
+	private void confirmAndUpdatePurchase(Object request)
+		throws IOException, InterruptedException {
+
+		String paymentUuid;
+		String orderId;
+		String orderName;
+		Integer amount;
+		String paymentMethod;
+		Long purchaseId;
+		String status = "IN_PROGRESS";
+
+		if (request instanceof NonSelectTicketPurchaseRequest nonSelect) {
+			paymentUuid = nonSelect.getPaymentUuid();
+			orderId = nonSelect.getOrderId();
+			orderName = nonSelect.getOrderName();
+			amount = nonSelect.getAmount();
+			paymentMethod = nonSelect.getPaymentMethod();
+			purchaseId = nonSelect.getPurchaseId();
+		} else if (request instanceof SelectTicketPurchaseRequest select) {
+			paymentUuid = select.getPaymentUuid();
+			orderId = select.getOrderId();
+			orderName = select.getOrderName();
+			amount = select.getAmount();
+			paymentMethod = select.getPaymentMethod();
+			purchaseId = select.getPurchaseId();
+		} else {
+			throw new IllegalArgumentException("지원하지 않는 결제 요청 타입입니다.");
+		}
+
+		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
+			paymentUuid, orderId, orderName, amount, status
+		);
+
+		Purchase purchase = purchaseRepository.findById(purchaseId)
+			.orElseThrow(() -> new IllegalStateException("등록된 사전 결제가 없습니다."));
+
+		PaymentStatusEnum statusEnum = PaymentStatusEnum.valueOf(info.getStatus());
+		if (statusEnum == PaymentStatusEnum.EXPIRED) {
+			throw new IllegalStateException("결제 유효 시간이 초과되었습니다.");
+		}
+
+		purchase.updatePaymentInfo(
+			paymentUuid,
+			Integer.parseInt(info.getTotalAmount()),
+			PaymentMethodEnum.valueOf(paymentMethod),
+			PaymentStatusEnum.valueOf(info.getStatus()),
+			orderName,
+			OffsetDateTime.parse(info.getApprovedAt()).toLocalDateTime()
+		);
 	}
 }

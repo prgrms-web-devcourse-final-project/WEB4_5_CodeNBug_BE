@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
 	Optional<Purchase> findByPaymentUuid(String paymentUuid);
 	List<Purchase> findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(Long userId, List<PaymentStatusEnum> statuses);
+	int findAmountById(Long id);
+
 }
