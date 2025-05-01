@@ -5,6 +5,7 @@ import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 import java.util.List;
 import java.util.Map;
 
+import org.codeNbug.queueserver.waitingqueue.entity.SseConnection;
 import org.codeNbug.queueserver.waitingqueue.service.SseEmitterService;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -37,7 +38,7 @@ public class QueueInfoThread {
 	public void run() {
 
 		// emitter map 가져옵니다
-		Map<Long, SseEmitter> emitterMap = emitterService.getEmitterMap();
+		Map<Long, SseConnection> emitterMap = emitterService.getEmitterMap();
 
 		// redis waiting queue의 모든 요소를 가져옵니다
 		StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
@@ -50,14 +51,14 @@ public class QueueInfoThread {
 
 		// queue의 첫번째 요소의 idx 가져옵니다.
 		Long firstIdx = Long.parseLong(
-			waitingList.getFirst().getValue().get(WAITING_QUEUE_MESSAGE_IDX_KEY_NAME).toString());
+			waitingList.getFirst().getValue().get(QUEUE_MESSAGE_IDX_KEY_NAME).toString());
 
 		// 대기열 큐에 있는 모든 유저들에게 대기열 순번과 userId, eventId를 전송합니다.
 		for (MapRecord<String, Object, Object> record : waitingList) {
 			// 대기열 큐 메시지로부터 데이터를 파싱합니다.
-			Long userId = Long.parseLong(record.getValue().get(WAITING_QUEUE_MESSAGE_USER_ID_KEY_NAME).toString());
-			Long eventId = Long.parseLong(record.getValue().get(WAITING_QUEUE_MESSAGE_EVENT_ID_KEY_NAME).toString());
-			Long idx = Long.parseLong(record.getValue().get(WAITING_QUEUE_MESSAGE_IDX_KEY_NAME).toString());
+			Long userId = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_USER_ID_KEY_NAME).toString());
+			Long eventId = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_EVENT_ID_KEY_NAME).toString());
+			Long idx = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_IDX_KEY_NAME).toString());
 
 			if (!emitterMap.containsKey(userId)) {
 				log.debug("user %d가 연결이 끊어진 상태입니다.".formatted(userId));
@@ -65,18 +66,34 @@ public class QueueInfoThread {
 			}
 
 			// 파싱한 userId로 sse 연결 객체를 가져옵니다.
-			SseEmitter emitter = emitterMap.get(userId);
+			SseEmitter emitter = emitterMap.get(userId).getEmitter();
 			// 대기열 순번을 계산하고 sse 메시지를 전송합니다.
 			try {
 				emitter.send(
 					SseEmitter.event()
-						.data(Map.of(WAITING_QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
-							WAITING_QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, "order", idx - firstIdx + 1))
+						.data(Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
+							QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, "order", idx - firstIdx + 1))
 				);
 			} catch (Exception e) {
 				emitter.complete();
 				emitterMap.remove(userId);
 				log.debug("user %d가 연결이 끊어진 상태입니다.".formatted(userId));
+			}
+		}
+	}
+
+	@Scheduled(cron = "*/5 * * * * *")
+	public void heartBeat() {
+		Map<Long, SseConnection> emitterMap = emitterService.getEmitterMap();
+		for (SseConnection conn : emitterMap.values()) {
+			SseEmitter emitter = conn.getEmitter();
+			try {
+				emitter.send(
+					SseEmitter.event()
+						.data(".")
+				);
+			} catch (Exception e) {
+				emitter.complete();
 			}
 		}
 	}

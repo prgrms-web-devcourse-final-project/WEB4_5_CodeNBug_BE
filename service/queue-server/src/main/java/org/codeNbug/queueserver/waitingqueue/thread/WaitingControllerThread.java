@@ -5,6 +5,7 @@ import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 import java.util.Map;
 
 import org.codeNbug.queueserver.external.redis.RedisConfig;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -18,6 +19,9 @@ import org.springframework.stereotype.Component;
 public class WaitingControllerThread {
 
 	private final RedisTemplate<String, Object> simpleRedisTemplate;
+
+	@Value("${custom.instance-id}")
+	private String instanceId;
 
 	public WaitingControllerThread(RedisTemplate<String, Object> simpleRedisTemplate) {
 		this.simpleRedisTemplate = simpleRedisTemplate;
@@ -39,8 +43,8 @@ public class WaitingControllerThread {
 
 		simpleRedisTemplate.opsForStream()
 			.add(StreamRecords.mapBacked(
-				Map.of(WAITING_QUEUE_MESSAGE_IDX_KEY_NAME, idx, WAITING_QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
-					WAITING_QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId)
+				Map.of(QUEUE_MESSAGE_IDX_KEY_NAME, idx, QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
+					QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, QUEUE_MESSAGE_INSTANCE_ID_KEY_NAME, instanceId)
 			).withStreamKey(RedisConfig.WAITING_QUEUE_KEY_NAME));
 	}
 }
