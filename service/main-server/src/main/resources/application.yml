@@ -7,8 +7,8 @@ spring:
     include: secret
   data:
     redis:
-      port: 6379
-      host: localhost
+      port: ${redis.port}
+      host: ${redis.host}
   datasource:
     url: ${db.url}
     username: ${db.username}
@@ -63,6 +63,11 @@ cors:
     - http://localhost:3000
     - https://localhost:3000
     - https://ticketone.site
+    - https://www.app4.qwas.shop
+    - http://www.app4.qwas.shop
+    - https://login.aleph.kr
+    - http://login.aleph.kr
+
 
 # Kakao Configuration
 kakao:
