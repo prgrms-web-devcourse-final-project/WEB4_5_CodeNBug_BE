@@ -34,6 +34,7 @@ public class RedisConfig {
 	public static final String QUEUE_MESSAGE_IDX_KEY_NAME = "idx";
 	private static final String DISPATCH_QUEUE_CHANNEL_NAME = "DISPATCH";
 	public static final String WAITING_QUEUE_IN_USER_RECORD_KEY_NAME = "WAITING_USER_ID";
+	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
 
 	@Value("${custom.instance-id}")
 	private String instanceId;
