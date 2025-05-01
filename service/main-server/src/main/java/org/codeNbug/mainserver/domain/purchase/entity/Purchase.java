@@ -10,9 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
@@ -68,17 +66,6 @@ public class Purchase {
 
 	@OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<Ticket> tickets = new ArrayList<>();
-
-	@ElementCollection
-	@CollectionTable(name = "purchase_selected_seat_ids", joinColumns = @JoinColumn(name = "purchase_id"))
-	@Column(name = "seat_id")
-	private List<Long> selectedSeatIds;
-
-	@Column(name = "event_id")
-	private Long eventId;
-
-	@Column(name = "ticket_count")
-	private int ticketCount;
 
 	public void updatePaymentInfo(
 		String paymentUuid,
