@@ -22,6 +22,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * Purchase 엔티티 클래스
@@ -44,6 +45,7 @@ public class Purchase {
 	@Enumerated(EnumType.STRING)
 	private PaymentMethodEnum paymentMethod;
 
+	@Setter
 	@Enumerated(EnumType.STRING)
 	@Column(name = "payment_status", length = 20)
 	private PaymentStatusEnum paymentStatus;
