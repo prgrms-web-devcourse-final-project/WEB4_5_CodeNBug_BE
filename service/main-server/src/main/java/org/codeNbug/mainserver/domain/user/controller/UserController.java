@@ -235,24 +235,6 @@ public class UserController {
     }
 
     /**
-     * 사용자의 구매 이력을 조회합니다.
-     *
-     * @return ResponseEntity<RsData < PurchaseHistoryResponse>> 구매 이력 응답
-     */
-    @GetMapping("/me/purchases")
-    public ResponseEntity<RsData<PurchaseHistoryResponse>> getPurchaseHistory() {
-        try {
-            Long userId = SecurityUtil.getCurrentUserId();
-            PurchaseHistoryResponse response = purchaseService.getPurchaseHistory(userId);
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
-        } catch (AuthenticationFailedException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
-        }
-    }
-
-    /**
      * 현재 로그인한 사용자의 프로필 정보를 수정합니다.
      *
      * @param request 수정할 프로필 정보
@@ -272,6 +254,24 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+        }
+    }
+
+    /**
+     * 사용자의 구매 이력을 조회합니다.
+     *
+     * @return ResponseEntity<RsData < PurchaseHistoryResponse>> 구매 이력 응답
+     */
+    @GetMapping("/me/purchases")
+    public ResponseEntity<RsData<PurchaseHistoryResponse>> getPurchaseHistory() {
+        try {
+            Long userId = SecurityUtil.getCurrentUserId();
+            PurchaseHistoryResponse response = purchaseService.getPurchaseHistory(userId);
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
+        } catch (AuthenticationFailedException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
         }
     }
 }
