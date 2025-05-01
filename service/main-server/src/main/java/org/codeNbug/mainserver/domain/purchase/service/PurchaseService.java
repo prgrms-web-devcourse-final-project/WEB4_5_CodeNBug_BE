@@ -197,8 +197,12 @@ public class PurchaseService {
 	 * @return 구매 이력 응답 DTO
 	 */
 	public PurchaseHistoryResponse getPurchaseHistory(Long userId) {
-		List<Purchase> purchases = purchaseRepository.findByUserUserIdOrderByPurchaseDateDesc(userId);
-		
+		List<Purchase> purchases = purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(
+			userId,
+			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED)
+		);
+
+		// 구매 이력 목록의 각 구매 객체를 PurchaseDto로 변환
 		List<PurchaseHistoryResponse.PurchaseDto> purchaseDtos = purchases.stream()
 			.map(purchase -> PurchaseHistoryResponse.PurchaseDto.builder()
 				.purchaseId(purchase.getId())
