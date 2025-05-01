@@ -46,7 +46,8 @@ public class TossPaymentClient {
 			"paymentKey", paymentUuid,
 			"orderId", orderId,
 			"orderName", orderName,
-			"amount", amount
+			"amount", amount,
+			"status", status
 		));
 
 		HttpRequest request = HttpRequest.newBuilder()
