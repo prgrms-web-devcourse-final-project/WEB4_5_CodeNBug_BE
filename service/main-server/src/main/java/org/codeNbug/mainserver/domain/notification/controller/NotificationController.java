@@ -1,9 +1,13 @@
 package org.codeNbug.mainserver.domain.notification.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.codeNbug.mainserver.domain.notification.dto.NotificationCreateRequestDto;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
+import org.codeNbug.mainserver.domain.user.constant.UserRole;
 import org.codeNbug.mainserver.global.dto.RsData;
+import org.codeNbug.mainserver.global.security.annotation.RoleRequired;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -62,5 +66,28 @@ public class NotificationController {
                     new RsData<>("200-SUCCESS", "알림 조회 성공", notification)
             );
         }
+    }
+    /**
+     * 알림 생성 API
+     * (관리자/시스템 전용) 특정 사용자에게 새로운 알림을 생성합니다
+     *
+     * @param requestDto 알림 생성 요청 정보
+     * @return 생성된 알림 정보
+     */
+    @PostMapping
+    @RoleRequired({UserRole.ADMIN, UserRole.MANAGER}) // 관리자, 매니저만 접근 가능
+    public ResponseEntity<RsData<NotificationDto>> createNotification(
+            @RequestBody @Valid NotificationCreateRequestDto requestDto) {
+
+        // 서비스 호출하여 알림 생성
+        NotificationDto createdNotification = notificationService.createNotification(
+                requestDto.getUserId(),
+                requestDto.getType(),
+                requestDto.getContent()
+        );
+
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "알림 생성 성공", createdNotification)
+        );
     }
 }
