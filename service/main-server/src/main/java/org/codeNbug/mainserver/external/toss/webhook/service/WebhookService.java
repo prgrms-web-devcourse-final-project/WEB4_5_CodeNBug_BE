@@ -99,7 +99,6 @@ public class WebhookService {
 				info.getTotalAmount(),
 				info.getMethod(),
 				PaymentStatusEnum.DONE,
-				info.getOrderName(),
 				info.getApprovedAt()
 			);
 

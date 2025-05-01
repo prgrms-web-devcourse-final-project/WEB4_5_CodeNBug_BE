@@ -37,6 +37,10 @@ public class PurchaseService {
 
 		String uuid = UUID.randomUUID().toString();
 
+		String orderName = (request.getSeatIds() != null && !request.getSeatIds().isEmpty())
+			? "지정석 " + request.getSeatIds().size() + "매"
+			: "미지정석 " + request.getTicketCount() + "매";
+
 		Purchase purchase = Purchase.builder()
 			.paymentUuid(uuid)
 			.paymentStatus(PaymentStatusEnum.IN_PROGRESS)
@@ -49,6 +53,7 @@ public class PurchaseService {
 					? request.getSeatIds()
 					: null
 			)
+			.orderName(orderName)
 			.build();
 
 		purchaseRepository.save(purchase);
