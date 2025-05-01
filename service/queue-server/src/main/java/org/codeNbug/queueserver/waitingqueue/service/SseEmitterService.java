@@ -32,6 +32,12 @@ public class SseEmitterService {
 			if (emitterMap.get(userId).getStatus().equals(Status.IN_ENTRY)) {
 				redisTemplate.opsForValue()
 					.increment(RedisConfig.ENTRY_QUEUE_COUNT_KEY_NAME, 1);
+			} else if (emitterMap.get(userId).getStatus().equals(Status.IN_QUEUE)) {
+				String recordId = (String)redisTemplate.opsForHash()
+					.get(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId);
+
+				redisTemplate.opsForStream()
+					.delete(RedisConfig.WAITING_QUEUE_KEY_NAME, recordId);
 			}
 			emitterMap.remove(userId);
 		});

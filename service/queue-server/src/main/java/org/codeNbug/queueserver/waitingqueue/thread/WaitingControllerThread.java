@@ -47,7 +47,9 @@ public class WaitingControllerThread {
 				Map.of(QUEUE_MESSAGE_IDX_KEY_NAME, idx, QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
 					QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, QUEUE_MESSAGE_INSTANCE_ID_KEY_NAME, instanceId)
 			).withStreamKey(WAITING_QUEUE_KEY_NAME));
+
+		assert recordId != null;
 		simpleRedisTemplate.opsForHash()
-			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId, recordId);
+			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId, recordId.getValue());
 	}
 }
