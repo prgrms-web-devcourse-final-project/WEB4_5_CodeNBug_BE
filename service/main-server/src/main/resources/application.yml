@@ -61,4 +61,5 @@ cookie:
 cors:
   allowed-origins:
     - http://localhost:3000
+    - https://localhost:3000
     - https://ticketone.site
