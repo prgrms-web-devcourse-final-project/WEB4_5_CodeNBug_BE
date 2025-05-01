@@ -18,6 +18,7 @@ public class PurchaseHistoryResponse {
     @AllArgsConstructor
     public static class PurchaseDto {
         private Long purchaseId;
+        private Long eventId;
         private String itemName;
         private Integer amount;
         private LocalDateTime purchaseDate;
