@@ -7,9 +7,12 @@ import java.util.List;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
@@ -59,9 +62,8 @@ public class Purchase {
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
-	@OneToMany(mappedBy = "purchase")
+	@OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<Ticket> tickets = new ArrayList<>();
-
 
 	public void updatePaymentInfo(
 		String paymentUuid,
@@ -77,5 +79,10 @@ public class Purchase {
 		this.paymentStatus = paymentStatus;
 		this.orderName = orderName;
 		this.purchaseDate = purchaseDate;
+	}
+
+	public void addTicket(Ticket ticket) {
+		tickets.add(ticket);
+		ticket.setPurchase(this);
 	}
 }

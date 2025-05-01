@@ -49,7 +49,7 @@ public class PurchaseController {
 	/**
 	 * 티켓 구매 (결제 완료 후 Toss 승인 요청)
 	 *
-	 * @param type "non-select" or "select"
+	 * @param type "non-select" or "select" 분기 처리
 	 * @param requestMap 결제 관련 정보 (Toss 결제 후 전달됨)
 	 * @return 티켓 구매 응답
 	 */

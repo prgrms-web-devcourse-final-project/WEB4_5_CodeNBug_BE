@@ -109,6 +109,7 @@ public class PurchaseService {
 					purchase
 				);
 				seat.setTicket(ticket);
+				purchase.addTicket(ticket);
 				return ticket;
 			})
 			.toList();
@@ -167,6 +168,7 @@ public class PurchaseService {
 			.map(seat -> {
 				Ticket ticket = new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase);
 				seat.setTicket(ticket);
+				purchase.addTicket(ticket);
 				return ticket;
 			})
 			.toList();
