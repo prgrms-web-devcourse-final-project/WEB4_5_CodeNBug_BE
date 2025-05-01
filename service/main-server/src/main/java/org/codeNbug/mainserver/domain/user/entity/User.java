@@ -61,4 +61,13 @@ public class User {
     /*@Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Notification> notifications = new ArrayList<>();*/
+
+    /**
+     * 사용자 정보를 업데이트합니다.
+     */
+    public void update(String name, String phoneNum, String location) {
+        this.name = name;
+        this.phoneNum = phoneNum;
+        this.location = location;
+    }
 }
