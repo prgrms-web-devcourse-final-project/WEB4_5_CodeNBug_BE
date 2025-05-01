@@ -40,6 +40,13 @@ public class WaitingControllerThread {
 		Long idx = simpleRedisTemplate.opsForValue()
 			.increment(RedisConfig.WAITING_QUEUE_IDX_KEY_NAME);
 
+		Boolean isEntered = simpleRedisTemplate.opsForHash()
+			.hasKey(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId.toString());
+
+		if (isEntered) {
+			return;
+		}
+
 		assert idx != null;
 
 		RecordId recordId = simpleRedisTemplate.opsForStream()

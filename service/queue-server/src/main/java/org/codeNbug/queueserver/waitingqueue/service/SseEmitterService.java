@@ -47,6 +47,8 @@ public class SseEmitterService {
 
 				redisTemplate.opsForStream()
 					.delete(RedisConfig.WAITING_QUEUE_KEY_NAME, recordId);
+				redisTemplate.opsForHash()
+					.delete(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId.toString());
 			}
 			emitterMap.remove(userId);
 		});
