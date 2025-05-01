@@ -11,12 +11,13 @@ on:
       - "service/queue-server/build.gradle"
       - "service/queue-server/Dockerfile"
     branches:
-      - develop, main
+      - develop
+      - main
 jobs:
   makeTagAndReleaseMainServer:
     runs-on: ubuntu-latest
     outputs:
-      tag_name: ${{ steps.sanitize_tag.outputs.clean_tag }}
+      tag_name: ${{ steps.create_tag.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
       - name: Create Tag
@@ -65,6 +66,12 @@ jobs:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
         run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
+
+      - name: application-prod 추가
+        env:
+          ACTIONS_STEP_DEBUG: true
+          APPLICATION_PROD: ${{ secrets.MAIN_APPLICATION_PROD }}
+        run: echo "$APPLICATION_PROD" > service/main-server/src/main/resources/application-prod.yml
 
       - name: Docker Buildx 설치
         uses: docker/setup-buildx-action@v3
@@ -181,6 +188,13 @@ jobs:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.QUEUE_APPLICATION_SECRET }}
         run: echo "$APPLICATION_SECRET" > service/queue-server/src/main/resources/application-secret.yml
+
+      - name: application-prod 추가
+        env:
+          ACTIONS_STEP_DEBUG: true
+          APPLICATION_PROD: ${{ secrets.QUEUE_APPLICATION_PROD }}
+        run: echo "$APPLICATION_PROD" > service/queue-server/src/main/resources/application-prod.yml
+
       - name: Docker Buildx 설치
         uses: docker/setup-buildx-action@v3
       - name: 레지스트리 로그인
