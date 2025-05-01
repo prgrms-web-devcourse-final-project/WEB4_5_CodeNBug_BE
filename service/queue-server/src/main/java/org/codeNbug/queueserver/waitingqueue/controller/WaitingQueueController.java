@@ -1,6 +1,6 @@
 package org.codeNbug.queueserver.waitingqueue.controller;
 
-import org.codeNbug.queueserver.waitingqueue.service.WaitingQueueService;
+import org.codeNbug.queueserver.waitingqueue.service.WaitingQueueEntryService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -12,10 +12,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping("/api/v1")
 public class WaitingQueueController {
 
-	private final WaitingQueueService waitingQueueService;
+	private final WaitingQueueEntryService waitingQueueEntryService;
 
-	public WaitingQueueController(WaitingQueueService waitingQueueService) {
-		this.waitingQueueService = waitingQueueService;
+	public WaitingQueueController(WaitingQueueEntryService waitingQueueEntryService) {
+		this.waitingQueueEntryService = waitingQueueEntryService;
 	}
 
 	/**
@@ -26,6 +26,6 @@ public class WaitingQueueController {
 	@GetMapping(value = "/events/{event-id}/tickets/waiting", produces = MediaType.TEXT_EVENT_STREAM_VALUE
 		+ ";charset=UTF-8")
 	public SseEmitter entryWaiting(@PathVariable("event-id") Long eventId) {
-		return waitingQueueService.entry(eventId);
+		return waitingQueueEntryService.entry(eventId);
 	}
 }

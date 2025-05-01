@@ -1,4 +1,4 @@
-package org.codeNbug.queueserver.waitingqueue.thread;
+package org.codeNbug.queueserver.waitingqueue.service;
 
 import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 
@@ -9,23 +9,34 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-/**
- * 룰에 따라 사용자를 추가하거나 entry queue로 사용자를 빼내는 스레드
- */
-@Async("singleThreadExecutor")
-@Component
-public class WaitingControllerThread {
+@Service
+public class WaitingQueueEntryService {
 
+	private final SseEmitterService sseEmitterService;
 	private final RedisTemplate<String, Object> simpleRedisTemplate;
 
 	@Value("${custom.instance-id}")
 	private String instanceId;
 
-	public WaitingControllerThread(RedisTemplate<String, Object> simpleRedisTemplate) {
+	public WaitingQueueEntryService(SseEmitterService sseEmitterService,
+		RedisTemplate<String, Object> simpleRedisTemplate) {
+		this.sseEmitterService = sseEmitterService;
 		this.simpleRedisTemplate = simpleRedisTemplate;
+	}
+
+	public SseEmitter entry(Long eventId) {
+		// 로그인한 유저 id 조회
+		Long id = getLoggedInUserId();
+
+		// emitter 생성 및 저장
+		SseEmitter emitter = sseEmitterService.add(id);
+
+		// TODO: waiting thread에 유저를 추가하도록 전달
+		enter(id, eventId);
+		return emitter;
 	}
 
 	/**
@@ -35,7 +46,7 @@ public class WaitingControllerThread {
 	 * @param userId 대기열에 추가할 유저 id
 	 * @param eventId 행사의 id
 	 */
-	public void enter(Long userId, Long eventId) {
+	private void enter(Long userId, Long eventId) {
 
 		Long idx = simpleRedisTemplate.opsForValue()
 			.increment(RedisConfig.WAITING_QUEUE_IDX_KEY_NAME);
@@ -58,5 +69,9 @@ public class WaitingControllerThread {
 		assert recordId != null;
 		simpleRedisTemplate.opsForHash()
 			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId.toString(), recordId.getValue());
+	}
+
+	private Long getLoggedInUserId() {
+		return 1L;
 	}
 }

@@ -19,7 +19,7 @@ public class SseEmitterService {
 
 	private static final Map<Long, SseConnection> emitterMap = new ConcurrentHashMap<>();
 
-	public static Map<Long, SseConnection> getEmitterMap() {
+	public Map<Long, SseConnection> getEmitterMap() {
 		return emitterMap;
 	}
 
@@ -35,8 +35,7 @@ public class SseEmitterService {
 		// emitter연결이 끊어질 때 만약 entry상태라면 entry count를 1 증가
 		emitter.onCompletion(() -> {
 			log.info("emitter completed");
-			Map<Long, SseConnection> emitters = SseEmitterService.getEmitterMap();
-			Status status = emitters.get(userId).getStatus();
+			Status status = emitterMap.get(userId).getStatus();
 			if (status.equals(Status.IN_ENTRY)) {
 				redisTemplate.opsForValue()
 					.increment(RedisConfig.ENTRY_QUEUE_COUNT_KEY_NAME, 1);

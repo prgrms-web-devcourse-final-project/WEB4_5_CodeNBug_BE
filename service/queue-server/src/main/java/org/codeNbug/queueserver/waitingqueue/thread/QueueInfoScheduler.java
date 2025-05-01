@@ -19,12 +19,12 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class QueueInfoThread {
+public class QueueInfoScheduler {
 
 	private final RedisTemplate<String, Object> redisTemplate;
 	private final SseEmitterService emitterService;
 
-	public QueueInfoThread(RedisTemplate<String, Object> redisTemplate, SseEmitterService emitterService) {
+	public QueueInfoScheduler(RedisTemplate<String, Object> redisTemplate, SseEmitterService emitterService) {
 		this.redisTemplate = redisTemplate;
 		this.emitterService = emitterService;
 
