@@ -81,8 +81,7 @@ public class WebhookService {
 
 	public void handlePaymentApproved(Purchase purchase) {
 		if (purchase.getPaymentStatus() != PaymentStatusEnum.IN_PROGRESS) {
-			log.info("이미 처리된 결제입니다.");
-			return;
+			throw new IllegalStateException("이미 처리된 결제입니다.");
 		}
 
 		try {
