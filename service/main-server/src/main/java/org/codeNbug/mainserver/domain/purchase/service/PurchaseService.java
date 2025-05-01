@@ -204,39 +204,39 @@ public class PurchaseService {
 	 */
 	public PurchaseHistoryResponse getPurchaseHistory(Long userId) {
 		List<Purchase> purchases = purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(
-			userId,
-			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED)
+				userId,
+				List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED)
 		);
 
 		// 구매 이력 목록의 각 구매 객체를 PurchaseDto로 변환
 		List<PurchaseHistoryResponse.PurchaseDto> purchaseDtos = purchases.stream()
-			.map(purchase -> {
-				// 첫 번째 티켓에서 이벤트 ID를 가져옴 (모든 티켓은 같은 이벤트에 속함) -> 이게 최선일까?
-				Long eventId = purchase.getTickets().isEmpty() ? null : 
-					purchase.getTickets().get(0).getEvent().getEventId();
-					
-				return PurchaseHistoryResponse.PurchaseDto.builder()
-					.purchaseId(purchase.getId())
-					.eventId(eventId)
-					.itemName(purchase.getOrderName())
-					.amount(purchase.getAmount())
-					.purchaseDate(purchase.getPurchaseDate())
-					.paymentMethod(purchase.getPaymentMethod().name())
-					.paymentStatus(purchase.getPaymentStatus().name())
-					.tickets(purchase.getTickets().stream()
-						.map(ticket -> PurchaseHistoryResponse.TicketInfo.builder()
-							.ticketId(ticket.getId())
-							.seatLocation(ticket.getSeatInfo())
-							.build())
-						.toList())
-					.build();
-			})
-			.toList();
-			
-		return PurchaseHistoryResponse.builder()
-			.purchases(purchaseDtos)
-			.build();
+				.map(purchase -> {
+					// 첫 번째 티켓에서 이벤트 ID를 가져옴 (모든 티켓은 같은 이벤트에 속함) -> 이게 최선일까?
+					Long eventId = purchase.getTickets().isEmpty() ? null :
+							purchase.getTickets().get(0).getEvent().getEventId();
 
+					return PurchaseHistoryResponse.PurchaseDto.builder()
+							.purchaseId(purchase.getId())
+							.eventId(eventId)
+							.itemName(purchase.getOrderName())
+							.amount(purchase.getAmount())
+							.purchaseDate(purchase.getPurchaseDate())
+							.paymentMethod(purchase.getPaymentMethod().name())
+							.paymentStatus(purchase.getPaymentStatus().name())
+							.tickets(purchase.getTickets().stream()
+									.map(ticket -> PurchaseHistoryResponse.TicketInfo.builder()
+											.ticketId(ticket.getId())
+											.seatLocation(ticket.getSeatInfo())
+											.build())
+									.toList())
+							.build();
+				})
+				.toList();
+
+		return PurchaseHistoryResponse.builder()
+				.purchases(purchaseDtos)
+				.build();
+	}
   /**
 	 * Toss 결제 승인 요청 및 구매 정보 업데이트 공통 처리 메서드
 	 *
