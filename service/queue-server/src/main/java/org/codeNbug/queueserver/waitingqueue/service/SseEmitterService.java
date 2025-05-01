@@ -29,25 +29,31 @@ public class SseEmitterService {
 		this.redisTemplate = redisTemplate;
 	}
 
-	public SseEmitter add(Long userId) {
+	public SseEmitter add(Long userId, Long eventId) {
+
 		// 새로운 emitter 생성
 		SseEmitter emitter = new SseEmitter(0L);
 		// emitter연결이 끊어질 때 만약 entry상태라면 entry count를 1 증가
 		emitter.onCompletion(() -> {
 			log.info("emitter completed");
-			Status status = emitterMap.get(userId).getStatus();
+			SseConnection sseConnection = emitterMap.get(userId);
+			Status status = sseConnection.getStatus();
+			String parsedEventId = sseConnection.getEventId().toString();
 			if (status.equals(Status.IN_ENTRY)) {
 				redisTemplate.opsForValue()
 					.increment(RedisConfig.ENTRY_QUEUE_COUNT_KEY_NAME, 1);
 			} else if (status.equals(Status.IN_QUEUE)) {
 				String recordIdString = redisTemplate.opsForHash()
-					.get(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId.toString()).toString();
+					.get(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + parsedEventId,
+						userId.toString())
+					.toString();
 				RecordId recordId = RecordId.of(recordIdString);
 
 				redisTemplate.opsForStream()
 					.delete(RedisConfig.WAITING_QUEUE_KEY_NAME, recordId);
 				redisTemplate.opsForHash()
-					.delete(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId.toString());
+					.delete(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + parsedEventId,
+						userId.toString());
 			}
 			emitterMap.remove(userId);
 		});
@@ -68,7 +74,7 @@ public class SseEmitterService {
 		}
 
 		// 전역 공간에 emitter 저장
-		emitterMap.put(userId, new SseConnection(emitter, Status.IN_QUEUE));
+		emitterMap.put(userId, new SseConnection(emitter, Status.IN_QUEUE, eventId));
 
 		return emitter;
 	}

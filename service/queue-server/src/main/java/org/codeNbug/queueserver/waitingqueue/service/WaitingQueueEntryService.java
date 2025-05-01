@@ -32,7 +32,7 @@ public class WaitingQueueEntryService {
 		Long id = getLoggedInUserId();
 
 		// emitter 생성 및 저장
-		SseEmitter emitter = sseEmitterService.add(id);
+		SseEmitter emitter = sseEmitterService.add(id, eventId);
 
 		// TODO: waiting thread에 유저를 추가하도록 전달
 		enter(id, eventId);
@@ -52,7 +52,7 @@ public class WaitingQueueEntryService {
 			.increment(RedisConfig.WAITING_QUEUE_IDX_KEY_NAME);
 
 		Boolean isEntered = simpleRedisTemplate.opsForHash()
-			.hasKey(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId.toString());
+			.hasKey(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId, userId.toString());
 
 		if (isEntered) {
 			return;
@@ -68,7 +68,8 @@ public class WaitingQueueEntryService {
 
 		assert recordId != null;
 		simpleRedisTemplate.opsForHash()
-			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId.toString(), recordId.getValue());
+			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId, userId.toString(), recordId.getValue());
+
 	}
 
 	private Long getLoggedInUserId() {
