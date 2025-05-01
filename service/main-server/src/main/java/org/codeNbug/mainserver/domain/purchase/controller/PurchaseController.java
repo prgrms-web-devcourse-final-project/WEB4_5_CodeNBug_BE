@@ -38,10 +38,10 @@ public class PurchaseController {
 	}
 
 	@GetMapping("/status")
-	public ResponseEntity<RsData<TicketPurchaseResponse>> getPaymentStatus(
+	public ResponseEntity<RsData<TicketPurchaseResponse>> getPaymentInfo(
 		@RequestParam String paymentKey
 	) {
-		TicketPurchaseResponse response = purchaseService.getPaymentStatus(paymentKey);
+		TicketPurchaseResponse response = purchaseService.getPaymentInfo(paymentKey);
 		return ResponseEntity.ok(new RsData<>("200", "결제 정보 반환 완료", response));
 	}
 }

@@ -75,7 +75,7 @@ public class PurchaseService {
 	 * @param paymentKey 결제 paymentUuid
 	 * @return 결제 UUID 및 상태 정보를 포함한 응답 DTO
 	 */
-	public TicketPurchaseResponse getPaymentStatus(String paymentKey) {
+	public TicketPurchaseResponse getPaymentInfo(String paymentKey) {
 		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
 			.orElseThrow(() -> new IllegalStateException("해당 결제를 찾을 수 없습니다."));
 
