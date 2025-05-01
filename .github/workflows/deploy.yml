@@ -11,7 +11,8 @@ on:
       - "service/queue-server/build.gradle"
       - "service/queue-server/Dockerfile"
     branches:
-      - develop, main
+      - develop
+      - main
 jobs:
   makeTagAndReleaseMainServer:
     runs-on: ubuntu-latest
