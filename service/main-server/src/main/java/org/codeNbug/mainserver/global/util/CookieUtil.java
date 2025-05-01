@@ -39,6 +39,7 @@ public class CookieUtil {
         cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
     }
 
@@ -52,6 +53,7 @@ public class CookieUtil {
         cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
     }
 
@@ -65,6 +67,7 @@ public class CookieUtil {
         cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
     }
 
@@ -78,6 +81,7 @@ public class CookieUtil {
         cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure);
+        cookie.setAttribute("SameSite", "None");
         response.addCookie(cookie);
     }
 
