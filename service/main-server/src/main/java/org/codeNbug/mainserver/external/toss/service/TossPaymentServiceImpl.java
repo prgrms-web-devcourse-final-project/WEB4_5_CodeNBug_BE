@@ -1,10 +1,16 @@
 package org.codeNbug.mainserver.external.toss.service;
 
-import java.io.IOException;
-import java.net.http.HttpResponse;
+import java.util.Base64;
+import java.util.Map;
 
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -19,17 +25,37 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 
 	private final ObjectMapper objectMapper;
 	private final TossPaymentClient tossPaymentClient;
+	private final RestTemplate restTemplate = new RestTemplate();
+
+	@Value("${payment.toss.secret-key}")
+	private String TOSS_SECRET_KEY;
+
+	@Value("${payment.toss.api-url}")
+	private String TOSS_API_URL;
 
 	/**
 	 * Toss 서버에 결제 승인을 요청하고 결과 정보를 반환
 	 */
 	@Override
-	public ConfirmedPaymentInfo confirmPayment(String paymentUuid, String orderId, String orderName, Integer amount)
-		throws InterruptedException, IOException {
-		HttpResponse<String> tossResponse = tossPaymentClient.requestConfirm(paymentUuid, orderId, orderName, amount);
-		if (tossResponse.statusCode() != 200) {
-			throw new IllegalStateException("Toss 결제 승인 실패: " + tossResponse.body());
-		}
-		return objectMapper.readValue(tossResponse.body(), ConfirmedPaymentInfo.class);
+	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, String orderName, Integer amount) {
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
+		headers.setContentType(MediaType.APPLICATION_JSON);
+
+		Map<String, Object> body = Map.of(
+			"paymentKey", paymentKey,
+			"orderId", orderId,
+			"orderName", orderName,
+			"amount", amount
+		);
+
+		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+		ResponseEntity<ConfirmedPaymentInfo> response = restTemplate.postForEntity(
+			TOSS_API_URL, request, ConfirmedPaymentInfo.class
+		);
+
+		return response.getBody();
 	}
 }

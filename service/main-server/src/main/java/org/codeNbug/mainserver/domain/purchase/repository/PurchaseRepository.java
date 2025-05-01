@@ -9,4 +9,6 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
 	Optional<Purchase> findByPaymentUuid(String paymentUuid);
 
 	int findAmountById(Long id);
+
+	Optional<Purchase> findByOrderId(String orderId);
 }

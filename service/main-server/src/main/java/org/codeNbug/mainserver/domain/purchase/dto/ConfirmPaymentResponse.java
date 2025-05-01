@@ -1,39 +1,29 @@
-package org.codeNbug.mainserver.external.toss.dto;
+package org.codeNbug.mainserver.domain.purchase.dto;
 
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import org.codeNbug.mainserver.domain.purchase.entity.PaymentMethodEnum;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Toss 결제 승인 응답을 담는 DTO (TOSS API 응답)
- * Toss API 문서에 명시된 필드를 기반으로 매핑
- */
 @Getter
 @NoArgsConstructor
-public class ConfirmedPaymentInfo {
-
-	@JsonProperty("paymentKey")
+@AllArgsConstructor
+public class ConfirmPaymentResponse {
 	private String paymentKey;
-
 	private String orderId;
-
 	private String orderName;
-
-	private Integer totalAmount;
-
+	private int totalAmount;
 	private String status;
-
-	private String method;
-
+	private PaymentMethodEnum method;
 	private LocalDateTime approvedAt;
-
 	private Receipt receipt;
 
 	@Getter
 	@NoArgsConstructor
+	@AllArgsConstructor
 	public static class Receipt {
 		private String url;
 	}

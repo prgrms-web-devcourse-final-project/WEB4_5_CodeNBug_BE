@@ -85,12 +85,14 @@ public class Purchase {
 		int amount,
 		PaymentMethodEnum paymentMethod,
 		PaymentStatusEnum paymentStatus,
+		String orderName,
 		LocalDateTime purchaseDate
 	) {
 		this.paymentUuid = paymentUuid;
 		this.amount = amount;
 		this.paymentMethod = paymentMethod;
 		this.paymentStatus = paymentStatus;
+		this.orderName = orderName;
 		this.purchaseDate = purchaseDate;
 	}
 
