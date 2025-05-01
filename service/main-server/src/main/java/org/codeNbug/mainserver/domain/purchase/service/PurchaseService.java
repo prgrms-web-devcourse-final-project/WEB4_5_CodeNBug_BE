@@ -23,8 +23,8 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.external.toss.ConfirmedPaymentInfo;
-import org.codeNbug.mainserver.external.toss.TossPaymentServiceImpl;
+import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
+import org.codeNbug.mainserver.external.toss.service.TossPaymentServiceImpl;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -197,10 +197,10 @@ public class PurchaseService {
 	 * Toss 결제 승인 요청 및 구매 정보 업데이트 공통 처리 메서드
 	 *
 	 * @param request 결제 요청 정보 (지정석/미지정석 공통)
-	 * @throws IOException Toss API 호출 실패 시
+	 * @throws IOException          Toss API 호출 실패 시
 	 * @throws InterruptedException Toss API 호출 실패 시
 	 */
-	private ConfirmedPaymentInfo confirmAndUpdatePurchase(Object request)
+	private void confirmAndUpdatePurchase(Object request)
 		throws IOException, InterruptedException {
 
 		String paymentUuid;
@@ -209,6 +209,7 @@ public class PurchaseService {
 		Integer amount;
 		String paymentMethod;
 		Long purchaseId;
+		String status = "IN_PROGRESS";
 
 		if (request instanceof NonSelectTicketPurchaseRequest nonSelect) {
 			paymentUuid = nonSelect.getPaymentUuid();
@@ -229,11 +230,16 @@ public class PurchaseService {
 		}
 
 		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
-			paymentUuid, orderId, orderName, amount
+			paymentUuid, orderId, orderName, amount, status
 		);
 
 		Purchase purchase = purchaseRepository.findById(purchaseId)
 			.orElseThrow(() -> new IllegalStateException("등록된 사전 결제가 없습니다."));
+
+		PaymentStatusEnum statusEnum = PaymentStatusEnum.valueOf(info.getStatus());
+		if (statusEnum == PaymentStatusEnum.EXPIRED) {
+			throw new IllegalStateException("결제 유효 시간이 초과되었습니다.");
+		}
 
 		purchase.updatePaymentInfo(
 			paymentUuid,
@@ -243,7 +249,5 @@ public class PurchaseService {
 			orderName,
 			OffsetDateTime.parse(info.getApprovedAt()).toLocalDateTime()
 		);
-
-		return info;
 	}
 }

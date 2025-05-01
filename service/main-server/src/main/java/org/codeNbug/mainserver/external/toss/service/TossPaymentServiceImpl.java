@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.external.toss;
+package org.codeNbug.mainserver.external.toss.service;
 
 import java.io.IOException;
 import java.net.http.HttpResponse;
@@ -8,6 +8,7 @@ import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
+import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,9 +32,11 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	 * Toss 서버에 결제 승인을 요청하고 결과 정보를 반환
 	 */
 	@Override
-	public ConfirmedPaymentInfo confirmPayment(String paymentUuid, String orderId, String orderName, Integer amount)
+	public ConfirmedPaymentInfo confirmPayment(String paymentUuid, String orderId, String orderName, Integer amount,
+		String status)
 		throws InterruptedException, IOException {
-		HttpResponse<String> tossResponse = tossPaymentClient.requestConfirm(paymentUuid, orderId, orderName, amount);
+		HttpResponse<String> tossResponse = tossPaymentClient.requestConfirm(paymentUuid, orderId, orderName, amount,
+			status);
 		if (tossResponse.statusCode() != 200) {
 			throw new IllegalStateException("Toss 결제 승인 실패: " + tossResponse.body());
 		}

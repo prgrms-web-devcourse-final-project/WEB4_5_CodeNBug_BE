@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.external.toss;
+package org.codeNbug.mainserver.external.toss.dto;
 
 import lombok.Getter;
 
@@ -12,7 +12,7 @@ public class ConfirmedPaymentInfo {
 	private String orderId;       // 우리가 요청한 주문 ID
 	private String orderName;     // 주문 이름
 	private String totalAmount;   // 결제 금액
-	private String status;        // 결제 상태 (PAID, CANCELED 등)
+	private String status;        // 결제 상태 (DONE, CANCELED 등)
 	private String approvedAt;    // 결제 승인 일시
-	private String method;        // 결제 수단 (CARD, KAKAO_PAY 등)
+	private String method;        // 결제 수단 (CARD 등)
 }
