@@ -225,7 +225,7 @@ jobs:
         run: |
           INSTANCE_ID=$(aws ec2 describe-instances \
           --filters \          
-          "Name=tag:Name,Values=team01-queue" \
+          "Name=tag:Name,Values=team01-main" \
           "Name=tag:Team,Values=devcos5-team01" \
           "Name=instance-state-name,Values=running" \
           --query "Reservations[].Instances[0].InstanceId" \
