@@ -62,6 +62,10 @@ public class EntryPromoteThread {
 				// waiting queue에서 consume한 메시지를 삭제
 				redisTemplate.opsForStream()
 					.delete(RedisConfig.WAITING_QUEUE_KEY_NAME, record.getId());
+
+				// WAITING_USER_ID에서 삭제
+				redisTemplate.opsForHash()
+					.delete(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId, userId.toString());
 			}
 		);
 		// entry queue의 최대 크기에서 waiting queue에서 가져온 갯수만큼을 뺀 갯수를 저장.

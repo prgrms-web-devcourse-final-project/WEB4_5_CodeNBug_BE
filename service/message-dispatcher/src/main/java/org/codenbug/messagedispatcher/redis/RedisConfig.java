@@ -30,6 +30,7 @@ public class RedisConfig {
 	public static final String ENTRY_QUEUE_CONSUMER_NAME = "ENTRY_QUEUE_CONSUMER";
 	public static final String DISPATCH_QUEUE_CHANNEL_NAME = "DISPATCH";
 	public static final Long ENTRY_QUEUE_CAPACITY = 1000L;
+	public static final String WAITING_QUEUE_IN_USER_RECORD_KEY_NAME = "WAITING_USER_ID";
 
 	@Bean
 	public RedisTemplate<String, Object> basicRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
@@ -80,13 +81,14 @@ public class RedisConfig {
 	public StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamContainer(
 		RedisConnectionFactory cf) {
 
-		StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options = StreamMessageListenerContainerOptions.builder()
+		StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options
+			= StreamMessageListenerContainerOptions.builder()
 			.batchSize(10)
 			.pollTimeout(Duration.ofSeconds(2))
 			.build();
 
-		StreamMessageListenerContainer<String, MapRecord<String, String, String>> container = StreamMessageListenerContainer.create(
-			cf, options);
+		StreamMessageListenerContainer<String, MapRecord<String, String, String>> container
+			= StreamMessageListenerContainer.create(cf, options);
 		container.start();
 		return container;
 	}
