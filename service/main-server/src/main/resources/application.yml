@@ -31,8 +31,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ON_SECRET
-    password: ON_SECRET
+    username: ${mail.username}
+    password: ${mail.password}
     properties:
       mail:
         smtp:
@@ -46,7 +46,7 @@ spring:
       auth-code-expiration-millis: 1800000  # 30 * 60 * 1000 == 30분
 payment:
   toss:
-    secret-key: ON_SECRET
+    secret-key: ${payment.toss.secret-key}
     api-url: https://api.tosspayments.com/v1/payments/confirm
 # JWT Configuration
 jwt:
