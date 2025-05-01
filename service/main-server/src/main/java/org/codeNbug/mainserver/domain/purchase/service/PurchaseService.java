@@ -199,7 +199,7 @@ public class PurchaseService {
 	public PurchaseHistoryResponse getPurchaseHistory(Long userId) {
 		List<Purchase> purchases = purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(
 			userId,
-			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.CANCELLED)
+			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED)
 		);
 
 		// 구매 이력 목록의 각 구매 객체를 PurchaseDto로 변환
@@ -211,6 +211,12 @@ public class PurchaseService {
 				.purchaseDate(purchase.getPurchaseDate())
 				.paymentMethod(purchase.getPaymentMethod().name())
 				.paymentStatus(purchase.getPaymentStatus().name())
+				.tickets(purchase.getTickets().stream()
+					.map(ticket -> PurchaseHistoryResponse.TicketInfo.builder()
+						.ticketId(ticket.getId())
+						.seatLocation(ticket.getSeatInfo())
+						.build())
+					.toList())
 				.build())
 			.toList();
 			

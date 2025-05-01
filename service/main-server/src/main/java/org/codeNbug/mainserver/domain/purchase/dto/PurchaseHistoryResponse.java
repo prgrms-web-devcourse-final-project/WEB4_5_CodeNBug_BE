@@ -23,5 +23,14 @@ public class PurchaseHistoryResponse {
         private LocalDateTime purchaseDate;
         private String paymentMethod;
         private String paymentStatus;
+        private List<TicketInfo> tickets;
+    }
+
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    public static class TicketInfo {
+        private Long ticketId;
+        private String seatLocation;
     }
 } 
