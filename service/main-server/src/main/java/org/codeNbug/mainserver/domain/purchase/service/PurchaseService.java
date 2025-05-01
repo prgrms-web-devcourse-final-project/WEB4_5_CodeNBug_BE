@@ -1,13 +1,19 @@
 package org.codeNbug.mainserver.domain.purchase.service;
 
+import java.util.List;
 import java.util.UUID;
 
+import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.TicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
+import org.codeNbug.mainserver.domain.seat.entity.Seat;
+import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
+import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -20,6 +26,7 @@ public class PurchaseService {
 	private final PurchaseRepository purchaseRepository;
 	private final UserRepository userRepository;
 	private final EventRepository eventRepository;
+	private final SeatRepository seatRepository;
 
 	/**
 	 * 결제 사전 등록 처리
@@ -59,5 +66,48 @@ public class PurchaseService {
 		purchaseRepository.save(purchase);
 
 		return new InitiatePaymentResponse(purchase.getId(), purchase.getPaymentStatus().name());
+	}
+
+	/**
+	 * 결제 정보 반환
+	 * - 결제 승인 시 결제 정보 반환
+	 *
+	 * @param paymentKey 결제 paymentUuid
+	 * @return 결제 UUID 및 상태 정보를 포함한 응답 DTO
+	 */
+	public TicketPurchaseResponse getPaymentStatus(String paymentKey) {
+		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
+			.orElseThrow(() -> new IllegalStateException("해당 결제를 찾을 수 없습니다."));
+
+		if (purchase.getPaymentStatus() != PaymentStatusEnum.DONE) {
+			throw new IllegalStateException("결제가 아직 완료되지 않았습니다.");
+		}
+
+		List<Ticket> tickets = purchase.getTickets();
+		if (tickets.isEmpty()) {
+			throw new IllegalStateException("티켓 정보가 존재하지 않습니다.");
+		}
+
+		Event event = tickets.get(0).getEvent();
+		User user = purchase.getUser();
+
+		List<TicketPurchaseResponse.TicketInfo> ticketInfos = tickets.stream()
+			.map(ticket -> {
+				Seat seat = seatRepository.findByLocation(ticket.getSeatInfo())
+					.orElseThrow(() -> new IllegalStateException("해당 좌석을 찾을 수 없습니다."));
+				return new TicketPurchaseResponse.TicketInfo(ticket.getId(), seat.getId());
+			})
+			.toList();
+
+		return TicketPurchaseResponse.builder()
+			.purchaseId(purchase.getId())
+			.eventId(event.getEventId())
+			.userId(user.getUserId())
+			.ticketCount(tickets.size())
+			.amount(purchase.getAmount())
+			.paymentStatus(purchase.getPaymentStatus().name())
+			.purchaseDate(purchase.getPurchaseDate())
+			.tickets(ticketInfos)
+			.build();
 	}
 }

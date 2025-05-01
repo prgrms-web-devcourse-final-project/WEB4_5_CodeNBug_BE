@@ -13,7 +13,6 @@ import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.TicketPurchaseRequest;
-import org.codeNbug.mainserver.domain.purchase.dto.TicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
@@ -80,10 +79,10 @@ public class WebhookService {
 		}
 	}
 
-	public TicketPurchaseResponse handlePaymentApproved(Purchase purchase) {
+	public void handlePaymentApproved(Purchase purchase) {
 		if (purchase.getPaymentStatus() != PaymentStatusEnum.IN_PROGRESS) {
 			log.info("이미 처리된 결제입니다.");
-			return null;
+			return;
 		}
 
 		try {
@@ -113,14 +112,14 @@ public class WebhookService {
 					event.getEventId(),
 					purchase.getSelectedSeatIds()
 				);
-				return processTicketPurchase(request, user.getUserId());
+				processTicketPurchase(request, user.getUserId());
 			} else {
 				NonSelectTicketPurchaseRequest request = new NonSelectTicketPurchaseRequest(
 					purchase.getId(),
 					event.getEventId(),
 					purchase.getTicketCount()
 				);
-				return processTicketPurchase(request, user.getUserId());
+				processTicketPurchase(request, user.getUserId());
 			}
 
 		} catch (Exception e) {
@@ -129,8 +128,8 @@ public class WebhookService {
 		}
 	}
 
-	public TicketPurchaseResponse processTicketPurchase(TicketPurchaseRequest request, Long userId) {
-		User user = userRepository.findById(userId)
+	public void processTicketPurchase(TicketPurchaseRequest request, Long userId) {
+		userRepository.findById(userId)
 			.orElseThrow(() -> new IllegalStateException("사용자가 존재하지 않습니다."));
 		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
 			.orElseThrow(() -> new IllegalStateException("등록된 사전 결제가 없습니다."));
@@ -144,7 +143,7 @@ public class WebhookService {
 
 		List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(event.getEventId());
 		if (availableSeats.size() < request.getTicketCount()) {
-			throw new IllegalStateException("좌석 수 부족");
+			throw new IllegalStateException("예매 가능한 좌석 수가 부족합니다.");
 		}
 
 		List<Ticket> tickets = IntStream.range(0, request.getTicketCount())
@@ -160,26 +159,14 @@ public class WebhookService {
 
 		ticketRepository.saveAll(tickets);
 		seatRepository.saveAll(availableSeats.subList(0, request.getTicketCount()));
-
-		return TicketPurchaseResponse.builder()
-			.purchaseId(purchase.getId())
-			.eventId(event.getEventId())
-			.userId(user.getUserId())
-			.tickets(IntStream.range(0, tickets.size())
-				.mapToObj(i -> new TicketPurchaseResponse.TicketInfo(
-					tickets.get(i).getId(),
-					event.getSeatSelectable() ? availableSeats.get(i).getId() : null
-				)).toList())
-			.ticketCount(tickets.size())
-			.amount(purchase.getAmount())
-			.paymentStatus(purchase.getPaymentStatus().name())
-			.purchaseDate(purchase.getPurchaseDate())
-			.build();
 	}
 
 	private void handlePaymentExpired(Purchase purchase) {
 		if (purchase.getPaymentStatus() == PaymentStatusEnum.IN_PROGRESS) {
 			log.warn("결제 만료 처리: IN_PROGRESS -> EXPIRED");
+
+			resetSeatsToAvailable(purchase);
+
 			purchase.setPaymentStatus(PaymentStatusEnum.EXPIRED);
 		}
 	}
@@ -187,7 +174,22 @@ public class WebhookService {
 	private void handlePaymentCanceled(Purchase purchase) {
 		if (purchase.getPaymentStatus() == PaymentStatusEnum.DONE) {
 			log.info("결제 취소 처리: DONE -> CANCELED");
+
+			resetSeatsToAvailable(purchase);
+
 			purchase.setPaymentStatus(PaymentStatusEnum.CANCELLED);
+		}
+	}
+
+	private void resetSeatsToAvailable(Purchase purchase) {
+		if (purchase.getSelectedSeatIds() != null) {
+			for (Long seatId : purchase.getSelectedSeatIds()) {
+				Seat seat = seatRepository.findById(seatId)
+					.orElseThrow(() -> new IllegalStateException("좌석을 찾을 수 없습니다."));
+				seat.setAvailable(true);
+				seat.setTicket(null);
+				seatRepository.save(seat);
+			}
 		}
 	}
 

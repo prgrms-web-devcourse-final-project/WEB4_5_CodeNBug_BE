@@ -2,13 +2,16 @@ package org.codeNbug.mainserver.domain.purchase.controller;
 
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.TicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
@@ -32,5 +35,13 @@ public class PurchaseController {
 		Long userId = SecurityUtil.getCurrentUserId();
 		InitiatePaymentResponse response = purchaseService.initiatePayment(request, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 준비 완료", response));
+	}
+
+	@GetMapping("/status")
+	public ResponseEntity<RsData<TicketPurchaseResponse>> getPaymentStatus(
+		@RequestParam String paymentKey
+	) {
+		TicketPurchaseResponse response = purchaseService.getPaymentStatus(paymentKey);
+		return ResponseEntity.ok(new RsData<>("200", "결제 정보 반환 완료", response));
 	}
 }
