@@ -90,6 +90,13 @@ public class PurchaseService {
 			throw new IllegalStateException("선택 가능한 좌석이 부족합니다.");
 		}
 
+		int approvedAmount = purchaseRepository.findAmountById(purchase.getId());
+		int expectedAmount = purchase.getAmount();
+
+		if (expectedAmount != approvedAmount) {
+			throw new IllegalStateException("결제 금액이 일치하지 않습니다. 예상: " + expectedAmount + ", 승인됨: " + approvedAmount);
+		}
+
 		List<Ticket> tickets = IntStream.range(0, request.getTicketCount())
 			.mapToObj(i -> {
 				Seat seat = availableSeats.get(i);
