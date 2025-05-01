@@ -76,7 +76,6 @@ public class QueueInfoThread {
 				);
 			} catch (Exception e) {
 				emitter.complete();
-				emitterMap.remove(userId);
 				log.debug("user %d가 연결이 끊어진 상태입니다.".formatted(userId));
 			}
 		}

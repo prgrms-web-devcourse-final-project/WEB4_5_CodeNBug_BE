@@ -50,6 +50,6 @@ public class WaitingControllerThread {
 
 		assert recordId != null;
 		simpleRedisTemplate.opsForHash()
-			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId, recordId.getValue());
+			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME, userId.toString(), recordId.getValue());
 	}
 }
