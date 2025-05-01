@@ -1,17 +1,21 @@
 package org.codeNbug.queueserver.external.redis;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 
 @Configuration
 public class RedisConfig {
@@ -32,8 +36,18 @@ public class RedisConfig {
 	public static final String QUEUE_MESSAGE_INSTANCE_ID_KEY_NAME = "instanceId";
 	// 메시지 내부의 idx 속성의 키 값
 	public static final String QUEUE_MESSAGE_IDX_KEY_NAME = "idx";
-	private static final String DISPATCH_QUEUE_CHANNEL_NAME = "DISPATCH";
+	public static final String DISPATCH_QUEUE_CHANNEL_NAME = "DISPATCH";
 	public static final String WAITING_QUEUE_IN_USER_RECORD_KEY_NAME = "WAITING_USER_ID";
+	public static final String WAITING_QUEUE_CONSUMER_NAME = "WAITING_QUEUE_CONSUMER";
+	// waiting queue redis stream 키 이름
+	// entry queue 컨슈머 생성 시 그룹 이름
+	public static final String ENTRY_QUEUE_GROUP_NAME = "ENTRY_QUEUE";
+	// entry queue redis stream 키 이름
+	public static final String ENTRY_QUEUE_KEY_NAME = "ENTRY";
+	// entry queue의 현재 인원을  저장하기 위한 space의 key값
+	// dispatch queue의 컨슈머 그룹명
+	public static final String ENTRY_QUEUE_CONSUMER_NAME = "ENTRY_QUEUE_CONSUMER";
+	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN_STORAGE";
 
 	@Value("${custom.instance-id}")
 	private String instanceId;
@@ -88,6 +102,18 @@ public class RedisConfig {
 			redisTemplate.opsForValue()
 				.set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
 		}
+
+		try {
+			if (redisTemplate.opsForStream()
+				.groups(ENTRY_QUEUE_KEY_NAME)
+				.stream()
+				.noneMatch(xInfoGroup -> xInfoGroup.groupName().equals(ENTRY_QUEUE_GROUP_NAME))) {
+				redisTemplate.opsForStream().createGroup(ENTRY_QUEUE_KEY_NAME, ENTRY_QUEUE_GROUP_NAME);
+			}
+		} catch (Exception e) {
+			redisTemplate.opsForStream().createGroup(ENTRY_QUEUE_KEY_NAME, ENTRY_QUEUE_GROUP_NAME);
+		}
+
 		return redisTemplate;
 	}
 
@@ -109,4 +135,18 @@ public class RedisConfig {
 		return new MessageListenerAdapter(subscriber, "onMessage");
 	}
 
+	@Bean
+	public StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamContainer(
+		RedisConnectionFactory cf) {
+
+		StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options = StreamMessageListenerContainer.StreamMessageListenerContainerOptions.builder()
+			.batchSize(10)
+			.pollTimeout(Duration.ofSeconds(2))
+			.build();
+
+		StreamMessageListenerContainer<String, MapRecord<String, String, String>> container = StreamMessageListenerContainer.create(
+			cf, options);
+		container.start();
+		return container;
+	}
 }

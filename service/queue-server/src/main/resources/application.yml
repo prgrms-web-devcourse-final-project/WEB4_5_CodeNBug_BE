@@ -2,18 +2,20 @@ server:
   port: 9001
 
 spring:
+  profiles:
+    include: secret
+    active: dev
+
   data:
     redis:
-      port: 6379
-      host: localhost
+      port: ${redis.port}
+      host: ${redis.host}
 
   datasource:
-    url: jdbc:mysql://localhost:3306
-    username: root
+    url: ${db.url}
     hikari:
       auto-commit: false
     driver-class-name: com.mysql.cj.jdbc.Driver
-    password: password
 
   jpa:
     hibernate:
@@ -27,6 +29,9 @@ spring:
         default_batch_fetch_size: 100
         dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
+
+jwt:
+  expiration: 8640000
 
 custom:
   instance-id: waiting-1
