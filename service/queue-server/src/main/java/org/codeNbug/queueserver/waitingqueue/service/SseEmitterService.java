@@ -78,5 +78,4 @@ public class SseEmitterService {
 
 		return emitter;
 	}
-
 }
