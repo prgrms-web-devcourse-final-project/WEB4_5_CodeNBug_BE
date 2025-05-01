@@ -199,7 +199,7 @@ public class PurchaseService {
 	public PurchaseHistoryResponse getPurchaseHistory(Long userId) {
 		List<Purchase> purchases = purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(
 			userId,
-			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED)
+			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.CANCELLED)
 		);
 
 		// 구매 이력 목록의 각 구매 객체를 PurchaseDto로 변환
