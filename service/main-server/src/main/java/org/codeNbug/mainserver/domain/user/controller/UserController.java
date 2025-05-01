@@ -40,7 +40,7 @@ public class UserController {
     /**
      * 회원가입 API
      *
-     * @param request 회원가입 요청 정보
+     * @param request       회원가입 요청 정보
      * @param bindingResult 유효성 검사 결과
      * @return API 응답
      */
@@ -72,9 +72,9 @@ public class UserController {
     /**
      * 로그인 API
      *
-     * @param request 로그인 요청 정보
+     * @param request       로그인 요청 정보
      * @param bindingResult 유효성 검사 결과
-     * @param response HTTP 응답 객체 (쿠키 설정용)
+     * @param response      HTTP 응답 객체 (쿠키 설정용)
      * @return API 응답
      */
     @PostMapping("/login")
@@ -92,15 +92,15 @@ public class UserController {
         try {
             // 로그인 처리
             LoginResponse loginResponse = userService.login(request);
-            
+
             // 쿠키에 토큰 설정
             cookieUtil.setAccessTokenCookie(response, loginResponse.getAccessToken());
             cookieUtil.setRefreshTokenCookie(response, loginResponse.getRefreshToken());
-            
+
             // 응답 본문에서는 토큰 정보 제외
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "로그인 성공", LoginResponse.ofTokenTypeOnly()));
-            
+
         } catch (AuthenticationFailedException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
@@ -113,7 +113,7 @@ public class UserController {
     /**
      * 로그아웃 API
      *
-     * @param request HTTP 요청 객체 (쿠키 추출용)
+     * @param request  HTTP 요청 객체 (쿠키 추출용)
      * @param response HTTP 응답 객체 (쿠키 삭제용)
      * @return API 응답
      */
@@ -162,7 +162,7 @@ public class UserController {
     /**
      * 회원 탈퇴 API
      *
-     * @param request HTTP 요청 객체 (쿠키 추출용)
+     * @param request  HTTP 요청 객체 (쿠키 추출용)
      * @param response HTTP 응답 객체 (쿠키 삭제용)
      * @return API 응답
      */
@@ -217,7 +217,7 @@ public class UserController {
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
      *
-     * @return ResponseEntity<RsData<UserProfileResponse>> 프로필 정보 응답
+     * @return ResponseEntity<RsData < UserProfileResponse>> 프로필 정보 응답
      */
     @GetMapping("/me")
     public ResponseEntity<RsData<UserProfileResponse>> getProfile() {
@@ -237,7 +237,7 @@ public class UserController {
     /**
      * 사용자의 구매 이력을 조회합니다.
      *
-     * @return ResponseEntity<RsData<PurchaseHistoryResponse>> 구매 이력 응답
+     * @return ResponseEntity<RsData < PurchaseHistoryResponse>> 구매 이력 응답
      */
     @GetMapping("/me/purchases")
     public ResponseEntity<RsData<PurchaseHistoryResponse>> getPurchaseHistory() {
@@ -249,12 +249,14 @@ public class UserController {
         } catch (AuthenticationFailedException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
+        }
+    }
 
-    /**      
+    /**
      * 현재 로그인한 사용자의 프로필 정보를 수정합니다.
      *
      * @param request 수정할 프로필 정보
-     * @return ResponseEntity<RsData<UserProfileResponse>> 수정된 프로필 정보 응답
+     * @return ResponseEntity<RsData < UserProfileResponse>> 수정된 프로필 정보 응답
      */
     @PutMapping("/me")
     public ResponseEntity<RsData<UserProfileResponse>> updateProfile(
