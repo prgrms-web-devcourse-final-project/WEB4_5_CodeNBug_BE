@@ -19,12 +19,12 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
-public class QueueInfoThread {
+public class QueueInfoScheduler {
 
 	private final RedisTemplate<String, Object> redisTemplate;
 	private final SseEmitterService emitterService;
 
-	public QueueInfoThread(RedisTemplate<String, Object> redisTemplate, SseEmitterService emitterService) {
+	public QueueInfoScheduler(RedisTemplate<String, Object> redisTemplate, SseEmitterService emitterService) {
 		this.redisTemplate = redisTemplate;
 		this.emitterService = emitterService;
 
@@ -76,7 +76,6 @@ public class QueueInfoThread {
 				);
 			} catch (Exception e) {
 				emitter.complete();
-				emitterMap.remove(userId);
 				log.debug("user %d가 연결이 끊어진 상태입니다.".formatted(userId));
 			}
 		}
