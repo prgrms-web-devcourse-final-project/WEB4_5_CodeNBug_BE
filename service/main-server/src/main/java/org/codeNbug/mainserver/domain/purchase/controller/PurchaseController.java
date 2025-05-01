@@ -42,11 +42,8 @@ public class PurchaseController {
 	public ResponseEntity<RsData<ConfirmPaymentResponse>> confirmPayment(
 		@RequestBody ConfirmPaymentRequest request
 	) throws IOException, InterruptedException {
-		ConfirmPaymentResponse response = purchaseService.confirmPayment(
-			request.getPaymentKey(),
-			request.getOrderId(),
-			request.getAmount()
-		);
+		Long userId = SecurityUtil.getCurrentUserId();
+		ConfirmPaymentResponse response = purchaseService.confirmPayment(request, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 승인 완료", response));
 	}
 
