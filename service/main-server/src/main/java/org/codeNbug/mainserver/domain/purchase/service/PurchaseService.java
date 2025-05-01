@@ -43,8 +43,12 @@ public class PurchaseService {
 			.amount(request.getAmount())
 			.user(user)
 			.eventId(request.getEventId())
-			.ticketCount(request.getTicketCount()) // 미지정석인 경우
-			.selectedSeatIds(request.getSeatIds())
+			.ticketCount(request.getTicketCount())
+			.selectedSeatIds(
+				request.getSeatIds() != null && !request.getSeatIds().isEmpty()
+					? request.getSeatIds()
+					: null
+			)
 			.build();
 
 		purchaseRepository.save(purchase);

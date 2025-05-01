@@ -106,7 +106,6 @@ public class WebhookService {
 			Long eventId = purchase.getEventId();
 			Event event = eventRepository.findById(eventId)
 				.orElseThrow(() -> new IllegalStateException("해당 이벤트를 찾을 수 없습니다."));
-			;
 			User user = purchase.getUser();
 
 			if (event.getSeatSelectable()) {
