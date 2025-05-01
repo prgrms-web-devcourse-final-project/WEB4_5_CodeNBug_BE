@@ -7,6 +7,7 @@ import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -23,9 +24,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TossPaymentServiceImpl implements TossPaymentService {
 
-	private final ObjectMapper objectMapper;
-	private final TossPaymentClient tossPaymentClient;
-	private final RestTemplate restTemplate = new RestTemplate();
+	private final RestTemplate restTemplate;
 
 	@Value("${payment.toss.secret-key}")
 	private String TOSS_SECRET_KEY;
@@ -37,8 +36,7 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	 * Toss 서버에 결제 승인을 요청하고 결과 정보를 반환
 	 */
 	@Override
-	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, String orderName, Integer amount) {
-
+	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, Integer amount) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
 		headers.setContentType(MediaType.APPLICATION_JSON);
@@ -46,16 +44,22 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 		Map<String, Object> body = Map.of(
 			"paymentKey", paymentKey,
 			"orderId", orderId,
-			"orderName", orderName,
 			"amount", amount
 		);
 
 		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-		ResponseEntity<ConfirmedPaymentInfo> response = restTemplate.postForEntity(
-			TOSS_API_URL, request, ConfirmedPaymentInfo.class
+		ResponseEntity<String> response = restTemplate.exchange(
+			TOSS_API_URL, HttpMethod.POST, request, String.class
 		);
 
-		return response.getBody();
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			objectMapper.findAndRegisterModules();
+
+			return objectMapper.readValue(response.getBody(), ConfirmedPaymentInfo.class);
+		} catch (Exception e) {
+			throw new RuntimeException("Toss 응답 파싱 실패: " + e.getMessage(), e);
+		}
 	}
 }

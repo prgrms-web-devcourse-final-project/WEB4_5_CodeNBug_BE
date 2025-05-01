@@ -1,7 +1,8 @@
 package org.codeNbug.mainserver.external.toss.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
@@ -13,6 +14,7 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ConfirmedPaymentInfo {
 
 	@JsonProperty("paymentKey")
@@ -28,12 +30,13 @@ public class ConfirmedPaymentInfo {
 
 	private String method;
 
-	private LocalDateTime approvedAt;
+	private OffsetDateTime approvedAt;
 
 	private Receipt receipt;
 
 	@Getter
 	@NoArgsConstructor
+	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static class Receipt {
 		private String url;
 	}

@@ -26,8 +26,11 @@ import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.springframework.stereotype.Service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PurchaseService {
@@ -54,16 +57,11 @@ public class PurchaseService {
 
 		String uuid = UUID.randomUUID().toString();
 
-		String orderName = (request.getSeatIds() != null && !request.getSeatIds().isEmpty())
-			? "지정석 " + request.getSeatIds().size() + "매"
-			: "미지정석 " + request.getTicketCount() + "매";
-
 		Purchase purchase = Purchase.builder()
 			.paymentUuid(uuid)
 			.paymentStatus(PaymentStatusEnum.IN_PROGRESS)
 			.amount(request.getAmount())
 			.user(user)
-			.orderName(orderName)
 			.build();
 
 		purchaseRepository.save(purchase);
@@ -79,65 +77,81 @@ public class PurchaseService {
 	 * @param userId 현재 로그인한 사용자 ID
 	 * @return 결제 UUID 및 상태 정보를 포함한 응답 DTO
 	 */
+	@Transactional
 	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId)
 		throws IOException, InterruptedException {
 		userRepository.findById(userId)
 			.orElseThrow(() -> new IllegalStateException("사용자가 존재하지 않습니다."));
-		Purchase purchase = purchaseRepository.findByOrderId(request.getOrderId())
+		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
 			.orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
-
 		if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
 			throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
 		}
 
 		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
-			request.getPaymentKey(), request.getOrderId(), purchase.getOrderName(), request.getAmount()
-		);
-
-		PaymentMethodEnum methodEnum = PaymentMethodEnum.valueOf(info.getMethod().toUpperCase());
-
-		purchase.updatePaymentInfo(
-			info.getPaymentKey(),
-			info.getTotalAmount(),
-			methodEnum,
-			PaymentStatusEnum.DONE,
-			info.getOrderName(),
-			info.getApprovedAt()
+			request.getPaymentKey(), request.getOrderId(), request.getAmount()
 		);
 
 		Event event = eventRepository.findById(request.getEventId())
 			.orElseThrow(() -> new IllegalStateException("이벤트 정보를 찾을 수 없습니다."));
 
 		List<Seat> selectedSeats;
-
+		String orderName = "";
 		if (event.getSeatSelectable()) {
 			// 지정석일 경우
-			selectedSeats = seatRepository.findAllById(request.getSeatList());
+			if (request.getSeatList() == null || request.getSeatList().isEmpty()) {
+				throw new IllegalArgumentException("지정석 예매 시 좌석 목록은 필수입니다.");
+			}
+
+			List<Long> seatIds = request.getSeatList().stream()
+				.filter(Objects::nonNull)
+				.toList();
+
+			selectedSeats = seatRepository.findAllById(seatIds);
+			orderName = "지정석 " + request.getTicketCount() + "매";
 			if (selectedSeats.size() != request.getSeatList().size()) {
 				throw new IllegalStateException("좌석 일부를 찾을 수 없습니다.");
 			}
 		} else {
 			// 미지정석일 경우
+			if (request.getSeatList() != null) {
+				throw new IllegalArgumentException("미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
+			}
+
 			selectedSeats = seatRepository.findAvailableSeatsByEventId(event.getEventId())
-				.stream().limit(request.getTicketCount()).toList();
+				.stream()
+				.limit(request.getTicketCount())
+				.toList();
+			orderName = "미지정석 " + request.getTicketCount() + "매";
 			if (selectedSeats.size() < request.getTicketCount()) {
 				throw new IllegalStateException("예매 가능한 좌석 수가 부족합니다.");
 			}
 		}
+		PaymentMethodEnum methodEnum = PaymentMethodEnum.from(info.getMethod());
+
+		purchase.updatePaymentInfo(
+			info.getPaymentKey(),
+			info.getTotalAmount(),
+			methodEnum,
+			PaymentStatusEnum.DONE,
+			orderName,
+			info.getApprovedAt().toLocalDateTime()
+		);
 
 		List<Ticket> tickets = selectedSeats.stream()
 			.map(seat -> {
 				seat.reserve();
 				Ticket ticket = new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase);
 				seat.setTicket(ticket);
-				purchase.addTicket(ticket);
 				return ticket;
 			}).toList();
 
+		purchaseRepository.save(purchase);
 		ticketRepository.saveAll(tickets);
 		seatRepository.saveAll(selectedSeats);
 
-		ConfirmPaymentResponse.Receipt receipt = new ConfirmPaymentResponse.Receipt(info.getReceipt().getUrl());
+		String receiptUrl = info.getReceipt() != null ? info.getReceipt().getUrl() : null;
+		ConfirmPaymentResponse.Receipt receipt = new ConfirmPaymentResponse.Receipt(receiptUrl);
 
 		return new ConfirmPaymentResponse(
 			info.getPaymentKey(),
@@ -146,7 +160,7 @@ public class PurchaseService {
 			info.getTotalAmount(),
 			info.getStatus(),
 			methodEnum,
-			info.getApprovedAt(),
+			info.getApprovedAt().toLocalDateTime(),
 			receipt
 		);
 	}
