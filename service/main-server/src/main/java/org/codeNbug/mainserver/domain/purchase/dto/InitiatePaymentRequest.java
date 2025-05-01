@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class InitiatePaymentRequest {
 	private Long eventId;
+	private Integer amount;
 }

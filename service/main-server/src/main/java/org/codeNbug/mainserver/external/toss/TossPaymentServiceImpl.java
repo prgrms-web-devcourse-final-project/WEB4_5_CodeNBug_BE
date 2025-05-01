@@ -43,6 +43,7 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	/**
 	 * 이벤트 조회
 	 */
+	@Override
 	public Event getEvent(Long eventId) {
 		return eventRepository.findById(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("이벤트가 존재하지 않습니다."));
@@ -51,6 +52,7 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	/**
 	 * 유저 조회
 	 */
+	@Override
 	public User getUser(Long userId) {
 		return userRepository.findById(userId)
 			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));

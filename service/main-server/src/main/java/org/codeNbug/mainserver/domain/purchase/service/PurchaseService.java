@@ -56,6 +56,7 @@ public class PurchaseService {
 		Purchase purchase = Purchase.builder()
 			.paymentUuid(uuid)
 			.paymentStatus(PaymentStatusEnum.IN_PROGRESS)
+			.amount(request.getAmount())
 			.user(user)
 			.build();
 
