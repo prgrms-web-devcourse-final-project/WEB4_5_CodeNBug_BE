@@ -5,7 +5,6 @@ import java.time.OffsetDateTime;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +18,6 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConfirmedPaymentInfo {
 
-	@JsonProperty("paymentKey")
 	private String paymentKey;
 
 	private String orderId;
