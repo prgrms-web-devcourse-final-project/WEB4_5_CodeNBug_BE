@@ -157,7 +157,7 @@ public class PurchaseService {
 		return new ConfirmPaymentResponse(
 			info.getPaymentKey(),
 			info.getOrderId(),
-			info.getOrderName(),
+			orderName,
 			info.getTotalAmount(),
 			info.getStatus(),
 			methodEnum,
