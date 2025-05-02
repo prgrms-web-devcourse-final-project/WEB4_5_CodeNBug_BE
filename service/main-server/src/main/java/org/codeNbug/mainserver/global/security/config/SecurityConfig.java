@@ -151,7 +151,7 @@ public class SecurityConfig {
         log.info("allowedOrigins: {}", allowedOrigins);
         if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
             // Allow all patterns including wildcards by setting setAllowedOriginPatterns instead of setAllowedOrigins
-            configuration.setAllowedOriginPatterns(allowedOrigins);
+            configuration.setAllowedOriginPatterns(List.of("*"));
         } else {
             // 기본값 설정
             configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
