@@ -4,5 +4,3 @@ redis:
 
 db:
   url: jdbc:mysql://env-mysql-1:3306/ticketone?ServerTimeZone=Asia/Seoul
-  username: root
-  password: password
