@@ -19,34 +19,33 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/email")
 public class EmailController {
-    private final EmailService emailService;
+	private final EmailService emailService;
 
-    // 인증코드 메일 발송
-    @PostMapping("/send")
-    public ResponseEntity<RsData<Void>> mailSend(@RequestBody EmailDto.SendRequest request) {
-        log.info("EmailController.mailSend()");
-        try {
-            emailService.sendEmail(request.getMail());
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "인증코드가 발송되었습니다."));
-        } catch (MessagingException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "이메일 발송에 실패했습니다."));
-        }
-    }
+	// 인증코드 메일 발송
+	@PostMapping("/send")
+	public ResponseEntity<RsData<Void>> mailSend(@RequestBody EmailDto.SendRequest request) {
+		log.info("EmailController.mailSend()");
+		try {
+			emailService.sendEmail(request.getMail());
+			return ResponseEntity.ok(
+				new RsData<>("200-SUCCESS", "인증코드가 발송되었습니다."));
+		} catch (MessagingException e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.body(new RsData<>("500-INTERNAL_SERVER_ERROR", "이메일 발송에 실패했습니다."));
+		}
+	}
 
-    // 인증코드 인증
-    @PostMapping("/verify")
-    public ResponseEntity<RsData<Void>> verify(@RequestBody EmailDto.VerifyRequest request) {
-        log.info("EmailController.verify()");
-        boolean isVerify = emailService.verifyEmailCode(request.getMail(), request.getVerifyCode());
-        
-        if (!isVerify) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new RsData<>("400-BAD_REQUEST", "인증에 실패했습니다."));
-        }
-        
-        return ResponseEntity.ok(
-                new RsData<>("200-SUCCESS", "인증이 완료되었습니다."));
-    }
+	// 인증코드 인증
+	@PostMapping("/verify")
+	public ResponseEntity<RsData<Void>> verify(@RequestBody EmailDto.VerifyRequest request) {
+		log.info("EmailController.verify()");
+		boolean isVerify = emailService.verifyEmailCode(request.getMail(), request.getVerifyCode());
+
+		if (!isVerify) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(new RsData<>("400-BAD_REQUEST", "인증에 실패했습니다."));
+		}
+		return ResponseEntity.ok(
+			new RsData<>("200-SUCCESS", "인증이 완료되었습니다."));
+	}
 }
