@@ -16,7 +16,7 @@ on:
       - hotfix
       - Chore/대기열-배포
 jobs:
-  makeTagAndReleaseMainServer:
+  makeTagAndReleaseServer:
     runs-on: ubuntu-latest
     outputs:
       tag_name: ${{ steps.create_tag.outputs.new_tag }}
@@ -45,7 +45,7 @@ jobs:
       contents: read
       packages: write
     name: 도커 이미지 빌드와 푸시
-    needs: makeTagAndReleaseMainServer
+    needs: makeTagAndReleaseServer
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
       image_name: ${{ steps.export_image.outputs.image_name }}
@@ -91,7 +91,7 @@ jobs:
           file: service/main-server/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseMainServer.outputs.tag_name }}
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest
   deployMainServer:
     runs-on: ubuntu-latest
@@ -132,33 +132,9 @@ jobs:
             docker run -d --name app1 --network env_common -p 9000:9000 ghcr.io/${{ needs.buildImageAndPushMainServer.outputs.owner_lc }}/${{ needs.buildImageAndPushMainServer.outputs.image_name }}:latest && \
             docker rmi $(docker images -f "dangling=true" -q) || true
 
-  makeTagAndReleaseQueueServer:
-    runs-on: ubuntu-latest
-    outputs:
-      tag_name: ${{ steps.create_tag.outputs.new_tag }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Create Tag
-        id: create_tag
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag_prefix: 'qv'
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.create_tag.outputs.new_tag }}
-          release_name: Release ${{ steps.create_tag.outputs.new_tag }}
-          body: ${{ steps.create_tag.outputs.changelog }}
-          draft: false
-          prerelease: false
-
   buildImageAndPushQueueServer:
     name: 큐 서버 도커 이미지 빌드와 푸시
-    needs: makeTagAndReleaseQueueServer
+    needs: makeTagAndReleaseServer
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
       image_name: ${{ steps.export_image.outputs.image_name }}
@@ -202,7 +178,7 @@ jobs:
 
           push: true
           tags: |
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ needs.makeTagAndReleaseQueueServer.outputs.tag_name }}
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest
   deployQueueServer:
     runs-on: ubuntu-latest
@@ -243,34 +219,12 @@ jobs:
             docker rm queue-server 2>/dev/null || true && \
             docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${{ needs.buildImageAndPushQueueServer.outputs.owner_lc }}/${{ needs.buildImageAndPushMainServer.outputs.image_name }}:latest && \
             docker rmi $(docker images -f "dangling=true" -q) || true
-
-  makeTagAndReleaseDispatchServer:
-    runs-on: ubuntu-latest
-    outputs:
-      tag_name: ${{ steps.create_tag.outputs.new_tag }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Create Tag
-        id: create_tag
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          tag_prefix: 'dv'
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.create_tag.outputs.new_tag }}
-          release_name: Release ${{ steps.create_tag.outputs.new_tag }}
-          body: ${{ steps.create_tag.outputs.changelog }}
-          draft: false
-          prerelease: false
+  
+  
 
   buildImageAndPushDispatchServer:
     name: 디스패치 서버 도커 이미지 빌드와 푸시
-    needs: makeTagAndReleaseDispatchServer
+    needs: makeTagAndReleaseServer
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
       image_name: ${{ steps.export_image.outputs.image_name }}
@@ -314,7 +268,7 @@ jobs:
 
           push: true
           tags: |
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:${{ needs.makeTagAndReleaseDispatchServer.outputs.tag_name }}
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:latest
   deployDispatchServer:
     runs-on: ubuntu-latest
