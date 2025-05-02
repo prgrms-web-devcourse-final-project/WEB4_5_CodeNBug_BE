@@ -18,12 +18,10 @@ import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 좌석 도메인 관련 로직을 처리하는 서비스
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SeatService {
@@ -69,6 +67,11 @@ public class SeatService {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
 
+		List<Long> selectedSeats = seatSelectRequest.getSeatList();
+		if (selectedSeats.size() > 4) {
+			throw new IllegalArgumentException("최대 4개의 좌석만 선택할 수 있습니다.");
+		}
+
 		for (Long seatId : seatSelectRequest.getSeatList()) {
 			String lockKey = SEAT_LOCK_KEY_PREFIX + eventId + ":" + seatId;
 			String lockValue = UUID.randomUUID().toString();
@@ -85,8 +88,9 @@ public class SeatService {
 
 			seat.reserve();
 			seatRepository.save(seat);
-		}
 
+			redisLockService.unlock(lockKey, lockValue);
+		}
 		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
 		seatSelectResponse.setSeatList(seatSelectRequest.getSeatList());
 		return seatSelectResponse;

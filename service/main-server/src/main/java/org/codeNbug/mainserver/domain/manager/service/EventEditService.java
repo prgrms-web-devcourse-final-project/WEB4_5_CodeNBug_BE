@@ -49,7 +49,7 @@ public class EventEditService {
 		updateEventTypeIfChanged(event, request.getType());
 		updateEventInformation(event, request);
 		updateBookingPeriod(event, request);
-		updateSeatLayout(event, eventId, request);
+		updateSeatLayout(eventId, request);
 		updateSeatsAndGrades(event, request);
 
 		return eventDomainService.buildEventRegisterResponse(request, event);
@@ -122,7 +122,7 @@ public class EventEditService {
 	/**
 	 * 좌석 레이아웃을 JSON 형태로 직렬화하고 업데이트하는 메서드입니다.
 	 */
-	private void updateSeatLayout(Event event, Long eventId, EventRegisterRequest request) {
+	private void updateSeatLayout(Long eventId, EventRegisterRequest request) {
 		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
 			.orElseThrow(() -> new BadRequestException("좌석 레이아웃을 찾을 수 없습니다: eventId=" + eventId));
 		String layoutJson = eventDomainService.serializeLayoutToJson(request.getLayout());
