@@ -1,8 +1,12 @@
 package org.codeNbug.mainserver.global.security.config;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.codeNbug.mainserver.global.security.filter.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -19,10 +23,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.http.HttpStatus;
 
-import java.util.Arrays;
-import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 스프링 시큐리티 설정 클래스
@@ -33,6 +35,7 @@ import java.util.List;
  */
 @Configuration
 @EnableWebSecurity
+@Slf4j
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -145,13 +148,14 @@ public class SecurityConfig {
         
         // application.yml에서 설정한 cors.allowed-origins 속성 사용
         List<String> allowedOrigins = corsProperties.getAllowedOrigins();
+        log.info("allowedOrigins: {}", allowedOrigins);
         if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
             configuration.setAllowedOrigins(allowedOrigins);
         } else {
             // 기본값 설정
             configuration.setAllowedOrigins(List.of("http://localhost:3000"));
         }
-        
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);
