@@ -42,4 +42,14 @@ public class RedisLockService {
 		}
 		return false;
 	}
+
+	/**
+	 * Redis에서 주어진 키(lockKey)에 해당하는 락 값(lockValue)을 조회합니다.
+	 *
+	 * @param lockKey 조회할 Redis 락 키
+	 * @return 해당 키에 저장된 락 값 (없으면 null)
+	 */
+	public String getLockValue(String lockKey) {
+		return redisTemplate.opsForValue().get(lockKey);
+	}
 }

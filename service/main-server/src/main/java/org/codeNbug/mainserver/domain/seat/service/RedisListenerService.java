@@ -36,17 +36,26 @@ public class RedisListenerService implements MessageListener {
 
 		if (messageBody.startsWith(lockKeyPrefix)) {
 			String[] parts = messageBody.split(":");
-			Long eventId = Long.valueOf(parts[2]);
-			Long seatId = Long.valueOf(parts[3]);
 
-			eventRepository.findById(eventId)
-				.orElseThrow(() -> new RuntimeException("존재하지 않는 행사입니다."));
-			Seat seat = seatRepository.findById(seatId)
-				.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
-			seat.setAvailable(true);
-			seatRepository.save(seat);
+			if (parts.length < 5) {
+				System.err.println("TTL 키 형식이 올바르지 않습니다: " + messageBody);
+				return;
+			}
+			try {
+				Long eventId = Long.valueOf(parts[3]);
+				Long seatId = Long.valueOf(parts[4]);
 
-			System.out.println("TTL 만료로 좌석 " + seatId + "의 상태가 available = true 로 변경되었습니다.");
+				eventRepository.findById(eventId)
+					.orElseThrow(() -> new RuntimeException("존재하지 않는 행사입니다."));
+				Seat seat = seatRepository.findById(seatId)
+					.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
+				seat.setAvailable(true);
+				seatRepository.save(seat);
+
+				System.out.println("TTL 만료로 좌석 " + seatId + "의 상태가 available = true 로 변경되었습니다.");
+			} catch (NumberFormatException e) {
+				System.out.println("TTL 키 파싱 실패: " + messageBody);
+			}
 		}
 	}
 }
