@@ -324,7 +324,7 @@ jobs:
           tags: |
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:${{ needs.makeTagAndReleaseQueueServer.outputs.tag_name }}
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:latest
-  deployQueueServer:
+  deployDispatchServer:
     runs-on: ubuntu-latest
     needs: [ buildImageAndPushQueueServer ]
     steps:
