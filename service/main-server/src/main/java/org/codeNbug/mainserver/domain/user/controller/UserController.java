@@ -210,12 +210,17 @@ public class UserController {
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "회원 탈퇴 성공"));
         } catch (AuthenticationFailedException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
         } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new RsData<>("404-NOT_FOUND", e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
