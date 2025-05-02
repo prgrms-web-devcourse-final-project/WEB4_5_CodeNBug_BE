@@ -216,7 +216,7 @@ jobs:
             docker pull ghcr.io/${{ needs.buildImageAndPushQueueServer.outputs.owner_lc }}/${{ needs.buildImageAndPushQueueServer.outputs.image_name }}:latest && \
             docker stop queue-server 2>/dev/null || true && \
             docker rm queue-server 2>/dev/null || true && \
-            docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${{ needs.buildImageAndPushQueueServer.outputs.owner_lc }}/${{ needs.buildImageAndPushMainServer.outputs.image_name }}:latest && \
+            docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${{ needs.buildImageAndPushQueueServer.outputs.owner_lc }}/${{ needs.buildImageAndPushQueueServer.outputs.image_name }}:latest && \
             docker rmi $(docker images -f "dangling=true" -q) || true
   
   
@@ -233,13 +233,13 @@ jobs:
       - name: application-secret 추가
         env:
           ACTIONS_STEP_DEBUG: true
-          APPLICATION_SECRET: ${{ secrets.QUEUE_APPLICATION_SECRET }}
+          APPLICATION_SECRET: ${{ secrets.DISPATCH_APPLICATION_SECRET }}
         run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
 
       - name: application-prod 추가
         env:
           ACTIONS_STEP_DEBUG: true
-          APPLICATION_PROD: ${{ secrets.QUEUE_APPLICATION_PROD }}
+          APPLICATION_PROD: ${{ secrets.DISPATCH_APPLICATION_PROD }}
         run: echo "$APPLICATION_PROD" > service/message-dispatcher/src/main/resources/application-prod.yml
 
       - name: Docker Buildx 설치
