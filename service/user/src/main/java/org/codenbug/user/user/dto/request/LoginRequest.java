@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.domain.user.dto.request;
+package org.codenbug.user.user.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

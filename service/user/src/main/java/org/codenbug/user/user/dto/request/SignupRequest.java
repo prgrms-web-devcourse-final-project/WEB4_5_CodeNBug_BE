@@ -1,4 +1,7 @@
-package org.codeNbug.mainserver.domain.user.dto.request;
+package org.codenbug.user.user.dto.request;
+
+import org.codenbug.user.user.entity.User;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -8,8 +11,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * 회원가입 요청 DTO

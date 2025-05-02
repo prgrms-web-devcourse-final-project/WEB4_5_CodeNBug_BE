@@ -1,6 +1,7 @@
-package org.codeNbug.mainserver.domain.user.dto.response;
+package org.codenbug.user.user.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

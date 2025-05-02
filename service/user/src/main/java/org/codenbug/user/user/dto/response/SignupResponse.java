@@ -1,50 +1,47 @@
-package org.codeNbug.mainserver.domain.user.dto.response;
+package org.codenbug.user.user.dto.response;
+
+import java.time.LocalDateTime;
+
+import org.codenbug.user.user.entity.User;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.codeNbug.mainserver.domain.user.entity.User;
-
-import java.time.LocalDateTime;
 
 /**
- * 사용자 프로필 조회 응답 DTO
+ * 회원가입 응답 DTO
  */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserProfileResponse {
+public class SignupResponse {
     private Long id;
     private String email;
     private String name;
-    private String sex;
     private Integer age;
+    private String sex;
     private String phoneNum;
     private String location;
-    private String role;
     private LocalDateTime createdAt;
-    private LocalDateTime modifiedAt;
 
     /**
-     * User 엔티티를 UserProfileResponse DTO로 변환
+     * User 엔티티를 SignupResponse DTO로 변환
      *
      * @param user User 엔티티
-     * @return UserProfileResponse DTO
+     * @return SignupResponse DTO
      */
-    public static UserProfileResponse fromEntity(User user) {
-        return UserProfileResponse.builder()
+    public static SignupResponse fromEntity(User user) {
+        return SignupResponse.builder()
                 .id(user.getUserId())
                 .email(user.getEmail())
                 .name(user.getName())
-                .sex(user.getSex())
                 .age(user.getAge())
+                .sex(user.getSex())
                 .phoneNum(user.getPhoneNum())
                 .location(user.getLocation())
-                .role(user.getRole())
                 .createdAt(user.getCreatedAt())
-                .modifiedAt(user.getModifiedAt())
                 .build();
     }
 } 
