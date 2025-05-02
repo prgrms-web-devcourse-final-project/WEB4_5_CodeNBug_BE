@@ -41,17 +41,11 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
 		headers.setContentType(MediaType.APPLICATION_JSON);
 
-		Map<String, Object> body = Map.of(
-			"paymentKey", paymentKey,
-			"orderId", orderId,
-			"amount", amount
-		);
+		Map<String, Object> body = Map.of("paymentKey", paymentKey, "orderId", orderId, "amount", amount);
 
 		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-		ResponseEntity<String> response = restTemplate.exchange(
-			TOSS_API_URL, HttpMethod.POST, request, String.class
-		);
+		ResponseEntity<String> response = restTemplate.exchange(TOSS_API_URL, HttpMethod.POST, request, String.class);
 
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();

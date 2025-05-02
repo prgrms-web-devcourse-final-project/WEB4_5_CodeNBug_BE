@@ -5,6 +5,7 @@ import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 import java.util.Map;
 
 import org.codeNbug.queueserver.external.redis.RedisConfig;
+import org.codenbug.user.user.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
@@ -17,14 +18,16 @@ public class WaitingQueueEntryService {
 
 	private final SseEmitterService sseEmitterService;
 	private final RedisTemplate<String, Object> simpleRedisTemplate;
+	private final UserService userService;
 
 	@Value("${custom.instance-id}")
 	private String instanceId;
 
 	public WaitingQueueEntryService(SseEmitterService sseEmitterService,
-		RedisTemplate<String, Object> simpleRedisTemplate) {
+		RedisTemplate<String, Object> simpleRedisTemplate, UserService userService) {
 		this.sseEmitterService = sseEmitterService;
 		this.simpleRedisTemplate = simpleRedisTemplate;
+		this.userService = userService;
 	}
 
 	public SseEmitter entry(Long eventId) {
@@ -73,6 +76,6 @@ public class WaitingQueueEntryService {
 	}
 
 	private Long getLoggedInUserId() {
-		return 1L;
+		return userService.getProfile().getId();
 	}
 }

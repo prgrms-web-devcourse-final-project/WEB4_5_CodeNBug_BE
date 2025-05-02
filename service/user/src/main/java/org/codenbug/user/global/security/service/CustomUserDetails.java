@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.global.security.service;
+package org.codenbug.user.global.security.service;
 
 import java.util.Collection;
 import java.util.Collections;

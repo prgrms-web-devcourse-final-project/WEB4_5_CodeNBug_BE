@@ -1,6 +1,5 @@
 package org.codeNbug.mainserver.domain.seat.entity;
 
-import lombok.Setter;
 import org.codeNbug.mainserver.domain.manager.entity.Event;
 
 import jakarta.persistence.Entity;
@@ -13,6 +12,7 @@ import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * SeatLayout 엔티티 클래스

@@ -22,43 +22,35 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ManagerPurchasesService {
 
-    private final TicketRepository ticketRepository;
-    private final EventRepository eventRepository;
-    private final ManagerEventRepository managerEventRepository;
-    public List<EventPurchaseResponse> getEventPurchaseList(Long eventId, User currentUser) {
-        validateManager(eventId, currentUser);
-        List<TicketDto> flatList = ticketRepository.findTicketPurchasesByEventId(eventId);
+	private final TicketRepository ticketRepository;
+	private final EventRepository eventRepository;
+	private final ManagerEventRepository managerEventRepository;
 
-        return flatList.stream()
-                .collect(Collectors.groupingBy(TicketDto::getPurchaseId))
-                .values()
-                .stream()
-                .map(group -> {
-                    TicketDto first = group.get(0);
-                    List<Long> ticketIds = group.stream()
-                            .map(TicketDto::getTicket_id)
-                            .toList();
+	public List<EventPurchaseResponse> getEventPurchaseList(Long eventId, User currentUser) {
+		validateManager(eventId, currentUser);
+		List<TicketDto> flatList = ticketRepository.findTicketPurchasesByEventId(eventId);
 
-                    return new EventPurchaseResponse(
-                            first.getPurchaseId(),
-                            first.getUserId(),
-                            first.getUserName(),
-                            first.getUserEmail(),
-                            first.getPhoneNum(),
-                            first.getPayment_status(),
-                            ticketIds,
-                            first.getPurchaseAt(),
-                            first.getAmount()
-                    );
-                })
-                .toList();
-    }
+		return flatList.stream()
+			.collect(Collectors.groupingBy(TicketDto::getPurchaseId))
+			.values()
+			.stream()
+			.map(group -> {
+				TicketDto first = group.get(0);
+				List<Long> ticketIds = group.stream().map(TicketDto::getTicket_id).toList();
 
-    private void validateManager(Long eventId, User currentUser) {
-        Event event = eventRepository.findById(eventId).orElseThrow(() -> new BadRequestException("해당 이벤트를 찾을 수 없습니다."));
-        boolean isManager = managerEventRepository.existsByManagerAndEvent(currentUser, event);
-        if (!isManager) {
-            throw new AccessDeniedException("해당 이벤트에 대한 권한이 없습니다.");
-        }
-    }
+				return new EventPurchaseResponse(first.getPurchaseId(), first.getUserId(), first.getUserName(),
+					first.getUserEmail(), first.getPhoneNum(), first.getPayment_status(), ticketIds,
+					first.getPurchaseAt(), first.getAmount());
+			})
+			.toList();
+	}
+
+	private void validateManager(Long eventId, User currentUser) {
+		Event event = eventRepository.findById(eventId)
+			.orElseThrow(() -> new BadRequestException("해당 이벤트를 찾을 수 없습니다."));
+		boolean isManager = managerEventRepository.existsByManagerAndEvent(currentUser, event);
+		if (!isManager) {
+			throw new AccessDeniedException("해당 이벤트에 대한 권한이 없습니다.");
+		}
+	}
 }

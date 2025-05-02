@@ -2,7 +2,7 @@ package org.codeNbug.mainserver.domain.user.service.email;
 
 import java.security.SecureRandom;
 
-import org.codeNbug.mainserver.global.Redis.repository.RedisRepository;
+import org.codenbug.user.global.redis.repository.RedisRepository;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;

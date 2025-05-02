@@ -1,14 +1,23 @@
 package org.codeNbug.mainserver.domain.notification.entity;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notification")
@@ -17,39 +26,39 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 public class Notification {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
 
-    @Column(nullable = false)
-    private Long userId;
+	@Column(nullable = false)
+	private Long userId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private NotificationEnum type;
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	private NotificationEnum type;
 
-    @Column(nullable = false, length = 500)
-    private String content;
+	@Column(nullable = false, length = 500)
+	private String content;
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime sentAt;
+	@CreatedDate
+	@Column(nullable = false, updatable = false)
+	private LocalDateTime sentAt;
 
-    @Column(nullable = false)
-    private boolean isRead;
+	@Column(nullable = false)
+	private boolean isRead;
 
-    @Builder
-    public Notification(Long userId, NotificationEnum type, String content) {
-        this.userId = userId;
-        this.type = type;
-        this.content = content;
-        this.isRead = false;
-    }
+	@Builder
+	public Notification(Long userId, NotificationEnum type, String content) {
+		this.userId = userId;
+		this.type = type;
+		this.content = content;
+		this.isRead = false;
+	}
 
-    /**
-     * 알림을 읽음 상태로 변경
-     */
-    public void markAsRead() {
-        this.isRead = true;
-    }
+	/**
+	 * 알림을 읽음 상태로 변경
+	 */
+	public void markAsRead() {
+		this.isRead = true;
+	}
 }

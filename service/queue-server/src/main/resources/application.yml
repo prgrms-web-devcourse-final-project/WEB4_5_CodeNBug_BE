@@ -33,6 +33,8 @@ spring:
 
 jwt:
   expiration: 8640000
-
+cookie:
+  domain: ticketone.site  # 실제 프로덕션 도메인
+  secure: true  # HTTPS 필수
 custom:
   instance-id: waiting-1

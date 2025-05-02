@@ -1,3 +1,4 @@
 rootProject.name = 'queue-server'
 
-include ':service:main-server'
+include 'service:user'
+include 'service:common'

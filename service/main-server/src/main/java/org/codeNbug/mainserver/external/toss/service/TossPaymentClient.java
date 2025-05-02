@@ -37,15 +37,11 @@ public class TossPaymentClient {
 	 * @return HttpResponse 결제 승인 응답
 	 * @throws IOException,InterruptedException
 	 */
-	public HttpResponse<String> requestConfirm(String paymentUuid, String orderId, String orderName, Integer amount)
-		throws IOException, InterruptedException {
+	public HttpResponse<String> requestConfirm(String paymentUuid, String orderId, String orderName,
+		Integer amount) throws IOException, InterruptedException {
 
-		String body = objectMapper.writeValueAsString(Map.of(
-			"paymentKey", paymentUuid,
-			"orderId", orderId,
-			"orderName", orderName,
-			"amount", amount
-		));
+		String body = objectMapper.writeValueAsString(
+			Map.of("paymentKey", paymentUuid, "orderId", orderId, "orderName", orderName, "amount", amount));
 
 		HttpRequest request = HttpRequest.newBuilder()
 			.uri(URI.create(TOSS_API_URL))

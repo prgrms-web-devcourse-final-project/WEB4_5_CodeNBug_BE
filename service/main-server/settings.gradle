@@ -1,3 +1,4 @@
 rootProject.name = 'main-server'
 
 include 'service:user'
+include 'service:common'

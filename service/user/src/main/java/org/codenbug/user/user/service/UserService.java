@@ -1,12 +1,12 @@
 package org.codenbug.user.user.service;
 
 import org.codenbug.user.global.exception.security.AuthenticationFailedException;
+import org.codenbug.user.global.redis.service.TokenService;
 import org.codenbug.user.user.dto.request.UserUpdateRequest;
 import org.codenbug.user.user.dto.response.UserProfileResponse;
 import org.codenbug.user.user.entity.User;
 import org.codenbug.user.user.repository.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.token.TokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
