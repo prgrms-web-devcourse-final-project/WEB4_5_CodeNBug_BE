@@ -11,9 +11,11 @@ import org.codeNbug.mainserver.global.security.annotation.RoleRequired;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 
 /**
  * 알림 관련 API 엔드포인트를 제공하는 컨트롤러
@@ -89,5 +91,22 @@ public class NotificationController {
         return ResponseEntity.ok(
                 new RsData<>("200-SUCCESS", "알림 생성 성공", createdNotification)
         );
+    }
+
+    /**
+     * 미읽은 알림 조회 API
+     * 페이지네이션 처리된 미읽은 알림 목록을 반환
+     *
+     * @param pageable 페이지 정보 (페이지 번호, 크기, 정렬)
+     * @return 미읽은 알림 목록 조회 결과
+     */
+    @GetMapping("/unread")
+    public RsData<Page<NotificationDto>> getUnreadNotifications(
+            @PageableDefault(size = 20, sort = "sentAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        Long userId = SecurityUtil.getCurrentUserId();
+        Page<NotificationDto> unreadPage = notificationService.getUnreadNotifications(userId, pageable);
+
+        return new RsData<>("200-SUCCESS", "미읽은 알림 조회 성공", unreadPage);
     }
 }
