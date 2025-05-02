@@ -48,18 +48,4 @@ public class PurchaseController {
 		ConfirmPaymentResponse response = purchaseService.confirmPayment(request, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 승인 완료", response));
 	}
-
-	/**
-	 * 티켓 구매 이후 결제 정보 조회
-	 *
-	 * @param paymentKey 결제의 paymentKey
-	 * @return 결제 준비 완료 응답
-	 */
-	// @GetMapping("/status")
-	// public ResponseEntity<RsData<TicketPurchaseResponse>> getPaymentInfo(
-	// 	@RequestParam String paymentKey
-	// ) {
-	// 	TicketPurchaseResponse response = purchaseService.getPaymentInfo(paymentKey);
-	// 	return ResponseEntity.ok(new RsData<>("200", "결제 정보 반환 완료", response));
-	// }
 }

@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
+import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
@@ -26,6 +28,7 @@ public class SeatService {
 
 	private final RedisLockService redisLockService;
 	private final SeatRepository seatRepository;
+	private final EventRepository eventRepository;
 	private final SeatLayoutRepository seatLayoutRepository;
 
 	private static final String SEAT_LOCK_KEY_PREFIX = "seat:lock:";
@@ -63,12 +66,25 @@ public class SeatService {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
 
+		Event event = eventRepository.findById(eventId)
+			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
+		if (!event.getSeatSelectable()) {
+			throw new IllegalStateException("이 이벤트는 좌석 선택이 불가능합니다.");
+		}
+
 		List<Long> selectedSeats = seatSelectRequest.getSeatList();
 		if (selectedSeats.size() > 4) {
 			throw new IllegalArgumentException("최대 4개의 좌석만 선택할 수 있습니다.");
 		}
 
 		for (Long seatId : seatSelectRequest.getSeatList()) {
+			Seat seat = seatRepository.findById(seatId)
+				.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
+
+			if (!seat.isAvailable()) {
+				throw new IllegalStateException("이미 예매된 좌석입니다. seatId = " + seatId);
+			}
+
 			String lockKey = SEAT_LOCK_KEY_PREFIX + userId + ":" + eventId + ":" + seatId;
 			String lockValue = UUID.randomUUID().toString();
 
@@ -76,9 +92,6 @@ public class SeatService {
 			if (!lockSuccess) {
 				throw new IllegalStateException("이미 선택된 좌석이 있습니다.");
 			}
-
-			Seat seat = seatRepository.findById(seatId)
-				.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
 
 			seat.reserve();
 			seatRepository.save(seat);
