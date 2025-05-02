@@ -34,12 +34,10 @@ public class TossPaymentClient {
 	 * @param paymentUuid Toss에서 받은 결제 키
 	 * @param orderId     사용자 주문 ID
 	 * @param amount      결제 금액
-	 * @param status
 	 * @return HttpResponse 결제 승인 응답
 	 * @throws IOException,InterruptedException
 	 */
-	public HttpResponse<String> requestConfirm(String paymentUuid, String orderId, String orderName, Integer amount,
-		String status)
+	public HttpResponse<String> requestConfirm(String paymentUuid, String orderId, String orderName, Integer amount)
 		throws IOException, InterruptedException {
 
 		String body = objectMapper.writeValueAsString(Map.of(

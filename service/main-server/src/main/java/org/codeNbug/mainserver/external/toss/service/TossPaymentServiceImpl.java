@@ -1,15 +1,17 @@
 package org.codeNbug.mainserver.external.toss.service;
 
-import java.io.IOException;
-import java.net.http.HttpResponse;
+import java.util.Base64;
+import java.util.Map;
 
-import org.codeNbug.mainserver.domain.manager.entity.Event;
-import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
-import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -22,42 +24,42 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TossPaymentServiceImpl implements TossPaymentService {
 
-	private final ObjectMapper objectMapper;
-	private final TossPaymentClient tossPaymentClient;
-	private final PurchaseRepository purchaseRepository;
-	private final EventRepository eventRepository;
-	private final UserRepository userRepository;
+	private final RestTemplate restTemplate;
+
+	@Value("${payment.toss.secret-key}")
+	private String TOSS_SECRET_KEY;
+
+	@Value("${payment.toss.api-url}")
+	private String TOSS_API_URL;
 
 	/**
 	 * Toss 서버에 결제 승인을 요청하고 결과 정보를 반환
 	 */
 	@Override
-	public ConfirmedPaymentInfo confirmPayment(String paymentUuid, String orderId, String orderName, Integer amount,
-		String status)
-		throws InterruptedException, IOException {
-		HttpResponse<String> tossResponse = tossPaymentClient.requestConfirm(paymentUuid, orderId, orderName, amount,
-			status);
-		if (tossResponse.statusCode() != 200) {
-			throw new IllegalStateException("Toss 결제 승인 실패: " + tossResponse.body());
+	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, Integer amount) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
+		headers.setContentType(MediaType.APPLICATION_JSON);
+
+		Map<String, Object> body = Map.of(
+			"paymentKey", paymentKey,
+			"orderId", orderId,
+			"amount", amount
+		);
+
+		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+			TOSS_API_URL, HttpMethod.POST, request, String.class
+		);
+
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			objectMapper.findAndRegisterModules();
+
+			return objectMapper.readValue(response.getBody(), ConfirmedPaymentInfo.class);
+		} catch (Exception e) {
+			throw new RuntimeException("Toss 응답 파싱 실패: " + e.getMessage(), e);
 		}
-		return objectMapper.readValue(tossResponse.body(), ConfirmedPaymentInfo.class);
-	}
-
-	/**
-	 * 이벤트 조회
-	 */
-	@Override
-	public Event getEvent(Long eventId) {
-		return eventRepository.findById(eventId)
-			.orElseThrow(() -> new IllegalArgumentException("이벤트가 존재하지 않습니다."));
-	}
-
-	/**
-	 * 유저 조회
-	 */
-	@Override
-	public User getUser(Long userId) {
-		return userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
 	}
 }

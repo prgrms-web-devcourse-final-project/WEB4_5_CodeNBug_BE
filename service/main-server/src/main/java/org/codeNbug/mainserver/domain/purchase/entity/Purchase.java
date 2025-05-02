@@ -50,9 +50,12 @@ public class Purchase {
 
 	@Setter
 	@Enumerated(EnumType.STRING)
-	@Column(name = "payment_status", length = 20)
+	@Column(name = "payment_status", length = 50)
 	private PaymentStatusEnum paymentStatus;
 
+	private String orderId;
+
+	@Setter
 	private String orderName;
 
 	@CreatedDate

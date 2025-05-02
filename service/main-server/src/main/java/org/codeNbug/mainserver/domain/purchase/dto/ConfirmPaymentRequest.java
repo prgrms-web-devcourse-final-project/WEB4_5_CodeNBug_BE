@@ -9,13 +9,12 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SelectTicketPurchaseRequest {
+public class ConfirmPaymentRequest {
 	private Long purchaseId;
-	private String paymentUuid;
+	private String paymentKey;
 	private String orderId;
-	private String orderName;
 	private Integer amount;
 	private Long eventId;
-	private List<Long> seatIds;
-	private String paymentMethod;
+	private Integer ticketCount;
+	private List<Long> seatList;
 }
