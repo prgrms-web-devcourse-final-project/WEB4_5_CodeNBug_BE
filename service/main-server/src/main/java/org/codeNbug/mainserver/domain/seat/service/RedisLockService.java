@@ -10,7 +10,12 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 좌석 선택 동시성 제어에 필요한 Redis 분산 락 관리 서비스
+ * 좌석 선택 및 예매 시 동시성 제어를 위한 Redis 분산 락 서비스
+ * <p>
+ * 사용자의 좌석 선택 상태를 Redis 키로 관리하여 중복 예매를 방지하고,
+ * TTL을 활용해 일정 시간이 지나면 자동으로 락이 해제되도록 합니다.
+ * <p>
+ * Redis 키 형식: seat:lock:{userId}:{eventId}:{seatId}
  */
 @Service
 @RequiredArgsConstructor
@@ -47,7 +52,7 @@ public class RedisLockService {
 	}
 
 	/**
-	 * Redis에서 주어진 키(lockKey)에 해당하는 락 값(lockValue)을 조회합니다.
+	 * Redis에서 주어진 키(lockKey)에 해당하는 락 값(lockValue) 조회
 	 *
 	 * @param lockKey 조회할 Redis 락 키
 	 * @return 해당 키에 저장된 락 값 (없으면 null)
@@ -56,6 +61,13 @@ public class RedisLockService {
 		return redisTemplate.opsForValue().get(lockKey);
 	}
 
+	/**
+	 * Redis에 저장된 락 키 중 하나를 기준으로 사용자(userId)의 이벤트 ID 추출
+	 *
+	 * @param userId 사용자 ID
+	 * @return 이벤트 ID
+	 * @throws IllegalStateException 락이 없거나 키 형식이 잘못된 경우
+	 */
 	public Long extractEventIdByUserId(Long userId) {
 		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
 		if (keys == null || keys.isEmpty()) {
@@ -69,6 +81,13 @@ public class RedisLockService {
 		return Long.parseLong(parts[3]);
 	}
 
+	/**
+	 * 사용자(userId)의 Redis 락 키들로부터 좌석 ID만 추출
+	 *
+	 * @param userId 사용자 ID
+	 * @return 선택된 좌석 ID 목록
+	 * @throws IllegalStateException 락이 없거나 키 형식이 잘못된 경우
+	 */
 	public List<Long> getLockedSeatIdsByUserId(Long userId) {
 		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
 		if (keys == null || keys.isEmpty()) {
@@ -84,6 +103,11 @@ public class RedisLockService {
 			.toList();
 	}
 
+	/**
+	 * 해당 사용자(userId)의 모든 Redis 락 해제
+	 *
+	 * @param userId 사용자 ID
+	 */
 	public void releaseAllLocks(Long userId) {
 		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
 		if (keys != null) {

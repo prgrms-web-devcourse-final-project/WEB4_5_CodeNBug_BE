@@ -19,7 +19,6 @@ import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
-import org.codeNbug.mainserver.domain.seat.service.RedisKeyScanner;
 import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
@@ -27,7 +26,6 @@ import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -43,8 +41,6 @@ public class PurchaseService {
 	private final EventRepository eventRepository;
 	private final SeatRepository seatRepository;
 	private final TicketRepository ticketRepository;
-	private final RedisKeyScanner redisKeyScanner;
-	private final RedisTemplate<String, String> redisTemplate;
 	private final RedisLockService redisLockService;
 
 	/**
@@ -119,7 +115,8 @@ public class PurchaseService {
 			info.getTotalAmount(),
 			methodEnum,
 			PaymentStatusEnum.DONE,
-			event.getSeatSelectable() ? "지정석 %d매".formatted(seatIds.size()) : "미지정석 %d매".formatted(seatIds.size()),
+			event.getSeatSelectable() ? "지정석 %d매".formatted(seatIds.size()) :
+				"미지정석 %d매".formatted(seatIds.size()),
 			info.getApprovedAt().toLocalDateTime()
 		);
 
