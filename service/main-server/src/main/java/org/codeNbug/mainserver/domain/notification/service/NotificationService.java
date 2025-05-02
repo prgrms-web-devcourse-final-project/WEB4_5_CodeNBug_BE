@@ -12,9 +12,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
  * 알림 관련 비즈니스 로직을 처리하는 서비스
  */
@@ -96,18 +93,17 @@ public class NotificationService {
     }
 
     /**
-     * 사용자의 미읽은 최신 알림 목록을 조회합니다
+     * 사용자의 미읽은 알림 목록을 페이지네이션하여 조회합니다
      *
      * @param userId 사용자 ID
-     * @return 미읽은 알림 DTO 목록
+     * @param pageable 페이징 정보
+     * @return 페이징된 미읽은 알림 DTO 목록
      */
     @Transactional(readOnly = true)
-    public List<NotificationDto> getUnreadNotifications(Long userId) {
-        List<Notification> unreadNotifications =
-                notificationRepository.findTop5ByUserIdAndIsReadFalseOrderBySentAtDesc(userId);
-        return unreadNotifications.stream()
-                .map(NotificationDto::from)
-                .collect(Collectors.toList());
+    public Page<NotificationDto> getUnreadNotifications(Long userId, Pageable pageable) {
+        return notificationRepository
+                .findByUserIdAndIsReadFalseOrderBySentAtDesc(userId, pageable)
+                .map(NotificationDto::from);
     }
 
     /**
