@@ -1,8 +1,10 @@
 package org.codeNbug.mainserver.domain.seat.service;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Set;
 
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -13,7 +15,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class RedisLockService {
-	private final StringRedisTemplate redisTemplate;
+	private final RedisTemplate<String, String> redisTemplate;
+	private static final String PREFIX = "seat:lock:";
 
 	/**
 	 * Redis에 key가 존재하지 않을 경우 value를 설정하며 락 시도
@@ -51,5 +54,40 @@ public class RedisLockService {
 	 */
 	public String getLockValue(String lockKey) {
 		return redisTemplate.opsForValue().get(lockKey);
+	}
+
+	public Long extractEventIdByUserId(Long userId) {
+		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
+		if (keys == null || keys.isEmpty()) {
+			throw new IllegalStateException("선택된 좌석 정보가 존재하지 않습니다.");
+		}
+		String key = keys.iterator().next(); // e.g. seat:lock:26:1:22
+		String[] parts = key.split(":");
+		if (parts.length < 5) {
+			throw new IllegalStateException("좌석 키 형식 오류: " + key);
+		}
+		return Long.parseLong(parts[3]);
+	}
+
+	public List<Long> getLockedSeatIdsByUserId(Long userId) {
+		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
+		if (keys == null || keys.isEmpty()) {
+			throw new IllegalStateException("선택된 좌석이 없습니다.");
+		}
+		return keys.stream()
+			.map(k -> {
+				String[] parts = k.split(":");
+				if (parts.length < 5)
+					throw new IllegalStateException("좌석 키 형식 오류: " + k);
+				return Long.parseLong(parts[4]);
+			})
+			.toList();
+	}
+
+	public void releaseAllLocks(Long userId) {
+		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
+		if (keys != null) {
+			redisTemplate.delete(keys);
+		}
 	}
 }

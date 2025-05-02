@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.manager.entity.Event;
@@ -21,6 +20,7 @@ import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.seat.service.RedisKeyScanner;
+import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.domain.user.entity.User;
@@ -30,7 +30,6 @@ import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,6 +45,7 @@ public class PurchaseService {
 	private final TicketRepository ticketRepository;
 	private final RedisKeyScanner redisKeyScanner;
 	private final RedisTemplate<String, String> redisTemplate;
+	private final RedisLockService redisLockService;
 
 	/**
 	 * 결제 사전 등록 처리
@@ -57,36 +57,21 @@ public class PurchaseService {
 	 */
 	public InitiatePaymentResponse initiatePayment(InitiatePaymentRequest request, Long userId) {
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalStateException("사용자가 존재하지 않습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
 
-		String redisPrefix = "seat:lock:" + userId + ":";
-		Set<String> seatKeys = redisTemplate.keys(redisPrefix + "*");
-
-		if (seatKeys.isEmpty()) {
-			throw new IllegalStateException("선택된 좌석 정보가 존재하지 않습니다.");
-		}
-
-		String firstKey = seatKeys.iterator().next();
-		String[] parts = firstKey.split(":");
-		if (parts.length < 4) {
-			throw new IllegalStateException("좌석 키 형식 오류: " + firstKey);
-		}
-		Long eventId = Long.parseLong(parts[3]);
+		Long eventId = redisLockService.extractEventIdByUserId(userId);
 
 		eventRepository.findById(eventId)
-			.orElseThrow(() -> new IllegalStateException("행사가 존재하지 않습니다."));
-
-		String uuid = UUID.randomUUID().toString();
+			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
 		Purchase purchase = Purchase.builder()
-			.paymentUuid(uuid)
-			.paymentStatus(PaymentStatusEnum.IN_PROGRESS)
-			.amount(request.getAmount())
 			.user(user)
+			.amount(request.getAmount())
+			.paymentUuid(UUID.randomUUID().toString())
+			.paymentStatus(PaymentStatusEnum.IN_PROGRESS)
 			.build();
 
 		purchaseRepository.save(purchase);
-
 		return new InitiatePaymentResponse(purchase.getId(), purchase.getPaymentStatus().name());
 	}
 
@@ -98,48 +83,30 @@ public class PurchaseService {
 	 * @param userId 현재 로그인한 사용자 ID
 	 * @return 결제 UUID 및 상태 정보를 포함한 응답 DTO
 	 */
-	@Transactional
-	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId)
-		throws IOException, InterruptedException {
+	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId) throws
+		IOException,
+		InterruptedException {
 		userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalStateException("사용자가 존재하지 않습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
+
 		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
-			.orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("구매 정보를 찾을 수 없습니다."));
+
 		if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
 			throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
 		}
 
-		String redisPrefix = "seat:lock:" + userId + ":";
-		Set<String> seatKeys = redisKeyScanner.scanKeys(redisPrefix + "*");
-		String firstKey = seatKeys.iterator().next();
-		String[] firstParts = firstKey.split(":");
-
-		if (seatKeys.isEmpty()) {
-			throw new IllegalStateException("선택된 좌석 정보가 존재하지 않습니다.");
-		}
-
-		List<Long> seatIds = seatKeys.stream()
-			.map(key -> {
-				String[] parts = key.split(":");
-				if (parts.length != 5)
-					throw new IllegalStateException("좌석 키 형식 오류: " + key);
-				return Long.parseLong(parts[4]); // seatId
-			})
-			.toList();
-
-		Long eventId = Long.parseLong(firstParts[3]);
+		Long eventId = redisLockService.extractEventIdByUserId(userId);
+		List<Long> seatIds = redisLockService.getLockedSeatIdsByUserId(userId);
 
 		Event event = eventRepository.findById(eventId)
-			.orElseThrow(() -> new IllegalStateException("이벤트 정보를 찾을 수 없습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("이벤트 정보를 찾을 수 없습니다."));
 
-		List<Seat> selectedSeats = seatRepository.findAllById(seatIds);
-		if (selectedSeats.size() != seatIds.size()) {
+		List<Seat> seats = seatRepository.findAllById(seatIds);
+		if (seats.size() != seatIds.size()) {
 			throw new IllegalStateException("일부 좌석을 찾을 수 없습니다.");
 		}
-
-		for (Seat seat : selectedSeats) {
-			seat.setAvailable(false);
-		}
+		seats.forEach(seat -> seat.setAvailable(false));
 
 		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
 			request.getPaymentKey(), request.getOrderId(), request.getAmount()
@@ -147,35 +114,34 @@ public class PurchaseService {
 
 		PaymentMethodEnum methodEnum = PaymentMethodEnum.from(info.getMethod());
 
-		String orderName = event.getSeatSelectable()
-			? "지정석 " + selectedSeats.size() + "매"
-			: "미지정석 " + selectedSeats.size() + "매";
-
 		purchase.updatePaymentInfo(
 			info.getPaymentKey(),
 			info.getTotalAmount(),
 			methodEnum,
 			PaymentStatusEnum.DONE,
-			orderName,
+			event.getSeatSelectable() ? "지정석 %d매".formatted(seatIds.size()) : "미지정석 %d매".formatted(seatIds.size()),
 			info.getApprovedAt().toLocalDateTime()
 		);
 
-		List<Ticket> tickets = selectedSeats.stream()
+		List<Ticket> tickets = seats.stream()
 			.map(seat -> {
 				seat.reserve();
 				Ticket ticket = new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase);
 				seat.setTicket(ticket);
 				return ticket;
-			}).toList();
+			})
+			.toList();
 
-		purchaseRepository.save(purchase);
 		ticketRepository.saveAll(tickets);
-		seatRepository.saveAll(selectedSeats);
+		seatRepository.saveAll(seats);
+		purchaseRepository.save(purchase);
+
+		redisLockService.releaseAllLocks(userId);
 
 		return new ConfirmPaymentResponse(
 			info.getPaymentKey(),
 			info.getOrderId(),
-			orderName,
+			purchase.getOrderName(),
 			info.getTotalAmount(),
 			info.getStatus(),
 			methodEnum,
