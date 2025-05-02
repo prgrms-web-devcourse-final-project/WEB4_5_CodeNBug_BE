@@ -278,7 +278,7 @@ jobs:
 
   buildImageAndPushDispatchServer:
     name: 디스패치 서버 도커 이미지 빌드와 푸시
-    needs: makeTagAndReleaseQueueServer
+    needs: makeTagAndReleaseDispatchServer
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
       image_name: ${{ steps.export_image.outputs.image_name }}
@@ -326,7 +326,7 @@ jobs:
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:latest
   deployDispatchServer:
     runs-on: ubuntu-latest
-    needs: [ buildImageAndPushQueueServer ]
+    needs: [ buildImageAndPushDispatchServer ]
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
