@@ -1,10 +1,11 @@
 package org.codeNbug.mainserver.global.util;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 @Component
 public class CookieUtil {
@@ -36,7 +37,7 @@ public class CookieUtil {
         Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE_NAME, token);
         cookie.setMaxAge((int) (accessTokenExpiration / 1000)); // milliseconds to seconds
         cookie.setPath(COOKIE_PATH);
-        cookie.setDomain(cookieDomain);
+        // cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure);
         cookie.setAttribute("SameSite", "None");
@@ -50,7 +51,7 @@ public class CookieUtil {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, token);
         cookie.setMaxAge((int) (refreshTokenExpiration / 1000)); // milliseconds to seconds
         cookie.setPath(COOKIE_PATH);
-        cookie.setDomain(cookieDomain);
+        // cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure);
         cookie.setAttribute("SameSite", "None");
@@ -64,7 +65,7 @@ public class CookieUtil {
         Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE_NAME, null);
         cookie.setMaxAge(0);
         cookie.setPath(COOKIE_PATH);
-        cookie.setDomain(cookieDomain);
+        // cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure);
         cookie.setAttribute("SameSite", "None");
@@ -78,7 +79,7 @@ public class CookieUtil {
         Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, null);
         cookie.setMaxAge(0);
         cookie.setPath(COOKIE_PATH);
-        cookie.setDomain(cookieDomain);
+        // cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
         cookie.setSecure(isSecure);
         cookie.setAttribute("SameSite", "None");
