@@ -102,8 +102,8 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .formLogin(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -145,15 +145,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // application.yml에서 설정한 cors.allowed-origins 속성 사용
+
+        // application.yml에서 설정한 cors.allowed-origins 속성 사용  
         List<String> allowedOrigins = corsProperties.getAllowedOrigins();
         log.info("allowedOrigins: {}", allowedOrigins);
         if (allowedOrigins != null && !allowedOrigins.isEmpty()) {
-            configuration.setAllowedOrigins(allowedOrigins);
+            // Allow all patterns including wildcards by setting setAllowedOriginPatterns instead of setAllowedOrigins
+            configuration.setAllowedOriginPatterns(allowedOrigins);
         } else {
             // 기본값 설정
-            configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+            configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
         }
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
