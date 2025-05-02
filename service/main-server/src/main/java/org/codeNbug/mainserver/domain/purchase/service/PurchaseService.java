@@ -27,6 +27,7 @@ import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -44,6 +45,7 @@ public class PurchaseService {
 	private final SeatRepository seatRepository;
 	private final TicketRepository ticketRepository;
 	private final RedisKeyScanner redisKeyScanner;
+	private final RedisTemplate<String, String> redisTemplate;
 
 	/**
 	 * 결제 사전 등록 처리
@@ -56,7 +58,22 @@ public class PurchaseService {
 	public InitiatePaymentResponse initiatePayment(InitiatePaymentRequest request, Long userId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new IllegalStateException("사용자가 존재하지 않습니다."));
-		eventRepository.findById(userId)
+
+		String redisPrefix = "seat:lock:" + userId + ":";
+		Set<String> seatKeys = redisTemplate.keys(redisPrefix + "*");
+
+		if (seatKeys.isEmpty()) {
+			throw new IllegalStateException("선택된 좌석 정보가 존재하지 않습니다.");
+		}
+
+		String firstKey = seatKeys.iterator().next();
+		String[] parts = firstKey.split(":");
+		if (parts.length < 4) {
+			throw new IllegalStateException("좌석 키 형식 오류: " + firstKey);
+		}
+		Long eventId = Long.parseLong(parts[3]);
+
+		eventRepository.findById(eventId)
 			.orElseThrow(() -> new IllegalStateException("행사가 존재하지 않습니다."));
 
 		String uuid = UUID.randomUUID().toString();
@@ -92,12 +109,10 @@ public class PurchaseService {
 			throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
 		}
 
-		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
-			request.getPaymentKey(), request.getOrderId(), request.getAmount()
-		);
-
 		String redisPrefix = "seat:lock:" + userId + ":";
 		Set<String> seatKeys = redisKeyScanner.scanKeys(redisPrefix + "*");
+		String firstKey = seatKeys.iterator().next();
+		String[] firstParts = firstKey.split(":");
 
 		if (seatKeys.isEmpty()) {
 			throw new IllegalStateException("선택된 좌석 정보가 존재하지 않습니다.");
@@ -112,7 +127,7 @@ public class PurchaseService {
 			})
 			.toList();
 
-		Long eventId = Long.parseLong(seatKeys.iterator().next().split(":")[2]);
+		Long eventId = Long.parseLong(firstParts[3]);
 
 		Event event = eventRepository.findById(eventId)
 			.orElseThrow(() -> new IllegalStateException("이벤트 정보를 찾을 수 없습니다."));
@@ -121,6 +136,14 @@ public class PurchaseService {
 		if (selectedSeats.size() != seatIds.size()) {
 			throw new IllegalStateException("일부 좌석을 찾을 수 없습니다.");
 		}
+
+		for (Seat seat : selectedSeats) {
+			seat.setAvailable(false);
+		}
+
+		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
+			request.getPaymentKey(), request.getOrderId(), request.getAmount()
+		);
 
 		PaymentMethodEnum methodEnum = PaymentMethodEnum.from(info.getMethod());
 
@@ -149,9 +172,6 @@ public class PurchaseService {
 		ticketRepository.saveAll(tickets);
 		seatRepository.saveAll(selectedSeats);
 
-		String receiptUrl = info.getReceipt() != null ? info.getReceipt().getUrl() : null;
-		ConfirmPaymentResponse.Receipt receipt = new ConfirmPaymentResponse.Receipt(receiptUrl);
-
 		return new ConfirmPaymentResponse(
 			info.getPaymentKey(),
 			info.getOrderId(),
@@ -160,7 +180,7 @@ public class PurchaseService {
 			info.getStatus(),
 			methodEnum,
 			info.getApprovedAt().toLocalDateTime(),
-			receipt
+			info.getReceipt()
 		);
 	}
 
