@@ -2,6 +2,9 @@ server:
   port: 9001
 
 spring:
+  profiles:
+    active: dev
+    include: secret
   data:
     redis:
       port: 6379
@@ -27,3 +30,9 @@ spring:
         default_batch_fetch_size: 100
         dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
+
+jwt:
+  expiration: 8640000
+
+custom:
+  instance-id: waiting-1

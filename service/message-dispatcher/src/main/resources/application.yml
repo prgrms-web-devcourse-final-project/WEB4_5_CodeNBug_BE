@@ -1,0 +1,20 @@
+server:
+  port: 9002
+
+spring:
+  profiles:
+    include: secret
+    active: dev
+
+  data:
+    redis:
+      port: ${redis.port}
+      host: ${redis.host}
+
+  datasource:
+    url: ${db.url}
+    username: ${db.username}
+    password: ${db.password}
+    hikari:
+      auto-commit: false
+    driver-class-name: com.mysql.cj.jdbc.Driver

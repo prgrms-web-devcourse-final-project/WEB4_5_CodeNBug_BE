@@ -4,5 +4,5 @@ public enum PaymentStatusEnum {
 	IN_PROGRESS,
 	DONE,
 	CANCELLED,
-	EXPIRED,
+	EXPIRED
 }

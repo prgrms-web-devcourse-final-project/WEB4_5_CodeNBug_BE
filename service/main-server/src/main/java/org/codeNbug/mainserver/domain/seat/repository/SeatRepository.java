@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.domain.seat.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
@@ -16,4 +17,6 @@ public interface SeatRepository extends JpaRepository<Seat, Long> {
 
 	@Query("SELECT s FROM Seat s WHERE s.event.eventId = :eventId AND s.available = true ORDER BY s.location ASC")
 	List<Seat> findAvailableSeatsByEventId(@Param("eventId") Long eventId);
+
+	Optional<Seat> findByLocation(String location);
 }

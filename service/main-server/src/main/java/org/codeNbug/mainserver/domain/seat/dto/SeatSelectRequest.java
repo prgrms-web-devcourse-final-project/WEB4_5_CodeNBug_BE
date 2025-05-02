@@ -13,4 +13,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class SeatSelectRequest {
 	private List<Long> seatList;
+	private Integer ticketCount;
 }

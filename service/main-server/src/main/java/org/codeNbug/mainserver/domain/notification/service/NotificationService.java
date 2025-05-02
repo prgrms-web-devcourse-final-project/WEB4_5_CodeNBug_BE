@@ -91,4 +91,33 @@ public class NotificationService {
         // DTO로 변환하여 반환
         return NotificationDto.from(savedNotification);
     }
+
+    /**
+     * 사용자의 미읽은 알림 목록을 페이지네이션하여 조회합니다
+     *
+     * @param userId 사용자 ID
+     * @param pageable 페이징 정보
+     * @return 페이징된 미읽은 알림 DTO 목록
+     */
+    @Transactional(readOnly = true)
+    public Page<NotificationDto> getUnreadNotifications(Long userId, Pageable pageable) {
+        return notificationRepository
+                .findByUserIdAndIsReadFalseOrderBySentAtDesc(userId, pageable)
+                .map(NotificationDto::from);
+    }
+
+    /**
+     * 시스템 이벤트 발생 시 알림을 생성합니다
+     * 티켓 구매, 환불, 행사 시작 등의 이벤트에서 호출됩니다
+     *
+     * @param userId 사용자 ID
+     * @param type 알림 유형
+     * @param content 알림 내용
+     * @return 생성된 알림 DTO
+     */
+    @Transactional
+    public NotificationDto createSystemNotification(Long userId, NotificationEnum type, String content) {
+        // 기존 createNotification 메서드 활용
+        return createNotification(userId, type, content);
+    }
 }

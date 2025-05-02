@@ -53,9 +53,6 @@ public class Seat {
 	private Event event;
 
 	public void reserve() {
-		if (!available) {
-			throw new IllegalStateException("좌석이 이미 예약되었습니다.");
-		}
 		this.available = false;
 	}
 

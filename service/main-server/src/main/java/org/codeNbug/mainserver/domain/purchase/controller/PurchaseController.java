@@ -1,14 +1,11 @@
 package org.codeNbug.mainserver.domain.purchase.controller;
 
 import java.io.IOException;
-import java.util.Map;
 
+import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
-import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseRequest;
-import org.codeNbug.mainserver.domain.purchase.dto.NonSelectTicketPurchaseResponse;
-import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseRequest;
-import org.codeNbug.mainserver.domain.purchase.dto.SelectTicketPurchaseResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
@@ -16,19 +13,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/purchase")
+@RequestMapping("/api/v1/payments")
 public class PurchaseController {
-
-	private final ObjectMapper objectMapper;
 	private final PurchaseService purchaseService;
 
 	/**
@@ -46,31 +40,12 @@ public class PurchaseController {
 		return ResponseEntity.ok(new RsData<>("200", "결제 준비 완료", response));
 	}
 
-	/**
-	 * 티켓 구매 (결제 완료 후 Toss 승인 요청)
-	 *
-	 * @param type "non-select" or "select" 분기 처리
-	 * @param requestMap 결제 관련 정보 (Toss 결제 후 전달됨)
-	 * @return 티켓 구매 응답
-	 */
-	@PostMapping("/tickets")
-	public ResponseEntity<RsData<Object>> purchaseTicket(
-		@RequestParam("type") String type,
-		@RequestBody Map<String, Object> requestMap
+	@PostMapping("/confirm")
+	public ResponseEntity<RsData<ConfirmPaymentResponse>> confirmPayment(
+		@RequestBody ConfirmPaymentRequest request
 	) throws IOException, InterruptedException {
 		Long userId = SecurityUtil.getCurrentUserId();
-		if (type.equals("non-select")) {
-			NonSelectTicketPurchaseRequest request = objectMapper.convertValue(requestMap,
-				NonSelectTicketPurchaseRequest.class);
-			NonSelectTicketPurchaseResponse response = purchaseService.purchaseNonSelectTicket(request, userId);
-			return ResponseEntity.ok(new RsData<>("200", "구매 완료", response));
-		} else if (type.equals("select")) {
-			SelectTicketPurchaseRequest request = objectMapper.convertValue(requestMap,
-				SelectTicketPurchaseRequest.class);
-			SelectTicketPurchaseResponse response = purchaseService.purchaseSelectedSeats(request, userId);
-			return ResponseEntity.ok(new RsData<>("200", "구매 완료", response));
-		} else {
-			return ResponseEntity.badRequest().body(new RsData<>("400", "지원하지 않는 티켓 타입입니다."));
-		}
+		ConfirmPaymentResponse response = purchaseService.confirmPayment(request, userId);
+		return ResponseEntity.ok(new RsData<>("200", "결제 승인 완료", response));
 	}
 }
