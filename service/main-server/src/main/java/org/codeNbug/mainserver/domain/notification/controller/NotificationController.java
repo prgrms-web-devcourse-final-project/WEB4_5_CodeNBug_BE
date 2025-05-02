@@ -15,6 +15,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * 알림 관련 API 엔드포인트를 제공하는 컨트롤러
  */
@@ -88,6 +90,22 @@ public class NotificationController {
 
         return ResponseEntity.ok(
                 new RsData<>("200-SUCCESS", "알림 생성 성공", createdNotification)
+        );
+    }
+
+    /**
+     * 미읽은 알림 조회 API
+     * 프론트엔드에서 폴링하여 새 알림 표시에 사용
+     *
+     * @return 미읽은 알림 목록
+     */
+    @GetMapping("/unread")
+    public ResponseEntity<RsData<List<NotificationDto>>> getUnreadNotifications() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        List<NotificationDto> unreadNotifications = notificationService.getUnreadNotifications(userId);
+
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "미읽은 알림 조회 성공", unreadNotifications)
         );
     }
 }
