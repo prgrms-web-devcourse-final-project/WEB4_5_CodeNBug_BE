@@ -37,6 +37,7 @@ public class SeatService {
 	 * 주어진 이벤트 ID에 해당하는 좌석 목록 조회
 	 *
 	 * @param eventId 조회할 이벤트 ID
+	 * @param userId  조회할 유저 ID
 	 * @return SeatLayoutResponse 좌석 레이아웃
 	 * @throws IllegalArgumentException 존재하지 않는 이벤트 ID일 경우
 	 */
@@ -56,7 +57,7 @@ public class SeatService {
 	 *
 	 * @param eventId           이벤트 ID
 	 * @param seatSelectRequest 선택한 좌석 ID 목록을 포함한 요청 객체
-	 *      @param userId           유저 ID
+	 * @param userId            유저 ID
 	 * @throws IllegalStateException 이미 선택된 좌석이 있는 경우
 	 * @throws IllegalArgumentException 존재하지 않는 좌석이 포함된 경우
 	 */
@@ -68,37 +69,88 @@ public class SeatService {
 
 		Event event = eventRepository.findById(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
-		if (!event.getSeatSelectable()) {
-			throw new IllegalStateException("이 이벤트는 좌석 선택이 불가능합니다.");
-		}
 
 		List<Long> selectedSeats = seatSelectRequest.getSeatList();
 		if (selectedSeats.size() > 4) {
 			throw new IllegalArgumentException("최대 4개의 좌석만 선택할 수 있습니다.");
 		}
 
-		for (Long seatId : seatSelectRequest.getSeatList()) {
-			Seat seat = seatRepository.findById(seatId)
-				.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
-
-			if (!seat.isAvailable()) {
-				throw new IllegalStateException("이미 예매된 좌석입니다. seatId = " + seatId);
-			}
-
-			String lockKey = SEAT_LOCK_KEY_PREFIX + userId + ":" + eventId + ":" + seatId;
-			String lockValue = UUID.randomUUID().toString();
-
-			boolean lockSuccess = redisLockService.tryLock(lockKey, lockValue, Duration.ofMinutes(5));
-			if (!lockSuccess) {
-				throw new IllegalStateException("이미 선택된 좌석이 있습니다.");
-			}
-
-			seat.reserve();
-			seatRepository.save(seat);
+		if (event.getSeatSelectable()) {
+			// 지정석 예매 처리
+			selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
+		} else {
+			// 미지정석 예매 처리
+			selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
 		}
+
 		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
-		seatSelectResponse.setSeatList(seatSelectRequest.getSeatList());
+		seatSelectResponse.setSeatList(selectedSeats);
 		return seatSelectResponse;
+	}
+
+	/**
+	 * 지정석 또는 미지정석 선택 처리
+	 *
+	 * @param selectedSeats 좌석 목록 (지정석일 경우 사용)
+	 * @param userId        유저 ID
+	 * @param eventId       이벤트 ID
+	 * @param isDesignated  지정석 여부
+	 * @param ticketCount   예매할 좌석 수 (미지정석 예매 시 사용)
+	 */
+	private void selectSeats(List<Long> selectedSeats, Long userId, Long eventId, boolean isDesignated,
+		int ticketCount) {
+		if (isDesignated) {
+			// 지정석 예매 처리
+			for (Long seatId : selectedSeats) {
+				Seat seat = seatRepository.findById(seatId)
+					.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
+
+				if (!seat.isAvailable()) {
+					throw new IllegalStateException("이미 예매된 좌석입니다. seatId = " + seatId);
+				}
+
+				reserveSeat(seat, userId, eventId, seatId);
+			}
+		} else {
+			// 미지정석 예매 처리
+			if (selectedSeats != null && !selectedSeats.isEmpty()) {
+				throw new IllegalArgumentException("미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
+			}
+
+			List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(eventId)
+				.stream()
+				.limit(ticketCount)
+				.toList();
+
+			if (availableSeats.size() < ticketCount) {
+				throw new IllegalStateException("예매 가능한 좌석 수가 부족합니다.");
+			}
+
+			for (Seat seat : availableSeats) {
+				reserveSeat(seat, userId, eventId, seat.getId());
+			}
+		}
+	}
+
+	/**
+	 * 좌석을 예약하고 Redis 락을 관리하는 공통 로직
+	 *
+	 * @param seat     좌석 객체
+	 * @param userId   유저 ID
+	 * @param eventId  이벤트 ID
+	 * @param seatId   좌석 ID
+	 */
+	private void reserveSeat(Seat seat, Long userId, Long eventId, Long seatId) {
+		String lockKey = SEAT_LOCK_KEY_PREFIX + userId + ":" + eventId + ":" + seatId;
+		String lockValue = UUID.randomUUID().toString();
+
+		boolean lockSuccess = redisLockService.tryLock(lockKey, lockValue, Duration.ofMinutes(5));
+		if (!lockSuccess) {
+			throw new IllegalStateException("이미 선택된 좌석이 있습니다.");
+		}
+
+		seat.reserve();
+		seatRepository.save(seat);
 	}
 
 	/**
