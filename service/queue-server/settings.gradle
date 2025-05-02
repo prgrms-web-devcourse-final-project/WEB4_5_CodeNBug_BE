@@ -1,1 +1,3 @@
 rootProject.name = 'queue-server'
+
+include ':service:main-server'
