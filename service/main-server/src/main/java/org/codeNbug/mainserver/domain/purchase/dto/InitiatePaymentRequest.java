@@ -1,7 +1,5 @@
 package org.codeNbug.mainserver.domain.purchase.dto;
 
-import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,6 +10,4 @@ import lombok.NoArgsConstructor;
 public class InitiatePaymentRequest {
 	private Long eventId;
 	private Integer amount;
-	private Integer ticketCount;
-	private List<Long> seatIds;
 }

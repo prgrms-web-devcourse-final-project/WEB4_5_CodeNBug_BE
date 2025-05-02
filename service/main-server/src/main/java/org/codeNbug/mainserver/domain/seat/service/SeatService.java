@@ -88,8 +88,6 @@ public class SeatService {
 
 			seat.reserve();
 			seatRepository.save(seat);
-
-			redisLockService.unlock(lockKey, lockValue);
 		}
 		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
 		seatSelectResponse.setSeatList(seatSelectRequest.getSeatList());
