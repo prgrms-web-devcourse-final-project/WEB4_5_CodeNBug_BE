@@ -53,12 +53,12 @@ public class PurchaseService {
 	 */
 	public InitiatePaymentResponse initiatePayment(InitiatePaymentRequest request, Long userId) {
 		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("[init] 사용자가 존재하지 않습니다."));
 
 		Long eventId = redisLockService.extractEventIdByUserId(userId);
 
 		eventRepository.findById(eventId)
-			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("[init] 행사가 존재하지 않습니다."));
 
 		Purchase purchase = Purchase.builder()
 			.user(user)
@@ -83,24 +83,24 @@ public class PurchaseService {
 		IOException,
 		InterruptedException {
 		userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("[confirm] 사용자가 존재하지 않습니다."));
 
 		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
-			.orElseThrow(() -> new IllegalArgumentException("구매 정보를 찾을 수 없습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
 
 		if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
-			throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
+			throw new IllegalArgumentException("[confirm] 결제 금액이 일치하지 않습니다.");
 		}
 
 		Long eventId = redisLockService.extractEventIdByUserId(userId);
 		List<Long> seatIds = redisLockService.getLockedSeatIdsByUserId(userId);
 
 		Event event = eventRepository.findById(eventId)
-			.orElseThrow(() -> new IllegalArgumentException("이벤트 정보를 찾을 수 없습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("[confirm] 이벤트 정보를 찾을 수 없습니다."));
 
 		List<Seat> seats = seatRepository.findAllById(seatIds);
 		if (seats.size() != seatIds.size()) {
-			throw new IllegalStateException("일부 좌석을 찾을 수 없습니다.");
+			throw new IllegalStateException("[confirm] 일부 좌석을 찾을 수 없습니다.");
 		}
 		seats.forEach(seat -> seat.setAvailable(false));
 

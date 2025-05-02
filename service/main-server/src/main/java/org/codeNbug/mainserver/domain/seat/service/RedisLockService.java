@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RedisLockService {
 	private final RedisTemplate<String, String> redisTemplate;
+	private final RedisKeyScanner redisKeyScanner;
 	private static final String PREFIX = "seat:lock:";
 
 	/**
@@ -69,9 +70,9 @@ public class RedisLockService {
 	 * @throws IllegalStateException 락이 없거나 키 형식이 잘못된 경우
 	 */
 	public Long extractEventIdByUserId(Long userId) {
-		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
+		Set<String> keys = redisKeyScanner.scanKeys(PREFIX + userId + ":*");
 		if (keys == null || keys.isEmpty()) {
-			throw new IllegalStateException("선택된 좌석 정보가 존재하지 않습니다.");
+			throw new IllegalStateException("[extractEventIdByUserId] 선택된 좌석 정보가 존재하지 않습니다.");
 		}
 		String key = keys.iterator().next(); // e.g. seat:lock:26:1:22
 		String[] parts = key.split(":");
@@ -89,9 +90,9 @@ public class RedisLockService {
 	 * @throws IllegalStateException 락이 없거나 키 형식이 잘못된 경우
 	 */
 	public List<Long> getLockedSeatIdsByUserId(Long userId) {
-		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
+		Set<String> keys = redisKeyScanner.scanKeys(PREFIX + userId + ":*");
 		if (keys == null || keys.isEmpty()) {
-			throw new IllegalStateException("선택된 좌석이 없습니다.");
+			throw new IllegalStateException("[getLockedSeatIdsByUserId] 선택된 좌석이 없습니다.");
 		}
 		return keys.stream()
 			.map(k -> {
@@ -109,7 +110,7 @@ public class RedisLockService {
 	 * @param userId 사용자 ID
 	 */
 	public void releaseAllLocks(Long userId) {
-		Set<String> keys = redisTemplate.keys(PREFIX + userId + ":*");
+		Set<String> keys = redisKeyScanner.scanKeys(PREFIX + userId + ":*");
 		if (keys != null) {
 			redisTemplate.delete(keys);
 		}

@@ -103,10 +103,10 @@ public class SeatService {
 			// 지정석 예매 처리
 			for (Long seatId : selectedSeats) {
 				Seat seat = seatRepository.findById(seatId)
-					.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
+					.orElseThrow(() -> new IllegalArgumentException("[selectSeats] 좌석이 존재하지 않습니다."));
 
 				if (!seat.isAvailable()) {
-					throw new IllegalStateException("이미 예매된 좌석입니다. seatId = " + seatId);
+					throw new IllegalStateException("[selectSeats] 이미 예매된 좌석입니다. seatId = " + seatId);
 				}
 
 				reserveSeat(seat, userId, eventId, seatId);
@@ -114,7 +114,7 @@ public class SeatService {
 		} else {
 			// 미지정석 예매 처리
 			if (selectedSeats != null && !selectedSeats.isEmpty()) {
-				throw new IllegalArgumentException("미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
+				throw new IllegalArgumentException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
 			}
 
 			List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(eventId)
@@ -123,7 +123,7 @@ public class SeatService {
 				.toList();
 
 			if (availableSeats.size() < ticketCount) {
-				throw new IllegalStateException("예매 가능한 좌석 수가 부족합니다.");
+				throw new IllegalStateException("[selectSeats] 예매 가능한 좌석 수가 부족합니다.");
 			}
 
 			for (Seat seat : availableSeats) {
@@ -146,7 +146,7 @@ public class SeatService {
 
 		boolean lockSuccess = redisLockService.tryLock(lockKey, lockValue, Duration.ofMinutes(5));
 		if (!lockSuccess) {
-			throw new IllegalStateException("이미 선택된 좌석이 있습니다.");
+			throw new IllegalStateException("[reserveSeat] 이미 선택된 좌석이 있습니다.");
 		}
 
 		seat.reserve();
@@ -164,7 +164,7 @@ public class SeatService {
 	@Transactional
 	public void cancelSeat(Long eventId, SeatCancelRequest seatCancelRequest, Long userId) {
 		if (userId == null || userId <= 0) {
-			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
+			throw new IllegalArgumentException("[cancelSeat] 로그인된 사용자가 없습니다.");
 		}
 
 		for (Long seatId : seatCancelRequest.getSeatList()) {
@@ -172,11 +172,11 @@ public class SeatService {
 
 			String lockValue = redisLockService.getLockValue(lockKey);
 			if (lockValue == null || !redisLockService.unlock(lockKey, lockValue)) {
-				throw new IllegalStateException("좌석 락을 해제할 수 없습니다.");
+				throw new IllegalStateException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
 			}
 
 			Seat seat = seatRepository.findById(seatId)
-				.orElseThrow(() -> new IllegalArgumentException("좌석을 찾을 수 없습니다. seatId: " + seatId));
+				.orElseThrow(() -> new IllegalArgumentException("[cancelSeat] 좌석을 찾을 수 없습니다. seatId: " + seatId));
 			seat.cancelReserve();
 			redisLockService.unlock(lockKey, null);
 		}

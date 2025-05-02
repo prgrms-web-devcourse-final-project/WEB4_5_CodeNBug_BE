@@ -38,7 +38,7 @@ public class RedisListenerService implements MessageListener {
 			String[] parts = messageBody.split(":");
 
 			if (parts.length < 5) {
-				System.err.println("TTL 키 형식이 올바르지 않습니다: " + messageBody);
+				System.err.println("[onMessage] TTL 키 형식이 올바르지 않습니다: " + messageBody);
 				return;
 			}
 			try {
@@ -46,15 +46,15 @@ public class RedisListenerService implements MessageListener {
 				Long seatId = Long.valueOf(parts[4]);
 
 				eventRepository.findById(eventId)
-					.orElseThrow(() -> new RuntimeException("존재하지 않는 행사입니다."));
+					.orElseThrow(() -> new RuntimeException("[onMessage] 존재하지 않는 행사입니다."));
 				Seat seat = seatRepository.findById(seatId)
-					.orElseThrow(() -> new IllegalArgumentException("좌석이 존재하지 않습니다."));
+					.orElseThrow(() -> new IllegalArgumentException("[onMessage] 좌석이 존재하지 않습니다."));
 				seat.setAvailable(true);
 				seatRepository.save(seat);
 
-				System.out.println("TTL 만료로 좌석 " + seatId + "의 상태가 available = true 로 변경되었습니다.");
+				System.out.println("[onMessage] TTL 만료로 좌석 " + seatId + "의 상태가 available = true 로 변경되었습니다.");
 			} catch (NumberFormatException e) {
-				System.out.println("TTL 키 파싱 실패: " + messageBody);
+				System.out.println("[onMessage] TTL 키 파싱 실패: " + messageBody);
 			}
 		}
 	}
