@@ -1,28 +1,29 @@
 package org.codeNbug.mainserver.domain.user.service;
 
-import lombok.RequiredArgsConstructor;
-import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
-import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
-import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
-import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
-import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
-import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
+import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
-import org.codeNbug.mainserver.global.Redis.service.TokenService;
+import org.codenbug.user.user.dto.request.LoginRequest;
+import org.codenbug.user.user.dto.request.SignupRequest;
+import org.codenbug.user.user.dto.request.UserUpdateRequest;
+import org.codenbug.user.user.dto.response.LoginResponse;
+import org.codenbug.user.user.dto.response.SignupResponse;
+import org.codenbug.user.user.dto.response.UserProfileResponse;
+import org.codenbug.user.user.entity.User;
+import org.codenbug.user.user.repository.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * 사용자 관련 서비스
  */
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserAuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;

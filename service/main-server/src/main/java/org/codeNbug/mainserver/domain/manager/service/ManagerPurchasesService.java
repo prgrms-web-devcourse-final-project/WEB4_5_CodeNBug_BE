@@ -1,19 +1,20 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.codeNbug.mainserver.domain.manager.dto.EventPurchaseResponse;
 import org.codeNbug.mainserver.domain.manager.dto.TicketDto;
 import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
-import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codenbug.user.user.entity.User;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 // 1. 매니저가 행사에 대한 티켓 내역 조회기능
 // 2. 매니저가 행사에 대한 티켓에 대한 환불 기능

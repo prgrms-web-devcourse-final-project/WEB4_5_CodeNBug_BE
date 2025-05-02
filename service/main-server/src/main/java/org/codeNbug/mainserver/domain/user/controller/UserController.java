@@ -2,19 +2,19 @@ package org.codeNbug.mainserver.domain.user.controller;
 
 import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
-import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
-import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
-import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
-import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
-import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
-import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
-import org.codeNbug.mainserver.domain.user.service.UserService;
+import org.codeNbug.mainserver.domain.user.service.UserAuthService;
 import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
 import org.codeNbug.mainserver.global.util.CookieUtil;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
+import org.codenbug.user.user.dto.request.LoginRequest;
+import org.codenbug.user.user.dto.request.SignupRequest;
+import org.codenbug.user.user.dto.request.UserUpdateRequest;
+import org.codenbug.user.user.dto.response.LoginResponse;
+import org.codenbug.user.user.dto.response.SignupResponse;
+import org.codenbug.user.user.dto.response.UserProfileResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -38,7 +38,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
 public class UserController {
-    private final UserService userService;
+    private final UserAuthService userAuthService;
     private final CookieUtil cookieUtil;
     private final TokenService tokenService;
     private final PurchaseService purchaseService;
@@ -63,7 +63,7 @@ public class UserController {
 
         try {
             // 회원가입 처리
-            SignupResponse response = userService.signup(request);
+            SignupResponse response = userAuthService.signup(request);
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "회원가입 성공", response));
         } catch (DuplicateEmailException e) {
@@ -97,7 +97,7 @@ public class UserController {
 
         try {
             // 로그인 처리
-            LoginResponse loginResponse = userService.login(request);
+            LoginResponse loginResponse = userAuthService.login(request);
 
             // 쿠키에 토큰 설정
             cookieUtil.setAccessTokenCookie(response, loginResponse.getAccessToken());
@@ -149,7 +149,7 @@ public class UserController {
             }
 
             // 로그아웃 처리
-            userService.logout(accessToken, refreshToken);
+            userAuthService.logout(accessToken, refreshToken);
 
             // 쿠키 삭제
             cookieUtil.deleteAccessTokenCookie(response);
@@ -201,7 +201,7 @@ public class UserController {
             String email = tokenService.getEmailFromToken(accessToken);
 
             // 회원 탈퇴 처리
-            userService.withdrawUser(email, accessToken, refreshToken);
+            userAuthService.withdrawUser(email, accessToken, refreshToken);
 
             // 쿠키 삭제
             cookieUtil.deleteAccessTokenCookie(response);
@@ -229,7 +229,7 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<RsData<UserProfileResponse>> getProfile() {
         try {
-            UserProfileResponse profile = userService.getProfile();
+            UserProfileResponse profile = userAuthService.getProfile();
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "프로필 조회 성공", profile));
         } catch (AuthenticationFailedException e) {
@@ -252,7 +252,7 @@ public class UserController {
             @Valid @RequestBody UserUpdateRequest request) {
         try {
             // 프로필 수정 처리
-            UserProfileResponse response = userService.updateProfile(request);
+            UserProfileResponse response = userAuthService.updateProfile(request);
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "프로필 수정 성공", response));
         } catch (AuthenticationFailedException e) {

@@ -1,11 +1,8 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.Cookie;
-import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
-import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.codeNbug.mainserver.global.util.CookieUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,9 +17,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import jakarta.servlet.http.Cookie;
 
 @SpringBootTest
 @AutoConfigureMockMvc

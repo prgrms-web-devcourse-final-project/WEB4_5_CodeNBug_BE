@@ -1,30 +1,26 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
+
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterResponse;
-import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
-import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
-import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
-import org.codeNbug.mainserver.domain.manager.entity.*;
+import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.manager.entity.EventInformation;
+import org.codeNbug.mainserver.domain.manager.entity.EventStatusEnum;
+import org.codeNbug.mainserver.domain.manager.entity.EventType;
+import org.codeNbug.mainserver.domain.manager.entity.ManagerEvent;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
-import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
-import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
-import org.codeNbug.mainserver.domain.seat.entity.SeatGradeEnum;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
-import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
-import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codenbug.user.user.entity.User;
+import org.codenbug.user.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

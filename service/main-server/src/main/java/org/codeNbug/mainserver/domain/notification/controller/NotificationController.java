@@ -1,19 +1,25 @@
 package org.codeNbug.mainserver.domain.notification.controller;
 
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationCreateRequestDto;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
-import org.codeNbug.mainserver.domain.user.constant.UserRole;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.security.annotation.RoleRequired;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
+import org.codenbug.user.user.constant.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 알림 관련 API 엔드포인트를 제공하는 컨트롤러

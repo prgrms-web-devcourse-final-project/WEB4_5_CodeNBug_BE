@@ -1,20 +1,21 @@
 package org.codeNbug.mainserver.global.security.aspect;
 
-import lombok.extern.slf4j.Slf4j;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.codeNbug.mainserver.domain.user.constant.UserRole;
 import org.codeNbug.mainserver.global.security.annotation.RoleRequired;
+import org.codenbug.user.user.constant.UserRole;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Aspect

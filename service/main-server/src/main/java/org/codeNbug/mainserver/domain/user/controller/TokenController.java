@@ -1,16 +1,17 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.codeNbug.mainserver.global.util.CookieUtil;
+import org.codenbug.user.user.dto.response.LoginResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 토큰 관련 컨트롤러

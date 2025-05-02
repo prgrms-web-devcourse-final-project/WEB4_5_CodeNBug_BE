@@ -1,13 +1,14 @@
 package org.codeNbug.mainserver.global.util;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
-import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
 import org.codeNbug.mainserver.global.security.service.CustomUserDetails;
+import org.codenbug.user.user.entity.User;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * 보안 관련 유틸리티 클래스

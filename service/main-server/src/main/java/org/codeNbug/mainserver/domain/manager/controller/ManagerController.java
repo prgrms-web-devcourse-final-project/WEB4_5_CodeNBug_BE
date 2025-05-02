@@ -1,20 +1,31 @@
 package org.codeNbug.mainserver.domain.manager.controller;
 
+import java.util.List;
 
-import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.manager.dto.EventPurchaseResponse;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.manager.dto.ManagerEventListResponse;
-import org.codeNbug.mainserver.domain.manager.service.*;
-import org.codeNbug.mainserver.domain.user.constant.UserRole;
+import org.codeNbug.mainserver.domain.manager.service.EventDeleteService;
+import org.codeNbug.mainserver.domain.manager.service.EventEditService;
+import org.codeNbug.mainserver.domain.manager.service.EventRegisterService;
+import org.codeNbug.mainserver.domain.manager.service.ManagerEventSearchService;
+import org.codeNbug.mainserver.domain.manager.service.ManagerPurchasesService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.security.annotation.RoleRequired;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
+import org.codenbug.user.user.constant.UserRole;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor

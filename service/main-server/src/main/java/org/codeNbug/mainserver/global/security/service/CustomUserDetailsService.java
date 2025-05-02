@@ -1,12 +1,13 @@
 package org.codeNbug.mainserver.global.security.service;
 
-import lombok.RequiredArgsConstructor;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
+import org.codenbug.user.user.entity.User;
+import org.codenbug.user.user.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
 
 
 /**
