@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.manager.entity.Event;
@@ -19,6 +20,7 @@ import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
+import org.codeNbug.mainserver.domain.seat.service.RedisKeyScanner;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.domain.user.entity.User;
@@ -41,6 +43,7 @@ public class PurchaseService {
 	private final EventRepository eventRepository;
 	private final SeatRepository seatRepository;
 	private final TicketRepository ticketRepository;
+	private final RedisKeyScanner redisKeyScanner;
 
 	/**
 	 * 결제 사전 등록 처리
@@ -93,42 +96,37 @@ public class PurchaseService {
 			request.getPaymentKey(), request.getOrderId(), request.getAmount()
 		);
 
-		Event event = eventRepository.findById(request.getEventId())
+		String redisPrefix = "seat:lock:" + userId + ":";
+		Set<String> seatKeys = redisKeyScanner.scanKeys(redisPrefix + "*");
+
+		if (seatKeys.isEmpty()) {
+			throw new IllegalStateException("선택된 좌석 정보가 존재하지 않습니다.");
+		}
+
+		List<Long> seatIds = seatKeys.stream()
+			.map(key -> {
+				String[] parts = key.split(":");
+				if (parts.length != 5)
+					throw new IllegalStateException("좌석 키 형식 오류: " + key);
+				return Long.parseLong(parts[4]); // seatId
+			})
+			.toList();
+
+		Long eventId = Long.parseLong(seatKeys.iterator().next().split(":")[2]);
+
+		Event event = eventRepository.findById(eventId)
 			.orElseThrow(() -> new IllegalStateException("이벤트 정보를 찾을 수 없습니다."));
 
-		List<Seat> selectedSeats;
-		String orderName = "";
-		if (event.getSeatSelectable()) {
-			// 지정석일 경우
-			if (request.getSeatList() == null || request.getSeatList().isEmpty()) {
-				throw new IllegalArgumentException("지정석 예매 시 좌석 목록은 필수입니다.");
-			}
-
-			List<Long> seatIds = request.getSeatList().stream()
-				.filter(Objects::nonNull)
-				.toList();
-
-			selectedSeats = seatRepository.findAllById(seatIds);
-			orderName = "지정석 " + request.getTicketCount() + "매";
-			if (selectedSeats.size() != request.getSeatList().size()) {
-				throw new IllegalStateException("좌석 일부를 찾을 수 없습니다.");
-			}
-		} else {
-			// 미지정석일 경우
-			if (request.getSeatList() != null) {
-				throw new IllegalArgumentException("미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
-			}
-
-			selectedSeats = seatRepository.findAvailableSeatsByEventId(event.getEventId())
-				.stream()
-				.limit(request.getTicketCount())
-				.toList();
-			orderName = "미지정석 " + request.getTicketCount() + "매";
-			if (selectedSeats.size() < request.getTicketCount()) {
-				throw new IllegalStateException("예매 가능한 좌석 수가 부족합니다.");
-			}
+		List<Seat> selectedSeats = seatRepository.findAllById(seatIds);
+		if (selectedSeats.size() != seatIds.size()) {
+			throw new IllegalStateException("일부 좌석을 찾을 수 없습니다.");
 		}
+
 		PaymentMethodEnum methodEnum = PaymentMethodEnum.from(info.getMethod());
+
+		String orderName = event.getSeatSelectable()
+			? "지정석 " + selectedSeats.size() + "매"
+			: "미지정석 " + selectedSeats.size() + "매";
 
 		purchase.updatePaymentInfo(
 			info.getPaymentKey(),
