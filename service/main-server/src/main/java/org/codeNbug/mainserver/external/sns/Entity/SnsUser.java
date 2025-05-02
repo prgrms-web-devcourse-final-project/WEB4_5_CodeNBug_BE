@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.external.kakao.Entity;
+package org.codeNbug.mainserver.external.sns.Entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -6,7 +6,7 @@ import lombok.*;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "users")
+@Table(name = "sns_users")
 @Getter
 @Setter
 @Builder
@@ -24,9 +24,6 @@ public class SnsUser {
     @Column(name = "provider", nullable = false)
     private String provider; // 소셜 로그인 제공자 (Google, Kakao, Naver 등)
 
-    @Column(name = "access_token", nullable = true)
-    private String accessToken; // 액세스 토큰 (소셜 로그인 인증 후 받은 토큰)
-
     @Column(name = "name", nullable = true)
     private String name; // 사용자 이름 (옵션)
 
@@ -36,11 +33,6 @@ public class SnsUser {
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
-/*    @OneToMany(mappedBy = "user")
-    private List<ChatRoomMember> chatRoomMembers;
-
-    @OneToMany(mappedBy = "sender")
-    private List<Message> messages;*/
 
     @PrePersist
     public void prePersist() {

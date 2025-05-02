@@ -1,6 +1,6 @@
-package org.codeNbug.mainserver.external.kakao.util;
+package org.codeNbug.mainserver.external.sns.util;
 
-import org.codeNbug.mainserver.external.kakao.constant.SocialLoginType;
+import org.codeNbug.mainserver.external.sns.constant.SocialLoginType;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 

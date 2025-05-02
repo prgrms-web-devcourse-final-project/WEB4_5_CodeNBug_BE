@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.external.kakao.util;
+package org.codeNbug.mainserver.external.sns.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

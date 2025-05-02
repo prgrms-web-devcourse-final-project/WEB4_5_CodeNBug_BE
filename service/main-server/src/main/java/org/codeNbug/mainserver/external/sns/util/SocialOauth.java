@@ -1,6 +1,6 @@
-package org.codeNbug.mainserver.external.kakao.util;
+package org.codeNbug.mainserver.external.sns.util;
 
-import org.codeNbug.mainserver.external.kakao.constant.SocialLoginType;
+import org.codeNbug.mainserver.external.sns.constant.SocialLoginType;
 
 public interface SocialOauth { //소셜 로그인 타입별로 공통적으로 사용될 interface
     /**
@@ -19,8 +19,6 @@ public interface SocialOauth { //소셜 로그인 타입별로 공통적으로 �
     default SocialLoginType type() {
         if (this instanceof GoogleOauth) {
             return SocialLoginType.GOOGLE;
-        } else if (this instanceof NaverOauth) {
-            return SocialLoginType.NAVER;
         } else if (this instanceof KakaoOauth) {
             return SocialLoginType.KAKAO;
         } else {

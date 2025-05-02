@@ -67,9 +67,11 @@ public class UserController {
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "회원가입 성공", response));
         } catch (DuplicateEmailException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new RsData<>("409-CONFLICT", e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError()
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
@@ -108,6 +110,7 @@ public class UserController {
                     new RsData<>("200-SUCCESS", "로그인 성공", LoginResponse.ofTokenTypeOnly()));
 
         } catch (AuthenticationFailedException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
         } catch (Exception e) {
@@ -158,9 +161,11 @@ public class UserController {
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "로그아웃 성공"));
         } catch (AuthenticationFailedException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
@@ -210,12 +215,15 @@ public class UserController {
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "회원 탈퇴 성공"));
         } catch (AuthenticationFailedException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
         } catch (IllegalArgumentException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new RsData<>("404-NOT_FOUND", e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
@@ -233,9 +241,11 @@ public class UserController {
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "프로필 조회 성공", profile));
         } catch (AuthenticationFailedException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
@@ -256,9 +266,11 @@ public class UserController {
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "프로필 수정 성공", response));
         } catch (AuthenticationFailedException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", "인증이 필요합니다."));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
@@ -277,6 +289,7 @@ public class UserController {
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
         } catch (AuthenticationFailedException e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
         }

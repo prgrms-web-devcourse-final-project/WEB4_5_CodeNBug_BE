@@ -61,28 +61,13 @@ cookie:
 cors:
   allowed-origins:
     - http://localhost:3000
+    - http://localhost:3001
+    - http://127.0.0.1:3000
+    - http://127.0.0.1:3001
     - https://localhost:3000
+    - https://localhost:3001
     - https://ticketone.site
     - https://www.app4.qwas.shop
     - http://www.app4.qwas.shop
     - https://login.aleph.kr
-    - http://login.aleph.kr
-
-
-# Kakao Configuration
-kakao:
-  client:
-    id: 1b3d76e44564e5036c782afd2a0beedf
-  redirect:
-    uri: http://localhost:3000/auth/login/kakao
-
-sns:
-  kakao:
-    url: https://kauth.kakao.com/oauth/authorize # 고정값
-    client:
-      id: 1b3d76e44564e5036c782afd2a0beedf # 카카오 개발자 센터에서 발급받은 REST API Key
-      secret: soKJg2PkJm4XjQYHYmYzUJQRZKbUB4SC # 카카오 개발자 센터에서 발급받은 Client Secret (선택 사항)
-    callback:
-      url: http://localhost:8080/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
-    token:
-      url: https://kauth.kakao.com/oauth/token # 고정값
+    - http://login.aleph.kr40

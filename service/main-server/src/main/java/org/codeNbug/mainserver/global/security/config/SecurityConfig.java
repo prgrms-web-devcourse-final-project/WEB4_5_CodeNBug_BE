@@ -20,6 +20,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -108,12 +110,13 @@ public class SecurityConfig {
                         // 인증 없이 접근 가능한 경로 설정
                         .requestMatchers("/api/v1/users/signup", "/api/v1/users/login").permitAll()
                         .requestMatchers("/api/v1/auth/refresh").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/v1/email/**").permitAll()
                         .requestMatchers("/api/v1/manager/**").permitAll()
                         .requestMatchers("/api/test/auth/public").permitAll()
-                        .requestMatchers("/auth/login/kakao/**").permitAll()
+                        .requestMatchers("/auth/kakao/**").permitAll()
                         // Swagger UI 관련 경로 허용
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         // 나머지 경로는 인증 필요
@@ -150,11 +153,12 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(allowedOrigins);
         } else {
             // 기본값 설정
-            configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+//            configuration.setAllowedOrigins(List.of("http://localhost:3000"));
         }
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
+        configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

@@ -1,6 +1,6 @@
-package org.codeNbug.mainserver.external.kakao.repository;
+package org.codeNbug.mainserver.external.sns.repository;
 
-import org.codeNbug.mainserver.external.kakao.Entity.SnsUser;
+import org.codeNbug.mainserver.external.sns.Entity.SnsUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
