@@ -266,7 +266,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: service/queue-server/Dockerfile
+          file: service/message-dispatcher/Dockerfile
 
           push: true
           tags: |
