@@ -21,4 +21,5 @@ public class ManagerEventListResponse {
     private LocalDateTime endDate;
     private String location;
     private String hallName;
+    private Boolean isDeleted;
 }
