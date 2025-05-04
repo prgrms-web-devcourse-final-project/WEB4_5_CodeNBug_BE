@@ -82,7 +82,7 @@ public class OauthService {
         // 5. 기존 사용자 확인 후 처리
         Optional<SnsUser> existingUser = snsUserRepository.findBySocialId(user.getSocialId());
         SnsUser savedUser;
-        
+
         if (existingUser.isPresent()) {
             // 이미 존재하는 사용자라면 로그인 처리
             SnsUser existing = existingUser.get();
@@ -93,15 +93,15 @@ public class OauthService {
             user.setCreatedAt(new Timestamp(System.currentTimeMillis())); // 생성 시간 설정
             savedUser = snsUserRepository.save(user);
         }
-        
+
         // 6. JWT 토큰 생성 (UserService와 유사하게)
         // 소셜 로그인용 식별자로 socialId와 provider를 조합하여 사용
         String tokenIdentifier = savedUser.getSocialId() + ":" + savedUser.getProvider();
         TokenService.TokenInfo tokenInfo = tokenService.generateTokens(tokenIdentifier);
-        
+
         // 7. 토큰 및 사용자 정보를 포함한 응답 반환
-        return new UserResponse(savedUser.getName(), tokenInfo.getAccessToken(), 
-                                tokenInfo.getRefreshToken(), savedUser.getProvider());
+        return new UserResponse(savedUser.getName(), tokenInfo.getAccessToken(),
+                tokenInfo.getRefreshToken(), savedUser.getProvider());
     }
 
     // 실제 소셜 로그인 API에서 사용자 정보를 받아오는 메서드 (Google, Kakao)

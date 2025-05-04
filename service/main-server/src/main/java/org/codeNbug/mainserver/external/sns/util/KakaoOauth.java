@@ -27,16 +27,16 @@ public class KakaoOauth implements SocialOauth {
      */
     @Value("${sns.kakao.url}")
     private String KAKAO_SNS_BASE_URL;  // 카카오 인증 기본 URL
-    
+
     @Value("${sns.kakao.client.id}")
     private String KAKAO_SNS_CLIENT_ID;  // 카카오 애플리케이션 클라이언트 ID
-    
+
     @Value("${sns.kakao.callback.url}")
     private String KAKAO_SNS_CALLBACK_URL;  // 인증 후 콜백받을 URL
-    
+
     @Value("${sns.kakao.client.secret}")
     private String KAKAO_SNS_CLIENT_SECRET;  // 카카오 애플리케이션 시크릿 키
-    
+
     @Value("${sns.kakao.token.url}")
     private String KAKAO_SNS_TOKEN_BASE_URL;  // 토큰 요청을 위한 URL
 
@@ -57,7 +57,10 @@ public class KakaoOauth implements SocialOauth {
                 .map(x -> x.getKey() + "=" + x.getValue())
                 .collect(Collectors.joining("&"));
 
+        log.info(params.toString());
         // 최종 리다이렉트 URL 반환
+        String returnUrl = KAKAO_SNS_BASE_URL + "?" + parameterString;
+        log.info(returnUrl);
         return KAKAO_SNS_BASE_URL + "?" + parameterString;
     }
 

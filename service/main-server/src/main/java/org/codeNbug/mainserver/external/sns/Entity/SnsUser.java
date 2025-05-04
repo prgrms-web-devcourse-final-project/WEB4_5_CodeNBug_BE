@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.external.sns.Entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.sql.Timestamp;
 
@@ -28,9 +29,11 @@ public class SnsUser {
     private String name; // 사용자 이름 (옵션)
 
     @Column(name = "created_at")
+    @CreatedDate
     private Timestamp createdAt;
 
     @Column(name = "updated_at")
+    @CreatedDate
     private Timestamp updatedAt;
 
 
