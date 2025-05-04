@@ -37,11 +37,16 @@ public class EntryQueueConsumer {
 	private void handleMessage(MapRecord<String, String, String> record) {
 		Map<String, String> body = record.getValue();
 		// 1) 메시지 처리 로직
-		redisTemplate.convertAndSend(RedisConfig.DISPATCH_QUEUE_CHANNEL_NAME, Map.of(
-			"userId", body.get("userId"),
-			"eventId", body.get("eventId"),
-			"instanceId", body.get("instanceId")
-		));
+		String userId = body.get("userId");
+		String eventId = body.get("eventId");
+		String instanceId = body.get("instanceId").substring(1, body.get("instanceId").length() - 1);
+
+		redisTemplate.opsForStream()
+			.add(RedisConfig.DISPATCH_QUEUE_CHANNEL_NAME, Map.of(
+				"userId", Long.parseLong(userId),
+				"eventId", Long.parseLong(eventId),
+				"instanceId", instanceId)
+			);
 		// 2) ACK
 		redisTemplate.opsForStream()
 			.acknowledge(RedisConfig.ENTRY_QUEUE_KEY_NAME, RedisConfig.ENTRY_QUEUE_GROUP_NAME, record.getId());
