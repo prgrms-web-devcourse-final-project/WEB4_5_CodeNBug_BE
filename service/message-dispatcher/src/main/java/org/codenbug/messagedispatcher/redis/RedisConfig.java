@@ -29,7 +29,7 @@ public class RedisConfig {
 	// dispatch queue의 컨슈머 그룹명
 	public static final String ENTRY_QUEUE_CONSUMER_NAME = "ENTRY_QUEUE_CONSUMER";
 	public static final String DISPATCH_QUEUE_CHANNEL_NAME = "DISPATCH";
-	public static final Long ENTRY_QUEUE_CAPACITY = 1000L;
+	public static final Integer ENTRY_QUEUE_CAPACITY = 1000;
 	public static final String WAITING_QUEUE_IN_USER_RECORD_KEY_NAME = "WAITING_USER_ID";
 
 	@Bean
