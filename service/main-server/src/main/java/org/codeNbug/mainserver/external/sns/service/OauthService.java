@@ -197,20 +197,31 @@ public class OauthService {
         // socialId와 name을 소셜 로그인 타입별로 분리
         String socialId = "";
         String name = "";
+        String email = "";
 
         if (socialLoginType == SocialLoginType.GOOGLE) {
             socialId = jsonObject.get("sub").getAsString(); // Google은 "sub"를 ID로 사용
             name = jsonObject.get("name").getAsString();    // Google에서 제공하는 이름
+            if (jsonObject.has("email")) {
+                email = jsonObject.get("email").getAsString(); // Google에서 제공하는 이메일
+            }
         } else if (socialLoginType == SocialLoginType.KAKAO) {
             socialId = jsonObject.get("id").getAsString(); // Kakao는 "id"를 사용자 ID로 사용
             name = jsonObject.getAsJsonObject("properties").get("nickname").getAsString(); // Kakao에서 제공하는 nickname
+            
+            // Kakao는 'kakao_account' 객체 안에 'email' 필드가 있음
+            if (jsonObject.has("kakao_account") && 
+                jsonObject.getAsJsonObject("kakao_account").has("email")) {
+                email = jsonObject.getAsJsonObject("kakao_account").get("email").getAsString();
+            }
         }
 
-        // SnsUser 객체에 정보 세팅 (accessToken 필드 제거)
+        // SnsUser 객체에 정보 세팅
         SnsUser user = new SnsUser();
         user.setSocialId(socialId);             // 소셜 ID 설정
         user.setName(name);                     // 사용자의 이름 설정
         user.setProvider(socialLoginType.name()); // 로그인 제공자 설정
+        user.setEmail(email);                   // 이메일 설정
         return user;
     }
 

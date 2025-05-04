@@ -1,10 +1,8 @@
 package org.codeNbug.mainserver.external.sns.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.codeNbug.mainserver.external.sns.Entity.SnsUser;
 import org.codeNbug.mainserver.external.sns.constant.SocialLoginType;
 import org.codeNbug.mainserver.external.sns.dto.UserResponse;
 import org.codeNbug.mainserver.external.sns.service.OauthService;

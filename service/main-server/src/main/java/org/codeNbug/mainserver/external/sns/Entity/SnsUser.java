@@ -36,6 +36,9 @@ public class SnsUser {
     @CreatedDate
     private Timestamp updatedAt;
 
+    @Column(name = "email")
+    private String email; // 사용자 이메일
+
 
     @PrePersist
     public void prePersist() {
