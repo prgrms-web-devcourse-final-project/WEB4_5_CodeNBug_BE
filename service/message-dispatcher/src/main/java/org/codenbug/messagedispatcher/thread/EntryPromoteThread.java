@@ -47,7 +47,7 @@ public class EntryPromoteThread {
 				// waiting queue message에서 userId, eventId, instanceId 추출
 				Long userId = Long.parseLong(record.getValue().get("userId").toString());
 				Long eventId = Long.parseLong(record.getValue().get("eventId").toString());
-				String instanceId = record.getValue().get("instanceId").toString();
+				String instanceId = String.valueOf(record.getValue().get("instanceId"));
 
 				// entry queue message를 생성
 				redisTemplate.opsForStream()
