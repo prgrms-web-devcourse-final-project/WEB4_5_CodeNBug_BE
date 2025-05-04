@@ -5,10 +5,13 @@ import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 import java.util.Map;
 
 import org.codeNbug.queueserver.external.redis.RedisConfig;
+import org.codenbug.user.entity.User;
+import org.codenbug.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -17,14 +20,16 @@ public class WaitingQueueEntryService {
 
 	private final SseEmitterService sseEmitterService;
 	private final RedisTemplate<String, Object> simpleRedisTemplate;
+	private final UserRepository userRepository;
 
 	@Value("${custom.instance-id}")
 	private String instanceId;
 
 	public WaitingQueueEntryService(SseEmitterService sseEmitterService,
-		RedisTemplate<String, Object> simpleRedisTemplate) {
+		RedisTemplate<String, Object> simpleRedisTemplate, UserRepository userRepository) {
 		this.sseEmitterService = sseEmitterService;
 		this.simpleRedisTemplate = simpleRedisTemplate;
+		this.userRepository = userRepository;
 	}
 
 	public SseEmitter entry(Long eventId) {
@@ -73,6 +78,9 @@ public class WaitingQueueEntryService {
 	}
 
 	private Long getLoggedInUserId() {
-		return 1L;
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		User user = userRepository.findByEmail(email)
+			.orElseThrow(() -> new RuntimeException("인증된 사용자를 찾을 수 없습니다."));
+		return user.getUserId();
 	}
 }

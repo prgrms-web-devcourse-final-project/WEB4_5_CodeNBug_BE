@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.domain.user.constant;
+package org.codenbug.user.constant;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

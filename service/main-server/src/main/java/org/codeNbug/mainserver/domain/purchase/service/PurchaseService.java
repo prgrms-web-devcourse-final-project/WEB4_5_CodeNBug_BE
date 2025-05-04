@@ -22,10 +22,10 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
+import org.codenbug.user.entity.User;
+import org.codenbug.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;

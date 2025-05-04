@@ -1,13 +1,14 @@
 package org.codeNbug.mainserver.global.security.service;
 
-import lombok.Getter;
-import org.codeNbug.mainserver.domain.user.entity.User;
+import java.util.Collection;
+import java.util.Collections;
+
+import org.codenbug.user.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.Collections;
+import lombok.Getter;
 
 /**
  * 스프링 시큐리티의 UserDetails 인터페이스 구현 클래스

@@ -1,12 +1,13 @@
 package org.codeNbug.mainserver.domain.user.dto.response;
 
+import java.time.LocalDateTime;
+
+import org.codenbug.user.entity.User;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.codeNbug.mainserver.domain.user.entity.User;
-
-import java.time.LocalDateTime;
 
 /**
  * 사용자 프로필 조회 응답 DTO
