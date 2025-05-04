@@ -17,6 +17,7 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
 
     implementation project(':service:user')
+    implementation project(':service:common')
 }
 
 test {

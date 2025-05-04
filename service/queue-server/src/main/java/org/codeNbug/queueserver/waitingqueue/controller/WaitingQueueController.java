@@ -1,6 +1,8 @@
 package org.codeNbug.queueserver.waitingqueue.controller;
 
 import org.codeNbug.queueserver.waitingqueue.service.WaitingQueueEntryService;
+import org.codenbug.security.annotation.RoleRequired;
+import org.codenbug.user.constant.UserRole;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +25,8 @@ public class WaitingQueueController {
 	 * 대기열에 진입시 sse 연결을 진행합니다.
 	 * @param eventId
 	 */
+	@RoleRequired({UserRole.USER})
+
 	@GetMapping(value = "/events/{event-id}/tickets/waiting", produces = MediaType.TEXT_EVENT_STREAM_VALUE
 		+ ";charset=UTF-8")
 	public SseEmitter entryWaiting(@PathVariable("event-id") Long eventId) {

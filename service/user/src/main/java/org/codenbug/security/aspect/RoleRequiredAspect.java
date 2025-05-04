@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.global.security.aspect;
+package org.codenbug.security.aspect;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -7,7 +7,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.codeNbug.mainserver.global.security.annotation.RoleRequired;
+import org.codenbug.security.annotation.RoleRequired;
 import org.codenbug.user.constant.UserRole;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;

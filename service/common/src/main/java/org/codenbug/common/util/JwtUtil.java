@@ -1,4 +1,4 @@
-package org.codeNbug.queueserver.global.jwt;
+package org.codenbug.common.util;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
