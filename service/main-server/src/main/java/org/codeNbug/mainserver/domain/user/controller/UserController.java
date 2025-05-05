@@ -1,6 +1,12 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
-import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryDetailResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryListResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
@@ -18,19 +24,7 @@ import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 사용자 관련 컨트롤러
@@ -315,21 +309,46 @@ public class UserController {
     }
 
     /**
-     * 사용자의 구매 이력을 조회합니다.
+     * 사용자의 구매 이력 목록을 조회합니다.
      *
-     * @return ResponseEntity<RsData < PurchaseHistoryResponse>> 구매 이력 응답
+     * @return ResponseEntity<RsData<PurchaseHistoryListResponse>> 구매 이력 목록 응답
      */
     @GetMapping("/me/purchases")
-    public ResponseEntity<RsData<PurchaseHistoryResponse>> getPurchaseHistory() {
+    public ResponseEntity<RsData<PurchaseHistoryListResponse>> getPurchaseHistoryList() {
         try {
             Long userId = SecurityUtil.getCurrentUserId();
-            PurchaseHistoryResponse response = purchaseService.getPurchaseHistory(userId);
+            PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
         } catch (AuthenticationFailedException e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
+        }
+    }
+
+    /**
+     * 사용자의 특정 구매 이력 상세 정보를 조회합니다.
+     *
+     * @param purchaseId 구매 ID
+     * @return ResponseEntity<RsData<PurchaseHistoryDetailResponse>> 구매 이력 상세 응답
+     */
+    @GetMapping("/me/purchases/{purchaseId}")
+    public ResponseEntity<RsData<PurchaseHistoryDetailResponse>> getPurchaseHistoryDetail(
+            @PathVariable Long purchaseId) {
+        try {
+            Long userId = SecurityUtil.getCurrentUserId();
+            PurchaseHistoryDetailResponse response = purchaseService.getPurchaseHistoryDetail(userId, purchaseId);
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "구매 이력 상세 조회 성공", response));
+        } catch (AuthenticationFailedException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
         }
     }
 }
