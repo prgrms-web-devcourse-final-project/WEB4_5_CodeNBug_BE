@@ -45,7 +45,7 @@ public class CookieUtil {
         cookie.setSecure(isDev ? false : isSecure);
         
         // SameSite 속성을 Lax로 변경 (크로스 사이트 요청에 더 관대)
-        cookie.setAttribute("SameSite", "Lax");
+        cookie.setAttribute("SameSite", "None");
         
         response.addCookie(cookie);
     }

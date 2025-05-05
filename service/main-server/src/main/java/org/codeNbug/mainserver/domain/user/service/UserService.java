@@ -17,6 +17,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.codeNbug.mainserver.external.sns.util.KakaoOauth;
+import org.codeNbug.mainserver.external.sns.constant.SocialLoginType;
 
 /**
  * 사용자 관련 서비스
@@ -29,6 +31,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final KakaoOauth kakaoOauth;
 
     /**
      * 회원가입 서비스
@@ -116,15 +119,20 @@ public class UserService {
 
         try {
             // RefreshToken에서 subject(식별자) 추출
-            // 일반 사용자 = 이메일(예: user@example.com)
-            // SNS 사용자 = socialId:provider(예: 12345:GOOGLE)
             String identifier = tokenService.getSubjectFromToken(refreshToken);
             log.info(">> RefreshToken에서 식별자 추출 성공: {}", identifier);
-            
+
+            // SNS 사용자(KAKAO)라면 카카오 로그아웃 REST API 호출
+            if (identifier != null && identifier.endsWith(":" + SocialLoginType.KAKAO.name())) {
+                log.info(">> SNS(KAKAO) 사용자 로그아웃: 카카오 로그아웃 API 호출");
+                kakaoOauth.kakaoLogout(accessToken);
+            }
+            // (추후 GOOGLE 등 다른 SNS도 분기 추가 가능)
+
             // RefreshToken 삭제
             tokenService.deleteRefreshToken(identifier);
             log.info(">> RefreshToken 삭제 완료: {}", identifier);
-    
+
             // AccessToken 블랙리스트 처리
             long expirationTime = tokenService.getExpirationTimeFromToken(accessToken);
             tokenService.addToBlacklist(accessToken, expirationTime);
