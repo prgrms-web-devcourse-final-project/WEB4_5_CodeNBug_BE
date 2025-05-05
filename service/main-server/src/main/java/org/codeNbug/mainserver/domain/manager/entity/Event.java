@@ -22,8 +22,9 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Entity
+@Entity(name = "ManagerEvent")
 @Table(name = "event")
 @Getter
 @NoArgsConstructor
@@ -33,36 +34,39 @@ import lombok.NoArgsConstructor;
 @Filter(name = "activeEventFilter", condition = "is_deleted = :isDeleted")
 public class Event {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long eventId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long eventId;
 
-    @Column(nullable = false)
-    private Long typeId;
+	@Column(nullable = false)
+	@Setter
+	private Long typeId;
 
-    @Embedded
-    private EventInformation information;
+	@Embedded
+	@Setter
+	private EventInformation information;
 
-    private LocalDateTime bookingStart;
+	@Setter
+	private LocalDateTime bookingStart;
 
-    private LocalDateTime bookingEnd;
+	@Setter
+	private LocalDateTime bookingEnd;
+	@Setter
+	@Column(columnDefinition = "int default 0")
+	private Integer viewCount;
 
-    @Column(columnDefinition = "int default 0")
-    private Integer viewCount;
+	@CreatedDate
+	private LocalDateTime createdAt;
 
-
-    @CreatedDate
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    private LocalDateTime modifiedAt;
-
-    @Enumerated(EnumType.STRING)
-    private EventStatusEnum status;
-
-    @Column(columnDefinition = "boolean default true")
-    private Boolean seatSelectable;
-
-    @Column(name = "is_deleted")
-    private Boolean isDeleted = false;
+	@LastModifiedDate
+	private LocalDateTime modifiedAt;
+	@Setter
+	@Enumerated(EnumType.STRING)
+	private EventStatusEnum status;
+	@Setter
+	@Column(columnDefinition = "boolean default true")
+	private Boolean seatSelectable;
+	@Setter
+	@Column(name = "is_deleted")
+	private Boolean isDeleted = false;
 }

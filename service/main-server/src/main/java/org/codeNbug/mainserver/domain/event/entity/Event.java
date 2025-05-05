@@ -3,6 +3,7 @@ package org.codeNbug.mainserver.domain.event.entity;
 import java.time.LocalDateTime;
 
 import org.codeNbug.mainserver.domain.manager.entity.EventStatusEnum;
+import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.hibernate.validator.constraints.Length;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -13,6 +14,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Min;
 import lombok.Getter;
@@ -24,7 +26,7 @@ public class Event {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
+	private Long eventId;
 
 	@Column(nullable = false)
 	@Length(min = 5)
@@ -59,6 +61,9 @@ public class Event {
 	private EventStatusEnum eventStatus = EventStatusEnum.OPEN;
 	@Column(nullable = false)
 	private boolean seatSelectable = true;
+
+	@OneToOne(mappedBy = "event")
+	private SeatLayout seatLayout;
 
 	@CreatedDate
 	private LocalDateTime createdAt;

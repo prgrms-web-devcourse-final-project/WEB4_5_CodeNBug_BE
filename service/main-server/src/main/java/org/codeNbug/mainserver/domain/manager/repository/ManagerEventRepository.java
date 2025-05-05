@@ -10,10 +10,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ManagerEventRepository extends JpaRepository<ManagerEvent, Long> {
-    @Query("SELECT me.event FROM ManagerEvent me WHERE me.manager = :manager")
+    @Query("SELECT me.event FROM ManagerEventConnection me WHERE me.manager = :manager")
     List<Event> findEventsByManager(@Param("manager") User manager);
 
-    @Query("SELECT me.manager FROM ManagerEvent me WHERE me.event = :event")
+    @Query("SELECT me.manager FROM ManagerEventConnection me WHERE me.event = :event")
     List<User> findManagersByEvent(@Param("event") Event event);
 
     /**

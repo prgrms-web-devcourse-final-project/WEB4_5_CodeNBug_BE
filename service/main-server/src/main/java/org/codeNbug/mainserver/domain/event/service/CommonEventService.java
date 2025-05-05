@@ -1,6 +1,10 @@
 package org.codeNbug.mainserver.domain.event.service;
 
-import org.codeNbug.mainserver.domain.event.repository.CommonEventRepository;
+import java.util.List;
+
+import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
+import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
+import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,4 +16,26 @@ public class CommonEventService {
 		this.commonEventRepository = commonEventRepository;
 	}
 
+	public List<EventListResponse> getEvents(String keyword, EventListFilter filter) {
+		if (keyword == null || keyword.isEmpty()) {
+			return getEventsOnlyFilters(filter);
+		} else if (filter == null || !filter.canFiltered()) {
+			return getEventsOnlyKeyword(keyword);
+		} else {
+			return getEventsWithFilterAndKeyword(keyword, filter);
+		}
+	}
+
+	private List<EventListResponse> getEventsWithFilterAndKeyword(String keyword, EventListFilter filter) {
+		return null;
+	}
+
+	private List<EventListResponse> getEventsOnlyKeyword(String keyword) {
+		return null;
+	}
+
+	private List<EventListResponse> getEventsOnlyFilters(EventListFilter filter) {
+		commonEventRepository.findAllByFilter(filter);
+		return null;
+	}
 }

@@ -31,4 +31,13 @@ public class EventListFilter {
 		this.startDate = startDate;
 		this.endDate = endDate;
 	}
+
+	public boolean canFiltered() {
+		return costRange != null
+			|| (locationList != null && !locationList.isEmpty())
+			|| (eventTypeList != null && !eventTypeList.isEmpty())
+			|| (eventStatusList != null && !eventStatusList.isEmpty())
+			|| startDate != null
+			|| endDate != null;
+	}
 }
