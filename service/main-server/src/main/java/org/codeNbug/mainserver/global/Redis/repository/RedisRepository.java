@@ -33,12 +33,12 @@ public class RedisRepository {
     }
 
     /**
-     * Redis에서 Refresh Token으로 이메일을 조회
+     * Redis에서 Refresh Token으로 식별자(이메일 또는 소셜ID)를 조회
      *
      * @param refreshToken Refresh Token
-     * @return 사용자 이메일
+     * @return 사용자 식별자(이메일 또는 소셜ID:provider)
      */
-    public String getEmailByRefreshToken(String refreshToken) {
+    public String getIdentifierByRefreshToken(String refreshToken) {
         String key = REFRESH_TOKEN_PREFIX + refreshToken;
         return redisTemplate.opsForValue().get(key);
     }

@@ -89,8 +89,8 @@ public class UserService {
         }
 
         // RefreshToken 삭제
-        String email = tokenService.getEmailFromToken(refreshToken);
-        tokenService.deleteRefreshToken(email);
+        String identifier = tokenService.getSubjectFromToken(refreshToken);
+        tokenService.deleteRefreshToken(identifier);
 
         // AccessToken 블랙리스트 처리
         long expirationTime = tokenService.getExpirationTimeFromToken(accessToken);
@@ -118,8 +118,9 @@ public class UserService {
         // 사용자 삭제
         userRepository.delete(user);
 
-        // RefreshToken 삭제
-        tokenService.deleteRefreshToken(email);
+        // RefreshToken 삭제 (이메일 또는 소셜 식별자)
+        String identifier = tokenService.getSubjectFromToken(refreshToken);
+        tokenService.deleteRefreshToken(identifier);
 
         // AccessToken 블랙리스트 처리
         long expirationTime = tokenService.getExpirationTimeFromToken(accessToken);

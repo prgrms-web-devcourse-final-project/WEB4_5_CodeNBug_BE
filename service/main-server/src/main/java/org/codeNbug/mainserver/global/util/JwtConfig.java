@@ -46,9 +46,9 @@ public class JwtConfig {
     }
 
     /**
-     * 토큰에서 username(email) 추출
+     * 토큰에서 subject(식별자) 추출
      */
-    public String extractUsername(String token) {
+    public String extractSubject(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
