@@ -78,7 +78,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             try {
-                final String username = jwtConfig.extractUsername(jwt);
+                final String username = jwtConfig.extractSubject(jwt);
 
                 // 사용자 이름이 존재하고, 현재 SecurityContext에 인증 정보가 없는 경우에만 인증 처리
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {

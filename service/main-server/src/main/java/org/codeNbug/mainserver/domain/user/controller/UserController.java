@@ -202,8 +202,8 @@ public class UserController {
                         .body(new RsData<>("401-UNAUTHORIZED", "인증 정보가 필요합니다."));
             }
 
-            // 토큰에서 이메일 추출
-            String email = tokenService.getEmailFromToken(accessToken);
+            // 토큰에서 식별자(이메일 또는 소셜ID) 추출
+            String email = tokenService.getSubjectFromToken(accessToken);
 
             // 회원 탈퇴 처리
             userService.withdrawUser(email, accessToken, refreshToken);

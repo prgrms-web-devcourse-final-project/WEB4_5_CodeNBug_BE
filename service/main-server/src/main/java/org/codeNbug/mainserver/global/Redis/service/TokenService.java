@@ -51,17 +51,17 @@ public class TokenService {
      */
     @Transactional
     public TokenInfo refreshTokens(String refreshToken) {
-        // Redis에서 Refresh Token으로 이메일 조회 및 JWT 유효성 검증
-        String email = redisRepository.getEmailByRefreshToken(refreshToken);
+        // Redis에서 Refresh Token으로 식별자 조회 및 JWT 유효성 검증
+        String identifier = redisRepository.getIdentifierByRefreshToken(refreshToken);
         boolean isJwtValid = jwtConfig.validateToken(refreshToken);
 
         // Redis에 토큰이 없거나 JWT가 유효하지 않은 경우
-        if (email == null || !isJwtValid) {
+        if (identifier == null || !isJwtValid) {
             throw new InvalidTokenException("유효하지 않은 Refresh Token입니다.");
         }
 
         // Access Token만 새로 발급
-        String newAccessToken = jwtConfig.generateAccessToken(email);
+        String newAccessToken = jwtConfig.generateAccessToken(identifier);
         
         return TokenInfo.of(newAccessToken, refreshToken);
     }
@@ -101,10 +101,10 @@ public class TokenService {
     }
 
     /**
-     * 토큰에서 이메일 추출
+     * 토큰에서 Subject(식별자) 추출
      */
-    public String getEmailFromToken(String token) {
-        return jwtConfig.extractUsername(token);
+    public String getSubjectFromToken(String token) {
+        return jwtConfig.extractSubject(token);
     }
 
     /**
