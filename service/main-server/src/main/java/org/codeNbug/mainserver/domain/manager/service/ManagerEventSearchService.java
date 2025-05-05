@@ -18,8 +18,6 @@ import java.util.List;
 public class ManagerEventSearchService {
 
     private final ManagerEventRepository managerEventRepository;
-    private final UserRepository userRepository;
-    private final EventRepository eventRepository;
     private final EventTypeRepository eventTypeRepository;
 
 
@@ -41,6 +39,7 @@ public class ManagerEventSearchService {
                         .endDate(event.getInformation().getEventEnd())
                         .location(event.getInformation().getLocation())
                         .hallName(event.getInformation().getHallName())
+                        .isDeleted(event.getIsDeleted())
                         .build())
                 .toList();
 
