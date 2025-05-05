@@ -31,7 +31,7 @@ sns:
       id: ON_SECRET
       secret: ON_SECRET
     callback:
-      url: ON_SECRET
+      url: https://ticketone.site/auth/google/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: ON_SECRET
   kakao:
@@ -40,6 +40,6 @@ sns:
       id: ON_SECRET
       secret: ON_SECRET
     callback:
-      url: ON_SECRET
+      url: https://ticketone.site/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: ON_SECRET

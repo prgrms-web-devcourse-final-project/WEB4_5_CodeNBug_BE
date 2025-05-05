@@ -39,8 +39,14 @@ public class CookieUtil {
         cookie.setPath(COOKIE_PATH);
         // cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
-        cookie.setSecure(isSecure);
+        
+        // 개발 환경 확인 (localhost에서는 secure=false로 설정)
+        boolean isDev = "dev".equals(activeProfile);
+        cookie.setSecure(isDev ? false : isSecure);
+        
+        // SameSite 속성을 Lax로 변경 (크로스 사이트 요청에 더 관대)
         cookie.setAttribute("SameSite", "None");
+        
         response.addCookie(cookie);
     }
 
@@ -53,8 +59,14 @@ public class CookieUtil {
         cookie.setPath(COOKIE_PATH);
         // cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
-        cookie.setSecure(isSecure);
-        cookie.setAttribute("SameSite", "None");
+        
+        // 개발 환경 확인 (localhost에서는 secure=false로 설정)
+        boolean isDev = "dev".equals(activeProfile);
+        cookie.setSecure(isDev ? false : isSecure);
+        
+        // SameSite 속성을 Lax로 변경
+        cookie.setAttribute("SameSite", "Lax");
+        
         response.addCookie(cookie);
     }
 
@@ -67,8 +79,12 @@ public class CookieUtil {
         cookie.setPath(COOKIE_PATH);
         // cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
-        cookie.setSecure(isSecure);
-        cookie.setAttribute("SameSite", "None");
+        
+        // 개발 환경 확인
+        boolean isDev = "dev".equals(activeProfile);
+        cookie.setSecure(isDev ? false : isSecure);
+        
+        cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
     }
 
@@ -81,8 +97,12 @@ public class CookieUtil {
         cookie.setPath(COOKIE_PATH);
         // cookie.setDomain(cookieDomain);
         cookie.setHttpOnly(true);
-        cookie.setSecure(isSecure);
-        cookie.setAttribute("SameSite", "None");
+        
+        // 개발 환경 확인
+        boolean isDev = "dev".equals(activeProfile);
+        cookie.setSecure(isDev ? false : isSecure);
+        
+        cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
     }
 

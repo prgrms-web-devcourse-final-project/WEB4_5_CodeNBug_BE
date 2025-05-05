@@ -44,10 +44,25 @@ public class OauthController {
             // 쿠키에 토큰 저장 (UserController.login 메서드와 유사하게)
             cookieUtil.setAccessTokenCookie(response, userResponse.getAccessToken());
             cookieUtil.setRefreshTokenCookie(response, userResponse.getRefreshToken());
+            
+            // 쿠키 설정 확인을 위해 로그 추가
+            log.info(">> 액세스 토큰 쿠키 설정 완료: {}", userResponse.getAccessToken());
+            log.info(">> 리프레시 토큰 쿠키 설정 완료: {}", userResponse.getRefreshToken());
+            
+            // 응답 헤더에 토큰 정보도 포함 (개발 환경에서 디버깅용)
+            response.addHeader("X-Access-Token", userResponse.getAccessToken());
+            response.addHeader("X-Refresh-Token", userResponse.getRefreshToken());
 
-            // 응답에서는 토큰 값을 제외하고 반환 (보안을 위해)
+            // 실제 사용자 정보가 포함된 응답 반환 (디버깅을 위해 실제 토큰 정보도 포함)
+            UserResponse responseData = new UserResponse(
+                    userResponse.getName(),
+                    userResponse.getAccessToken(),
+                    userResponse.getRefreshToken(),
+                    userResponse.getProvider()
+            );
+            
             return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "소셜 로그인 성공", UserResponse.ofTokenTypeOnly()));
+                    new RsData<>("200-SUCCESS", "소셜 로그인 성공", responseData));
 
         } catch (Exception e) {
             log.error(">> 소셜 로그인 처리 중 오류 발생: {}", e.getMessage(), e);

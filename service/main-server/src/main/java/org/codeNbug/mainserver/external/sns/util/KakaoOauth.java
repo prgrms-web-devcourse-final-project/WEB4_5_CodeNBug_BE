@@ -100,4 +100,27 @@ public class KakaoOauth implements SocialOauth {
         }
         return "카카오 로그인 요청 처리 실패";  // 실패 시 에러 메시지 반환
     }
+
+    /**
+     * 카카오 로그아웃 REST API 호출
+     * @param accessToken 카카오 액세스 토큰
+     */
+    public void kakaoLogout(String accessToken) {
+        String logoutUrl = "https://kapi.kakao.com/v1/user/logout";
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "Bearer " + accessToken);
+        HttpEntity<String> requestEntity = new HttpEntity<>(null, headers);
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(logoutUrl, requestEntity, String.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                log.info(">> 카카오 로그아웃 API 호출 성공: {}", response.getBody());
+            } else {
+                log.warn(">> 카카오 로그아웃 API 호출 실패: status={}, body={}", response.getStatusCode(), response.getBody());
+            }
+        } catch (Exception e) {
+            log.error(">> 카카오 로그아웃 API 호출 중 예외 발생: {}", e.getMessage(), e);
+        }
+    }
 }
