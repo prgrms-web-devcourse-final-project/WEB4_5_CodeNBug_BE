@@ -8,6 +8,7 @@ import com.google.gson.JsonParser;
 import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.external.sns.Entity.SnsUser;
 import org.codeNbug.mainserver.external.sns.constant.SocialLoginType;
+import org.codeNbug.mainserver.external.sns.dto.AdditionalInfoRequest;
 import org.codeNbug.mainserver.external.sns.dto.UserResponse;
 import org.codeNbug.mainserver.external.sns.repository.SnsUserRepository;
 import org.codeNbug.mainserver.external.sns.util.SocialOauth;
@@ -15,6 +16,7 @@ import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -231,5 +233,26 @@ public class OauthService {
                 .filter(x -> x.type() == socialLoginType)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("알 수 없는 SocialLoginType 입니다.")); // 지원되지 않는 소셜 로그인 타입 오류
+    }
+
+    /**
+     * SNS 로그인 사용자의 추가 정보를 업데이트하는 메서드
+     * @param socialId 소셜 로그인 ID
+     * @param request 추가 정보 요청 DTO
+     * @return 업데이트된 사용자 정보
+     */
+    @Transactional
+    public SnsUser updateAdditionalInfo(String socialId, AdditionalInfoRequest request) {
+        SnsUser user = snsUserRepository.findBySocialId(socialId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        user.setAge(request.getAge());
+        user.setSex(request.getSex());
+        user.setPhoneNum(request.getPhoneNum());
+        user.setLocation(request.getLocation());
+        user.setIsAdditionalInfoCompleted(true);
+        user.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+
+        return snsUserRepository.save(user);
     }
 }
