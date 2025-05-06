@@ -255,6 +255,7 @@ public class UserController {
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @return ResponseEntity<RsData < UserProfileResponse>> 프로필 정보 응답
      */
@@ -265,8 +266,8 @@ public class UserController {
             
             UserProfileResponse profile = userService.getProfile();
             
-            log.info(">> 프로필 조회 성공: userId={}, email={}", 
-                    profile.getId(), profile.getEmail());
+            log.info(">> 프로필 조회 성공: userId={}, isSnsUser={}", 
+                    profile.getId(), profile.getIsSnsUser());
             
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "프로필 조회 성공", profile));
@@ -285,6 +286,7 @@ public class UserController {
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 수정합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @param request 수정할 프로필 정보
      * @return ResponseEntity<RsData < UserProfileResponse>> 수정된 프로필 정보 응답
@@ -293,15 +295,24 @@ public class UserController {
     public ResponseEntity<RsData<UserProfileResponse>> updateProfile(
             @Valid @RequestBody UserUpdateRequest request) {
         try {
+            log.info(">> 사용자 프로필 수정 요청: name={}, phoneNum={}, location={}", 
+                    request.getName(), request.getPhoneNum(), request.getLocation());
+            
             // 프로필 수정 처리
             UserProfileResponse response = userService.updateProfile(request);
+            
+            log.info(">> 프로필 수정 성공: userId={}, isSnsUser={}", 
+                    response.getId(), response.getIsSnsUser());
+            
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "프로필 수정 성공", response));
         } catch (AuthenticationFailedException e) {
+            log.warn(">> 프로필 수정 인증 실패: {}", e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", "인증이 필요합니다."));
         } catch (Exception e) {
+            log.error(">> 프로필 수정 중 오류 발생: {}", e.getMessage(), e);
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
@@ -310,20 +321,33 @@ public class UserController {
 
     /**
      * 사용자의 구매 이력 목록을 조회합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @return ResponseEntity<RsData<PurchaseHistoryListResponse>> 구매 이력 목록 응답
      */
     @GetMapping("/me/purchases")
     public ResponseEntity<RsData<PurchaseHistoryListResponse>> getPurchaseHistoryList() {
         try {
+            log.info(">> 사용자 구매 이력 조회 요청");
+            
             Long userId = SecurityUtil.getCurrentUserId();
             PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
+            
+            log.info(">> 구매 이력 조회 성공: userId={}, 조회된 건수={}", 
+                    userId, response.getPurchases().size());
+            
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
         } catch (AuthenticationFailedException e) {
+            log.warn(">> 구매 이력 조회 인증 실패: {}", e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
+        } catch (Exception e) {
+            log.error(">> 구매 이력 조회 중 오류 발생: {}", e.getMessage(), e);
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
     }
 

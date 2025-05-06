@@ -10,9 +10,12 @@ import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
+import org.codeNbug.mainserver.external.sns.Entity.SnsUser;
+import org.codeNbug.mainserver.external.sns.repository.SnsUserRepository;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
 import org.codeNbug.mainserver.global.Redis.service.TokenService;
+import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ import org.codeNbug.mainserver.external.sns.constant.SocialLoginType;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final SnsUserRepository snsUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final KakaoOauth kakaoOauth;
@@ -248,21 +252,37 @@ public class UserService {
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @return 사용자 프로필 정보
      * @throws AuthenticationFailedException 인증된 사용자가 없는 경우 발생하는 예외
      */
     @Transactional(readOnly = true)
     public UserProfileResponse getProfile() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthenticationFailedException("인증된 사용자를 찾을 수 없습니다."));
+        log.debug(">> 사용자 프로필 조회 시작");
         
-        return UserProfileResponse.fromEntity(user);
+        try {
+            // 일반 사용자인 경우
+            if (SecurityUtil.isRegularUser()) {
+                log.debug(">> 일반 사용자 프로필 조회");
+                User user = SecurityUtil.getCurrentUser();
+                return UserProfileResponse.fromEntity(user);
+            }
+            // SNS 사용자인 경우
+            else {
+                log.debug(">> SNS 사용자 프로필 조회");
+                SnsUser snsUser = SecurityUtil.getCurrentSnsUser();
+                return UserProfileResponse.fromSnsEntity(snsUser);
+            }
+        } catch (Exception e) {
+            log.error(">> 프로필 조회 중 오류 발생: {}", e.getMessage(), e);
+            throw new AuthenticationFailedException("프로필 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 수정합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @param request 수정할 프로필 정보
      * @return 수정된 사용자 프로필 정보
@@ -270,19 +290,44 @@ public class UserService {
      */
     @Transactional
     public UserProfileResponse updateProfile(UserUpdateRequest request) {
-        // 현재 인증된 사용자 조회
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AuthenticationFailedException("인증된 사용자를 찾을 수 없습니다."));
-
-        // 사용자 정보 업데이트
-        user.update(
-                request.getName(),
-                request.getPhoneNum(),
-                request.getLocation()
-        );
-
-        // 변경사항 저장 및 응답 반환
-        return UserProfileResponse.fromEntity(user);
+        log.debug(">> 사용자 프로필 수정 시작: name={}, phoneNum={}, location={}", 
+                 request.getName(), request.getPhoneNum(), request.getLocation());
+        
+        try {
+            // 일반 사용자인 경우
+            if (SecurityUtil.isRegularUser()) {
+                log.debug(">> 일반 사용자 프로필 수정");
+                User user = SecurityUtil.getCurrentUser();
+                
+                // 사용자 정보 업데이트
+                user.update(
+                        request.getName(),
+                        request.getPhoneNum(),
+                        request.getLocation()
+                );
+                
+                // 변경사항 저장 및 응답 반환
+                return UserProfileResponse.fromEntity(user);
+            }
+            // SNS 사용자인 경우
+            else {
+                log.debug(">> SNS 사용자 프로필 수정");
+                SnsUser snsUser = SecurityUtil.getCurrentSnsUser();
+                
+                // SNS 사용자 정보 업데이트
+                snsUser.update(
+                        request.getName(),
+                        request.getPhoneNum(),
+                        request.getLocation()
+                );
+                
+                // 변경사항 저장 및 응답 반환
+                snsUserRepository.save(snsUser);
+                return UserProfileResponse.fromSnsEntity(snsUser);
+            }
+        } catch (Exception e) {
+            log.error(">> 프로필 수정 중 오류 발생: {}", e.getMessage(), e);
+            throw new AuthenticationFailedException("프로필 수정 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 }

@@ -59,4 +59,18 @@ public class SnsUser {
         this.createdAt = new Timestamp(System.currentTimeMillis());
         this.isAdditionalInfoCompleted = false;
     }
+    
+    /**
+     * SNS 사용자 정보를 업데이트합니다.
+     * 
+     * @param name 새 이름
+     * @param phoneNum 새 전화번호
+     * @param location 새 위치
+     */
+    public void update(String name, String phoneNum, String location) {
+        this.name = name;
+        this.phoneNum = phoneNum;
+        this.location = location;
+        this.updatedAt = new Timestamp(System.currentTimeMillis());
+    }
 }
