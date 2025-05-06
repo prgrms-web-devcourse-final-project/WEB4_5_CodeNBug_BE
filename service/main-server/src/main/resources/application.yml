@@ -71,20 +71,20 @@ cors:
 
 sns:
   google:
-    url: ON_SECRET
+    url: https://accounts.google.com/o/oauth2/v2/auth # 고정값
     client:
       id: ON_SECRET
       secret: ON_SECRET
     callback:
-      url: ON_SECRET
+      url: http://localhost:9000/auth/google/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
-      url: ON_SECRET
+      url: https://oauth2.googleapis.com/token # 고정값
   kakao:
-    url: ON_SECRET
+    url: https://kauth.kakao.com/oauth/authorize # 고정값
     client:
       id: ON_SECRET
       secret: ON_SECRET
     callback:
-      url: ON_SECRET
+      url: http://localhost:9000/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
-      url: ON_SECRET
+      url: https://kauth.kakao.com/oauth/token # 고정값
