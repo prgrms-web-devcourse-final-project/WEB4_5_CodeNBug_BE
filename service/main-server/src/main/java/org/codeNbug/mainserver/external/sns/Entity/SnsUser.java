@@ -39,9 +39,24 @@ public class SnsUser {
     @Column(name = "email")
     private String email; // 사용자 이메일
 
+    @Column(name = "age")
+    private Integer age;
+
+    @Column(name = "sex")
+    private String sex;
+
+    @Column(name = "phone_num")
+    private String phoneNum;
+
+    @Column(name = "location")
+    private String location;
+
+    @Column(name = "is_additional_info_completed")
+    private Boolean isAdditionalInfoCompleted;
 
     @PrePersist
     public void prePersist() {
         this.createdAt = new Timestamp(System.currentTimeMillis());
+        this.isAdditionalInfoCompleted = false;
     }
 }

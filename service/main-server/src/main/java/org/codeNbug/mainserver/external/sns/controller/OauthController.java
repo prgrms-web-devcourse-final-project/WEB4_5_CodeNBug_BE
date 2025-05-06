@@ -1,13 +1,16 @@
 package org.codeNbug.mainserver.external.sns.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.codeNbug.mainserver.external.sns.constant.SocialLoginType;
+import org.codeNbug.mainserver.external.sns.dto.AdditionalInfoRequest;
 import org.codeNbug.mainserver.external.sns.dto.UserResponse;
 import org.codeNbug.mainserver.external.sns.service.OauthService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.CookieUtil;
+import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +23,7 @@ public class OauthController {
 
     private final OauthService oauthService;
     private final CookieUtil cookieUtil;
+    private final TokenService tokenService;
 
     @GetMapping(value = "/{socialLoginType}")
     public ResponseEntity<String> socialLoginType(
@@ -68,6 +72,44 @@ public class OauthController {
             log.error(">> 소셜 로그인 처리 중 오류 발생: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "소셜 로그인 처리 중 오류가 발생했습니다."));
+        }
+    }
+
+    /**
+     * SNS 로그인 사용자의 추가 정보를 업데이트하는 API
+     * @param socialId 소셜 로그인 ID
+     * @param request 추가 정보 요청 DTO
+     * @return API 응답
+     */
+    @PostMapping("/sns/additional-info/{socialId}")
+    public ResponseEntity<RsData<UserResponse>> updateAdditionalInfo(
+            @PathVariable String socialId,
+            @Valid @RequestBody AdditionalInfoRequest request) {
+        
+        log.info(">> SNS 사용자 추가 정보 업데이트 요청 :: socialId = {}", socialId);
+        
+        try {
+            var updatedUser = oauthService.updateAdditionalInfo(socialId, request);
+            
+            // 토큰 정보 생성
+            String tokenIdentifier = updatedUser.getSocialId() + ":" + updatedUser.getProvider();
+            var tokenInfo = tokenService.generateTokens(tokenIdentifier);
+            
+            // 응답 데이터 생성
+            UserResponse responseData = new UserResponse(
+                    updatedUser.getName(),
+                    tokenInfo.getAccessToken(),
+                    tokenInfo.getRefreshToken(),
+                    updatedUser.getProvider()
+            );
+            
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "추가 정보 업데이트 성공", responseData));
+                    
+        } catch (Exception e) {
+            log.error(">> 추가 정보 업데이트 실패 :: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "추가 정보 업데이트 실패"));
         }
     }
 }
