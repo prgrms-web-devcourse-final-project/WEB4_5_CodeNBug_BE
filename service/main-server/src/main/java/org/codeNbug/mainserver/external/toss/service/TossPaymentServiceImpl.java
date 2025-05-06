@@ -3,6 +3,7 @@ package org.codeNbug.mainserver.external.toss.service;
 import java.util.Base64;
 import java.util.Map;
 
+import org.codeNbug.mainserver.external.toss.dto.CanceledPaymentInfo;
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -37,6 +38,8 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	 */
 	@Override
 	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, Integer amount) {
+		String url = TOSS_API_URL + "/confirm";
+
 		HttpHeaders headers = new HttpHeaders();
 		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
 		headers.setContentType(MediaType.APPLICATION_JSON);
@@ -50,7 +53,7 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
 		ResponseEntity<String> response = restTemplate.exchange(
-			TOSS_API_URL, HttpMethod.POST, request, String.class
+			url, HttpMethod.POST, request, String.class
 		);
 
 		try {
@@ -60,6 +63,34 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 			return objectMapper.readValue(response.getBody(), ConfirmedPaymentInfo.class);
 		} catch (Exception e) {
 			throw new RuntimeException("Toss 응답 파싱 실패: " + e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public CanceledPaymentInfo cancelPayment(String paymentKey, String cancelReason, Integer cancelAmount) {
+		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
+		headers.setContentType(MediaType.APPLICATION_JSON);
+
+		Map<String, Object> body = Map.of(
+			"cancelReason", cancelReason,
+			"cancelAmount", cancelAmount
+		);
+
+		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+			url, HttpMethod.POST, request, String.class
+		);
+
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			objectMapper.findAndRegisterModules();
+			return objectMapper.readValue(response.getBody(), CanceledPaymentInfo.class);
+		} catch (Exception e) {
+			throw new RuntimeException("Toss 결제 취소 응답 파싱 실패: " + e.getMessage(), e);
 		}
 	}
 }

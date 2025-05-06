@@ -47,7 +47,7 @@ spring:
 payment:
   toss:
     secret-key: ON_SECRET
-    api-url: https://api.tosspayments.com/v1/payments/confirm
+    api-url: https://api.tosspayments.com/v1/payments
 # JWT Configuration
 jwt:
   expiration: 86400000
