@@ -76,7 +76,7 @@ sns:
       id: ON_SECRET
       secret: ON_SECRET
     callback:
-      url: http://localhost:9000/auth/google/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
+      url: https://api.main.ticketone.site/auth/google/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: https://oauth2.googleapis.com/token # 고정값
   kakao:
@@ -85,6 +85,6 @@ sns:
       id: ON_SECRET
       secret: ON_SECRET
     callback:
-      url: http://localhost:9000/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
+      url: https://api.main.ticketone.site/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: https://kauth.kakao.com/oauth/token # 고정값
