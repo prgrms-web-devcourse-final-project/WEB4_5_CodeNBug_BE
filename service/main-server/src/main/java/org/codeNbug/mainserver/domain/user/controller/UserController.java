@@ -197,6 +197,7 @@ public class UserController {
 
     /**
      * 회원 탈퇴 API
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @param request  HTTP 요청 객체 (쿠키 추출용)
      * @param response HTTP 응답 객체 (쿠키 삭제용)
@@ -207,46 +208,60 @@ public class UserController {
             HttpServletRequest request,
             HttpServletResponse response) {
         try {
+            log.info(">> 회원 탈퇴 요청 시작");
+            
             // 헤더에서 토큰 추출 시도
             String authHeader = request.getHeader("Authorization");
             String accessToken = null;
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 accessToken = authHeader.substring(7);
+                log.debug(">> 헤더에서 액세스 토큰 추출 성공");
             }
 
             // 헤더에 토큰이 없으면 쿠키에서 추출 시도
             if (accessToken == null) {
                 accessToken = cookieUtil.getAccessTokenFromCookie(request);
+                log.debug(">> 쿠키에서 액세스 토큰 추출: {}", 
+                        accessToken != null ? "성공" : "실패");
             }
 
             String refreshToken = cookieUtil.getRefreshTokenFromCookie(request);
+            log.debug(">> 쿠키에서 리프레시 토큰 추출: {}", 
+                    refreshToken != null ? "성공" : "실패");
 
             if (accessToken == null || refreshToken == null) {
+                log.warn(">> 회원 탈퇴 실패: 인증 정보 부족");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(new RsData<>("401-UNAUTHORIZED", "인증 정보가 필요합니다."));
             }
 
-            // 토큰에서 식별자(이메일 또는 소셜ID) 추출
-            String email = tokenService.getSubjectFromToken(accessToken);
+            // 토큰에서 식별자(이메일 또는 소셜ID:provider) 추출
+            String identifier = tokenService.getSubjectFromToken(accessToken);
+            log.info(">> 토큰에서 사용자 식별자 추출: {}", identifier);
 
             // 회원 탈퇴 처리
-            userService.withdrawUser(email, accessToken, refreshToken);
+            userService.withdrawUser(identifier, accessToken, refreshToken);
+            log.info(">> 회원 탈퇴 처리 완료: identifier={}", identifier);
 
             // 쿠키 삭제
             cookieUtil.deleteAccessTokenCookie(response);
             cookieUtil.deleteRefreshTokenCookie(response);
+            log.info(">> 인증 쿠키 삭제 완료");
 
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "회원 탈퇴 성공"));
         } catch (AuthenticationFailedException e) {
+            log.error(">> 회원 탈퇴 인증 실패: {}", e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
         } catch (IllegalArgumentException e) {
+            log.error(">> 회원 탈퇴 파라미터 오류: {}", e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new RsData<>("404-NOT_FOUND", e.getMessage()));
         } catch (Exception e) {
+            log.error(">> 회원 탈퇴 처리 중 오류 발생: {}", e.getMessage(), e);
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
@@ -255,6 +270,7 @@ public class UserController {
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 조회합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @return ResponseEntity<RsData < UserProfileResponse>> 프로필 정보 응답
      */
@@ -265,8 +281,8 @@ public class UserController {
             
             UserProfileResponse profile = userService.getProfile();
             
-            log.info(">> 프로필 조회 성공: userId={}, email={}", 
-                    profile.getId(), profile.getEmail());
+            log.info(">> 프로필 조회 성공: userId={}, isSnsUser={}", 
+                    profile.getId(), profile.getIsSnsUser());
             
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "프로필 조회 성공", profile));
@@ -285,6 +301,7 @@ public class UserController {
 
     /**
      * 현재 로그인한 사용자의 프로필 정보를 수정합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @param request 수정할 프로필 정보
      * @return ResponseEntity<RsData < UserProfileResponse>> 수정된 프로필 정보 응답
@@ -293,15 +310,24 @@ public class UserController {
     public ResponseEntity<RsData<UserProfileResponse>> updateProfile(
             @Valid @RequestBody UserUpdateRequest request) {
         try {
+            log.info(">> 사용자 프로필 수정 요청: name={}, phoneNum={}, location={}", 
+                    request.getName(), request.getPhoneNum(), request.getLocation());
+            
             // 프로필 수정 처리
             UserProfileResponse response = userService.updateProfile(request);
+            
+            log.info(">> 프로필 수정 성공: userId={}, isSnsUser={}", 
+                    response.getId(), response.getIsSnsUser());
+            
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "프로필 수정 성공", response));
         } catch (AuthenticationFailedException e) {
+            log.warn(">> 프로필 수정 인증 실패: {}", e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", "인증이 필요합니다."));
         } catch (Exception e) {
+            log.error(">> 프로필 수정 중 오류 발생: {}", e.getMessage(), e);
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
@@ -310,20 +336,33 @@ public class UserController {
 
     /**
      * 사용자의 구매 이력 목록을 조회합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
      * @return ResponseEntity<RsData<PurchaseHistoryListResponse>> 구매 이력 목록 응답
      */
     @GetMapping("/me/purchases")
     public ResponseEntity<RsData<PurchaseHistoryListResponse>> getPurchaseHistoryList() {
         try {
+            log.info(">> 사용자 구매 이력 조회 요청");
+            
             Long userId = SecurityUtil.getCurrentUserId();
             PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
+            
+            log.info(">> 구매 이력 조회 성공: userId={}, 조회된 건수={}", 
+                    userId, response.getPurchases().size());
+            
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
         } catch (AuthenticationFailedException e) {
+            log.warn(">> 구매 이력 조회 인증 실패: {}", e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
+        } catch (Exception e) {
+            log.error(">> 구매 이력 조회 중 오류 발생: {}", e.getMessage(), e);
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
     }
 

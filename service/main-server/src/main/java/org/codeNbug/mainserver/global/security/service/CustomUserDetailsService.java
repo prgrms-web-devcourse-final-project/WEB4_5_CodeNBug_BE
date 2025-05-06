@@ -1,8 +1,11 @@
 package org.codeNbug.mainserver.global.security.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
+import org.codeNbug.mainserver.external.sns.Entity.SnsUser;
+import org.codeNbug.mainserver.external.sns.repository.SnsUserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -11,32 +14,54 @@ import org.springframework.stereotype.Service;
 
 /**
  * 커스텀 사용자 상세 정보 서비스
-
  * 스프링 시큐리티의 인증 메커니즘에서 사용자 정보를 로드하기 위한 서비스입니다.
- * 사용자 이름(username)을 기반으로 데이터베이스에서 사용자 정보를 조회하고
- * 스프링 시큐리티에서 사용할 수 있는 UserDetails 객체로 변환합니다.
+ * 일반 사용자와 SNS 로그인 사용자 모두 지원합니다.
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final SnsUserRepository snsUserRepository;
 
     /**
-     * 사용자 이름(이메일)으로 사용자 상세 정보를 로드합니다.
-     *
-     * 주어진 사용자 이름(이메일)을 기반으로 데이터베이스에서 사용자 정보를 조회하고,
-     * 스프링 시큐리티에서 사용할 수 있는 UserDetails 객체로 변환하여 반환
+     * 사용자 식별자로 사용자 상세 정보를 로드합니다.
      * 
-     * @param username 조회할 사용자의 이름(이메일)
+     * @param identifier 사용자 식별자 (일반 사용자의 경우 이메일, SNS 사용자의 경우 socialId:provider 형식)
      * @return 사용자 상세 정보를 포함한 UserDetails 객체
      * @throws UsernameNotFoundException 사용자를 찾을 수 없는 경우 발생하는 예외
      */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("이메일을 찾을 수 없습니다.: " + username));
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        log.debug(">> 사용자 식별자로 정보 로드: {}", identifier);
         
-        return new CustomUserDetails(user);
+        // SNS 사용자 식별자 형식 (socialId:provider)인 경우
+        if (identifier.contains(":")) {
+            log.debug(">> SNS 사용자 식별자 감지: {}", identifier);
+            String[] parts = identifier.split(":");
+            String socialId = parts[0];
+            
+            SnsUser snsUser = snsUserRepository.findBySocialId(socialId)
+                    .orElseThrow(() -> {
+                        log.warn(">> SNS 사용자를 찾을 수 없음: socialId={}", socialId);
+                        return new UsernameNotFoundException("SNS 사용자를 찾을 수 없습니다: " + socialId);
+                    });
+            
+            log.debug(">> SNS 사용자 찾음: socialId={}, provider={}", snsUser.getSocialId(), snsUser.getProvider());
+            return new SnsUserDetails(snsUser);
+        } 
+        // 일반 사용자 (이메일)인 경우
+        else {
+            log.debug(">> 일반 사용자 이메일 감지: {}", identifier);
+            User user = userRepository.findByEmail(identifier)
+                    .orElseThrow(() -> {
+                        log.warn(">> 일반 사용자를 찾을 수 없음: email={}", identifier);
+                        return new UsernameNotFoundException("이메일을 찾을 수 없습니다: " + identifier);
+                    });
+            
+            log.debug(">> 일반 사용자 찾음: email={}, userId={}", user.getEmail(), user.getUserId());
+            return new CustomUserDetails(user);
+        }
     }
 } 
