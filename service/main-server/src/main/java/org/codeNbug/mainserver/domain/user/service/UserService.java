@@ -118,30 +118,81 @@ public class UserService {
         }
 
         try {
-            // RefreshToken에서 subject(식별자) 추출
+            // 1. RefreshToken에서 subject(식별자) 추출
             String identifier = tokenService.getSubjectFromToken(refreshToken);
             log.info(">> RefreshToken에서 식별자 추출 성공: {}", identifier);
 
-            // SNS 사용자(KAKAO)라면 카카오 로그아웃 REST API 호출
-            if (identifier != null && identifier.endsWith(":" + SocialLoginType.KAKAO.name())) {
-                log.info(">> SNS(KAKAO) 사용자 로그아웃: 카카오 로그아웃 API 호출");
-                kakaoOauth.kakaoLogout(accessToken);
+            // 2. AccessToken에서 subject(식별자) 추출 및 RefreshToken과 일치 여부 확인
+            String accessTokenIdentifier = tokenService.getSubjectFromToken(accessToken);
+            if (!identifier.equals(accessTokenIdentifier)) {
+                log.warn(">> 토큰 불일치: 액세스 토큰 식별자={}, 리프레시 토큰 식별자={}", accessTokenIdentifier, identifier);
+                throw new AuthenticationFailedException("액세스 토큰과 리프레시 토큰의 사용자 정보가 일치하지 않습니다.");
             }
-            // (추후 GOOGLE 등 다른 SNS도 분기 추가 가능)
 
-            // RefreshToken 삭제
+            // 3. SNS 사용자인 경우 SNS 타입에 따라 외부 API 호출
+            if (identifier != null && identifier.contains(":")) {
+                handleSnsLogout(identifier, accessToken);
+            }
+
+            // 4. RefreshToken 삭제
             tokenService.deleteRefreshToken(identifier);
             log.info(">> RefreshToken 삭제 완료: {}", identifier);
 
-            // AccessToken 블랙리스트 처리
+            // 5. AccessToken 블랙리스트 처리
             long expirationTime = tokenService.getExpirationTimeFromToken(accessToken);
             tokenService.addToBlacklist(accessToken, expirationTime);
             log.info(">> AccessToken 블랙리스트 처리 완료: 만료시간={}", expirationTime);
             
             log.info(">> 로그아웃 처리 완료: 사용자={}", identifier);
+        } catch (AuthenticationFailedException e) {
+            log.error(">> 로그아웃 인증 실패: {}", e.getMessage(), e);
+            throw e;
         } catch (Exception e) {
             log.error(">> 로그아웃 처리 실패: {}", e.getMessage(), e);
             throw new AuthenticationFailedException("로그아웃 처리 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * SNS 사용자 로그아웃 처리
+     * 소셜 로그인 타입에 따라 적절한 로그아웃 API를 호출합니다.
+     *
+     * @param identifier SNS 사용자 식별자 (socialId:provider 형식)
+     * @param accessToken 액세스 토큰
+     */
+    private void handleSnsLogout(String identifier, String accessToken) {
+        try {
+            String[] parts = identifier.split(":");
+            if (parts.length != 2) {
+                log.warn(">> 잘못된 SNS 사용자 식별자 형식: {}", identifier);
+                return;
+            }
+
+            String socialId = parts[0];
+            String provider = parts[1];
+            
+            log.info(">> SNS 로그아웃 처리: socialId={}, provider={}", socialId, provider);
+
+            // SNS 제공자별 로그아웃 처리
+            switch (provider) {
+                case "KAKAO":
+                    log.info(">> 카카오 로그아웃 API 호출");
+                    kakaoOauth.kakaoLogout(accessToken);
+                    break;
+                case "GOOGLE":
+                    log.info(">> 구글 로그아웃 처리 (클라이언트 측에서 처리됨)");
+                    // 구글은 서버 측에서 로그아웃 API를 호출할 필요가 없거나 별도 처리가 필요
+                    break;
+                case "NAVER":
+                    log.info(">> 네이버 로그아웃 처리 (향후 구현 예정)");
+                    // 네이버 로그아웃 처리 로직 추가 (필요시)
+                    break;
+                default:
+                    log.warn(">> 지원되지 않는 SNS 제공자: {}", provider);
+            }
+        } catch (Exception e) {
+            log.error(">> SNS 로그아웃 처리 중 오류 발생: {}", e.getMessage(), e);
+            // 로그아웃 전체 프로세스를 중단하지 않도록 예외를 던지지 않고 로깅만 함
         }
     }
 

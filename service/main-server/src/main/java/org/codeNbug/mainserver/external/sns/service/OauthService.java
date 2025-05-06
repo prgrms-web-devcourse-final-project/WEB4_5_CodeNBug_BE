@@ -63,6 +63,7 @@ public class OauthService {
     }
 
     // 액세스 토큰을 사용하여 사용자 정보를 가져오고, 사용자 정보가 있으면 저장하는 메서드
+    @Transactional
     public UserResponse requestAccessTokenAndSaveUser(SocialLoginType socialLoginType, String code) {
         // 1. 액세스 토큰을 포함한 JSON 응답을 요청
         String accessTokenJson = this.requestAccessToken(socialLoginType, code);
@@ -96,10 +97,13 @@ public class OauthService {
             savedUser = snsUserRepository.save(user);
         }
 
-        // 6. JWT 토큰 생성 (UserService와 유사하게)
-        // 소셜 로그인용 식별자로 socialId와 provider를 조합하여 사용
-        String tokenIdentifier = savedUser.getSocialId() + ":" + savedUser.getProvider();
-        TokenService.TokenInfo tokenInfo = tokenService.generateTokens(tokenIdentifier);
+        // 6. SNS 사용자용 JWT 토큰 생성
+        // SNS 사용자용 토큰 생성 메서드 사용
+        logger.info(">> SNS 사용자 토큰 생성: socialId={}, provider={}", savedUser.getSocialId(), savedUser.getProvider());
+        TokenService.TokenInfo tokenInfo = tokenService.generateTokensForSnsUser(
+                savedUser.getSocialId(), savedUser.getProvider());
+        logger.debug(">> SNS 사용자 토큰 생성 완료: accessToken={}, refreshToken={}", 
+                tokenInfo.getAccessToken(), tokenInfo.getRefreshToken());
 
         // 7. 토큰 및 사용자 정보를 포함한 응답 반환
         return new UserResponse(savedUser.getName(), tokenInfo.getAccessToken(),

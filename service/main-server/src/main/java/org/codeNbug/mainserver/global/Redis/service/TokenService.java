@@ -29,6 +29,7 @@ public class TokenService {
 
     /**
      * Access Token과 Refresh Token을 생성하고, Refresh Token을 Redis에 저장
+     * 일반 사용자용 토큰 생성
      *
      * @param email 사용자 이메일
      * @return 생성된 토큰 정보
@@ -47,6 +48,33 @@ public class TokenService {
         redisRepository.saveRefreshToken(refreshToken, email, jwtConfig.getRefreshTokenExpiration());
         log.info(">> 리프레시 토큰 Redis 저장 완료: 사용자={}, 만료시간={}ms", 
                 email, jwtConfig.getRefreshTokenExpiration());
+
+        return TokenInfo.of(accessToken, refreshToken);
+    }
+
+    /**
+     * SNS 사용자용 Access Token과 Refresh Token을 생성하고, Refresh Token을 Redis에 저장
+     *
+     * @param socialId 소셜 ID
+     * @param provider 제공자 (KAKAO, GOOGLE 등)
+     * @return 생성된 토큰 정보
+     */
+    @Transactional
+    public TokenInfo generateTokensForSnsUser(String socialId, String provider) {
+        // socialId:provider 형식의 식별자 생성
+        String identifier = socialId + ":" + provider;
+        log.info(">> SNS 사용자 토큰 생성 시작: 식별자={}", identifier);
+        
+        String accessToken = jwtConfig.generateAccessToken(identifier);
+        log.debug(">> SNS 사용자 액세스 토큰 생성 완료: {}", accessToken);
+        
+        String refreshToken = jwtConfig.generateRefreshToken(identifier);
+        log.debug(">> SNS 사용자 리프레시 토큰 생성 완료: {}", refreshToken);
+
+        // Refresh Token을 Redis에 저장
+        redisRepository.saveRefreshToken(refreshToken, identifier, jwtConfig.getRefreshTokenExpiration());
+        log.info(">> SNS 사용자 리프레시 토큰 Redis 저장 완료: 식별자={}, 만료시간={}ms", 
+                identifier, jwtConfig.getRefreshTokenExpiration());
 
         return TokenInfo.of(accessToken, refreshToken);
     }
@@ -165,6 +193,35 @@ public class TokenService {
         } catch (Exception e) {
             log.error(">> 토큰 만료 시간 계산 실패: {}", e.getMessage(), e);
             throw e;
+        }
+    }
+
+    /**
+     * 토큰 검증 및 식별자 일치 확인
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
+     * 
+     * @param token 검증할 토큰
+     * @param expectedIdentifier 예상되는 식별자
+     * @return 토큰이 유효하고 식별자가 일치하면 true
+     */
+    public boolean validateTokenAndIdentifier(String token, String expectedIdentifier) {
+        try {
+            if (!jwtConfig.validateToken(token)) {
+                log.warn(">> 토큰 검증 실패: 토큰이 유효하지 않음");
+                return false;
+            }
+            
+            String tokenIdentifier = getSubjectFromToken(token);
+            boolean matches = tokenIdentifier.equals(expectedIdentifier);
+            
+            if (!matches) {
+                log.warn(">> 식별자 불일치: 토큰 식별자={}, 예상 식별자={}", tokenIdentifier, expectedIdentifier);
+            }
+            
+            return matches;
+        } catch (Exception e) {
+            log.error(">> 토큰 검증 중 오류 발생: {}", e.getMessage(), e);
+            return false;
         }
     }
 
