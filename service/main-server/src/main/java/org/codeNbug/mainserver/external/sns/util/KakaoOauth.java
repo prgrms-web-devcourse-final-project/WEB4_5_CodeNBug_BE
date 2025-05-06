@@ -123,4 +123,31 @@ public class KakaoOauth implements SocialOauth {
             log.error(">> 카카오 로그아웃 API 호출 중 예외 발생: {}", e.getMessage(), e);
         }
     }
+
+    /**
+     * 카카오 연동 해제 REST API 호출
+     * 사용자의 토큰과 카카오 계정 간의 연결을 해제합니다.
+     * 
+     * @param accessToken 카카오 액세스 토큰
+     */
+    public void kakaoUnlink(String accessToken) {
+        String unlinkUrl = "https://kapi.kakao.com/v1/user/unlink";
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "Bearer " + accessToken);
+        HttpEntity<String> requestEntity = new HttpEntity<>(null, headers);
+        
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(unlinkUrl, requestEntity, String.class);
+            if (response.getStatusCode() == HttpStatus.OK) {
+                log.info(">> 카카오 연동 해제 API 호출 성공: {}", response.getBody());
+            } else {
+                log.warn(">> 카카오 연동 해제 API 호출 실패: status={}, body={}", response.getStatusCode(), response.getBody());
+            }
+        } catch (Exception e) {
+            log.error(">> 카카오 연동 해제 API 호출 중 예외 발생: {}", e.getMessage(), e);
+            throw new RuntimeException("카카오 연동 해제 처리 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
 }

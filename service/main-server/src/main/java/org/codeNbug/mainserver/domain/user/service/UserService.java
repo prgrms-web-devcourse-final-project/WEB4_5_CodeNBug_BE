@@ -203,50 +203,126 @@ public class UserService {
     /**
      * 회원 탈퇴 처리
      * 사용자 정보를 삭제하고 토큰을 무효화합니다.
-     * 일반 회원가입 사용자에 특화된 메서드입니다.
-     * SNS 로그인 사용자의 경우 별도의 처리가 필요할 수 있습니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
-     * @param email 사용자 이메일
+     * @param identifier 사용자 식별자 (이메일 또는 socialId:provider)
      * @param accessToken 액세스 토큰
      * @param refreshToken 리프레시 토큰
      */
     @Transactional
-    public void withdrawUser(String email, String accessToken, String refreshToken) {
-        if (email == null || accessToken == null || refreshToken == null) {
+    public void withdrawUser(String identifier, String accessToken, String refreshToken) {
+        log.info(">> 회원 탈퇴 처리 시작: identifier={}", identifier);
+        
+        if (identifier == null || accessToken == null || refreshToken == null) {
+            log.warn(">> 회원 탈퇴 실패: 인증 정보 누락");
             throw new AuthenticationFailedException("인증 정보가 필요합니다.");
         }
 
         try {
             // RefreshToken에서 식별자(이메일 또는 socialId:provider) 추출
             String tokenIdentifier = tokenService.getSubjectFromToken(refreshToken);
+            log.debug(">> 토큰에서 추출한 식별자: {}", tokenIdentifier);
             
-            // 토큰에서 추출한 식별자와 파라미터로 받은 email이 일치하는지 확인
-            // SNS 사용자의 경우 email이 tokenIdentifier와 다를 수 있음
-            if (!tokenIdentifier.equals(email) && !tokenIdentifier.startsWith(email)) {
+            // 토큰에서 추출한 식별자와 파라미터로 받은 identifier가 일치하는지 확인
+            if (!tokenIdentifier.equals(identifier)) {
+                log.warn(">> 회원 탈퇴 실패: 인증 정보 불일치 - token={}, param={}", tokenIdentifier, identifier);
                 throw new AuthenticationFailedException("인증 정보가 일치하지 않습니다.");
             }
             
-            // 일반 사용자인 경우만 처리
-            if (!tokenIdentifier.contains(":")) {
-                // 사용자 존재 여부 확인
-                User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            // SNS 사용자인 경우 (identifier에 : 포함)
+            if (tokenIdentifier.contains(":")) {
+                log.info(">> SNS 사용자 탈퇴 처리: {}", tokenIdentifier);
+                String[] parts = tokenIdentifier.split(":");
+                if (parts.length != 2) {
+                    log.warn(">> 잘못된 SNS 사용자 식별자 형식: {}", tokenIdentifier);
+                    throw new IllegalArgumentException("잘못된 SNS 사용자 식별자 형식입니다.");
+                }
                 
+                String socialId = parts[0];
+                String provider = parts[1];
+                
+                // SNS 계정 연동 해제 처리
+                handleSnsWithdraw(socialId, provider, accessToken);
+                
+                // SnsUser 엔티티 삭제
+                SnsUser snsUser = snsUserRepository.findBySocialId(socialId)
+                    .orElseThrow(() -> {
+                        log.warn(">> 탈퇴할 SNS 사용자를 찾을 수 없음: socialId={}", socialId);
+                        return new IllegalArgumentException("SNS 사용자를 찾을 수 없습니다.");
+                    });
+                
+                log.info(">> SNS 사용자 엔티티 삭제: id={}, socialId={}, provider={}", 
+                        snsUser.getId(), snsUser.getSocialId(), snsUser.getProvider());
+                snsUserRepository.delete(snsUser);
+            }
+            // 일반 사용자인 경우
+            else {
+                log.info(">> 일반 사용자 탈퇴 처리: {}", tokenIdentifier);
+                
+                // 사용자 존재 여부 확인
+                User user = userRepository.findByEmail(tokenIdentifier)
+                    .orElseThrow(() -> {
+                        log.warn(">> 탈퇴할 일반 사용자를 찾을 수 없음: email={}", tokenIdentifier);
+                        return new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+                    });
+                
+                log.info(">> 일반 사용자 엔티티 삭제: userId={}, email={}", user.getUserId(), user.getEmail());
                 // 사용자 삭제
                 userRepository.delete(user);
             }
-            // SNS 사용자의 경우 SnsUser 엔티티 삭제는 별도 서비스에서 처리해야 함
 
             // RefreshToken 삭제
             tokenService.deleteRefreshToken(tokenIdentifier);
+            log.info(">> RefreshToken 삭제 완료: {}", tokenIdentifier);
 
             // AccessToken 블랙리스트 처리
             long expirationTime = tokenService.getExpirationTimeFromToken(accessToken);
             tokenService.addToBlacklist(accessToken, expirationTime);
+            log.info(">> AccessToken 블랙리스트 처리 완료: 만료시간={}", expirationTime);
+            
+            log.info(">> 회원 탈퇴 처리 완료: identifier={}", tokenIdentifier);
         } catch (AuthenticationFailedException | IllegalArgumentException e) {
+            log.error(">> 회원 탈퇴 처리 실패: {}", e.getMessage());
             throw e;
         } catch (Exception e) {
+            log.error(">> 회원 탈퇴 처리 중 오류: {}", e.getMessage(), e);
             throw new AuthenticationFailedException("회원 탈퇴 처리 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * SNS 사용자 탈퇴 시 SNS 계정 연동 해제 처리
+     * 
+     * @param socialId SNS 사용자 ID
+     * @param provider SNS 제공자 (KAKAO, GOOGLE, NAVER 등)
+     * @param accessToken 액세스 토큰
+     */
+    private void handleSnsWithdraw(String socialId, String provider, String accessToken) {
+        log.info(">> SNS 계정 연동 해제 처리: socialId={}, provider={}", socialId, provider);
+        
+        try {
+            switch (provider) {
+                case "KAKAO":
+                    log.info(">> 카카오 연동 해제 API 호출");
+                    // 카카오 계정 연동 해제 호출
+                    kakaoOauth.kakaoUnlink(accessToken);
+                    break;
+                case "GOOGLE":
+                    log.info(">> 구글 연동 해제 처리 (클라이언트 측에서 주로 처리)");
+                    // 구글은 서버 측에서 연동 해제 호출이 필요 없거나 별도 처리 필요
+                    // 필요시 구글 API 호출 로직 구현
+                    break;
+                case "NAVER":
+                    log.info(">> 네이버 연동 해제 처리 (향후 구현 예정)");
+                    // 네이버 연동 해제 처리 로직 (필요시)
+                    break;
+                default:
+                    log.warn(">> 지원되지 않는 SNS 제공자: {}", provider);
+            }
+        } catch (Exception e) {
+            // 연동 해제 실패해도 사용자 탈퇴는 진행
+            log.error(">> SNS 계정 연동 해제 처리 중 오류: {}", e.getMessage(), e);
+            log.info(">> SNS 계정 연동 해제 실패했으나, 사용자 탈퇴는 계속 진행됩니다.");
         }
     }
 
