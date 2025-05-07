@@ -10,4 +10,6 @@ dependencies {
 
 
     implementation project(':service:user')
+    implementation project(':service:common')
+
 }

@@ -7,6 +7,10 @@ WORKDIR /app
 # 소스 코드와 Gradle 래퍼 복사
 COPY build.gradle settings.gradle ./
 COPY service/main-server/build.gradle service/main-server/settings.gradle ./service/main-server/
+COPY service/common/build.gradle service/common/settings.gradle ./service/common/
+COPY service/user/build.gradle service/user/settings.gradle ./service/user/
+
+
 
 
 # 종속성 설치
@@ -15,6 +19,8 @@ RUN gradle dependencies --no-daemon
 # 소스 코드 복사
 COPY service/main-server/src/main/java ./service/main-server/src/main/java
 COPY service/main-server/src/main/resources ./service/main-server/src/main/resources
+COPY service/common/src/main/java ./service/common/src/main/java
+COPY service/user/src/main/java ./service/user/src/main/java
 
 RUN ls -al ./service/main-server/src/main/resources
 

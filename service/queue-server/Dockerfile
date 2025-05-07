@@ -7,6 +7,8 @@ WORKDIR /app
 # 소스 코드와 Gradle 래퍼 복사
 COPY build.gradle settings.gradle ./
 COPY service/queue-server/build.gradle service/queue-server/settings.gradle ./service/queue-server/
+COPY service/common/build.gradle service/common/settings.gradle ./service/common/
+COPY service/user/build.gradle service/user/settings.gradle ./service/user/
 
 
 # 종속성 설치
@@ -14,6 +16,8 @@ RUN gradle dependencies --no-daemon
 
 # 소스 코드 복사
 COPY service/queue-server/src ./service/queue-server/src
+COPY service/common/src/main/java ./service/common/src/main/java
+COPY service/user/src/main/java ./service/user/src/main/java
 
 # 애플리케이션 빌드
 RUN gradle  :service:queue-server:bootJar
