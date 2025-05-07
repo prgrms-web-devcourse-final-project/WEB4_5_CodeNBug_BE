@@ -75,16 +75,16 @@ subprojects {
     }
     sourceSets.main.java.srcDir("$buildDir/generated/querydsl")
 
-    tasks.named('bootJar') {
-        enabled = false
-    }
-
-    tasks.named('jar') {
-        enabled = true
-    }
-
-    tasks.named('test') {
-        useJUnitPlatform()
-    }
 }
 
+tasks.named('bootJar') {
+    enabled = false
+}
+
+tasks.named('jar') {
+    enabled = true
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
