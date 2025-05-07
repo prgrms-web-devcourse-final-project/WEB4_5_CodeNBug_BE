@@ -4,7 +4,8 @@ server:
 spring:
   profiles:
     active: dev
-    include: secret
+  config:
+    import: application-secret.yml
   data:
     redis:
       port: ${redis.port}
@@ -18,7 +19,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: false
     properties:
       hibernate:
@@ -76,7 +77,7 @@ sns:
       id: ON_SECRET
       secret: ON_SECRET
     callback:
-      url: https://api.main.ticketone.site/auth/google/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
+      url: https://localhost:3001/auth/google/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: https://oauth2.googleapis.com/token # 고정값
   kakao:
@@ -85,6 +86,6 @@ sns:
       id: ON_SECRET
       secret: ON_SECRET
     callback:
-      url: https://api.main.ticketone.site/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
+      url: https://localhost:3001/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: https://kauth.kakao.com/oauth/token # 고정값
