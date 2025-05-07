@@ -19,6 +19,8 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 
 	@Override
 	public List<Event> findAllByFilter(EventListFilter filter) {
-		return List.of();
+		// jpaQueryFactory.selectFrom(QEvent.event)
+		// 	.where()
+		return null;
 	}
 }

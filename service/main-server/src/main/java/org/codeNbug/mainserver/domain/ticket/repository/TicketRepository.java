@@ -2,7 +2,7 @@ package org.codeNbug.mainserver.domain.ticket.repository;
 
 import java.util.List;
 
-import org.codeNbug.mainserver.domain.manager.dto.TicketDto;
+import org.codeNbug.mainserver.domain.event.dto.TicketDto;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -10,14 +10,14 @@ import org.springframework.data.repository.query.Param;
 
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
 	@Query("""
-		    SELECT new org.codeNbug.mainserver.domain.manager.dto.TicketDto(
+		    SELECT TicketDto(
 		        p.id, u.id, u.name, u.email, u.phoneNum,
 		        p.paymentStatus, p.purchaseDate, p.amount, t.id
 		    )
 		    FROM Ticket t
 		    JOIN t.purchase p
 		    JOIN p.user u
-		    WHERE t.event.id = :eventId
+		    WHERE t.event.eventId = :eventId
 		""")
 	List<TicketDto> findTicketPurchasesByEventId(@Param("eventId") Long eventId);
 

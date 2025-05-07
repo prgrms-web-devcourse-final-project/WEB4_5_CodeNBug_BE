@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.domain.manager.entity;
+package org.codeNbug.mainserver.domain.event.entity;
 
 import org.codenbug.user.domain.user.entity.User;
 

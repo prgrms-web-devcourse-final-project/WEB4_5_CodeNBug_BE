@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.domain.event.entity;
 
 import java.time.LocalDateTime;
 
+import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
@@ -18,13 +19,14 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Entity(name = "ManagerEvent")
+@Entity
 @Table(name = "event")
 @Getter
 @NoArgsConstructor
@@ -33,6 +35,9 @@ import lombok.Setter;
 @FilterDef(name = "activeEventFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "activeEventFilter", condition = "is_deleted = :isDeleted")
 public class Event {
+
+	@OneToOne
+	private SeatLayout seatLayout;
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -69,4 +74,22 @@ public class Event {
 	@Setter
 	@Column(name = "is_deleted")
 	private Boolean isDeleted = false;
+
+	public Event(Long typeId, EventInformation information, LocalDateTime bookingStart, LocalDateTime bookingEnd,
+		Integer viewCount, LocalDateTime createdAt, LocalDateTime modifiedAt, EventStatusEnum status,
+		Boolean seatSelectable, Boolean isDeleted, SeatLayout seatLayout) {
+		this.typeId = typeId;
+		this.information = information;
+		this.bookingStart = bookingStart;
+		this.bookingEnd = bookingEnd;
+		this.viewCount = viewCount;
+		this.createdAt = createdAt;
+		this.modifiedAt = modifiedAt;
+		this.status = status;
+		this.seatSelectable = seatSelectable;
+		this.isDeleted = isDeleted;
+		this.seatLayout = seatLayout;
+
+		this.seatLayout.setEvent(this);
+	}
 }

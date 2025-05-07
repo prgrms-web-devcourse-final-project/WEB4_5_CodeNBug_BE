@@ -1,12 +1,15 @@
 package org.codeNbug.mainserver.domain.manager.dto;
 
-import lombok.*;
-import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
-import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
-
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
+
+import org.codeNbug.mainserver.domain.event.dto.layout.PriceDto;
+import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor

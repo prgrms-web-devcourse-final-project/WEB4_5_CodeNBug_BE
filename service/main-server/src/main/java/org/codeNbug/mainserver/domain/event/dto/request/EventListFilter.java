@@ -4,9 +4,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.entity.CostRange;
+import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
+import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.event.entity.Location;
-import org.codeNbug.mainserver.domain.manager.entity.EventStatusEnum;
-import org.codeNbug.mainserver.domain.manager.entity.EventType;
 
 import lombok.Getter;
 
@@ -40,4 +40,9 @@ public class EventListFilter {
 			|| startDate != null
 			|| endDate != null;
 	}
+
+	public void getCostRangeQuery() {
+		// QSeatLayout.seatLayout.layout
+	}
+	
 }

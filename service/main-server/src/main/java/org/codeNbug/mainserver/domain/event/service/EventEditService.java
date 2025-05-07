@@ -1,16 +1,17 @@
-package org.codeNbug.mainserver.domain.manager.service;
+package org.codeNbug.mainserver.domain.event.service;
 
 import java.util.List;
 import java.util.Map;
 
+import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
+import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventInformation;
+import org.codeNbug.mainserver.domain.event.entity.EventType;
+import org.codeNbug.mainserver.domain.event.repository.EventRepository;
+import org.codeNbug.mainserver.domain.event.repository.EventTypeRepository;
+import org.codeNbug.mainserver.domain.event.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
-import org.codeNbug.mainserver.domain.manager.dto.EventRegisterResponse;
-import org.codeNbug.mainserver.domain.manager.entity.Event;
-import org.codeNbug.mainserver.domain.manager.entity.EventInformation;
-import org.codeNbug.mainserver.domain.manager.entity.EventType;
-import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
-import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
-import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.manager.service.EventDomainService;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
