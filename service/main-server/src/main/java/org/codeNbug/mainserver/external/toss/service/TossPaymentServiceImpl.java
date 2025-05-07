@@ -67,7 +67,34 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	}
 
 	@Override
-	public CanceledPaymentInfo cancelPayment(String paymentKey, String cancelReason, Integer cancelAmount) {
+	public CanceledPaymentInfo cancelPayment(String paymentKey, String cancelReason) {
+		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
+		headers.setContentType(MediaType.APPLICATION_JSON);
+
+		Map<String, Object> body = Map.of(
+			"cancelReason", cancelReason
+		);
+
+		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+		ResponseEntity<String> response = restTemplate.exchange(
+			url, HttpMethod.POST, request, String.class
+		);
+
+		try {
+			ObjectMapper objectMapper = new ObjectMapper();
+			objectMapper.findAndRegisterModules();
+			return objectMapper.readValue(response.getBody(), CanceledPaymentInfo.class);
+		} catch (Exception e) {
+			throw new RuntimeException("Toss 전액 취소 응답 파싱 실패: " + e.getMessage(), e);
+		}
+	}
+
+	@Override
+	public CanceledPaymentInfo cancelPartialPayment(String paymentKey, String cancelReason, Integer cancelAmount) {
 		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
 
 		HttpHeaders headers = new HttpHeaders();
@@ -90,7 +117,7 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 			objectMapper.findAndRegisterModules();
 			return objectMapper.readValue(response.getBody(), CanceledPaymentInfo.class);
 		} catch (Exception e) {
-			throw new RuntimeException("Toss 결제 취소 응답 파싱 실패: " + e.getMessage(), e);
+			throw new RuntimeException("Toss 부분 취소 응답 파싱 실패: " + e.getMessage(), e);
 		}
 	}
 }

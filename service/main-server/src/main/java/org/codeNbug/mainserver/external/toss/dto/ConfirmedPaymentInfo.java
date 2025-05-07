@@ -6,6 +6,7 @@ import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
  */
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConfirmedPaymentInfo {
 
@@ -36,6 +38,7 @@ public class ConfirmedPaymentInfo {
 
 	@Getter
 	@NoArgsConstructor
+	@AllArgsConstructor
 	@JsonIgnoreProperties(ignoreUnknown = true)
 	public static class Receipt extends ConfirmPaymentResponse.Receipt {
 		private String url;
