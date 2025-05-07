@@ -220,7 +220,7 @@ public class PurchaseService {
 	}
 
 	/**
-	 * 결제 취소
+	 * 유저 측 티켓 결제 취소
 	 * - 전액 또는 부분 취소 요청 시 Toss 결제 취소 API 호출
 	 * - 결제 취소 결과 정보를 반환
 	 *

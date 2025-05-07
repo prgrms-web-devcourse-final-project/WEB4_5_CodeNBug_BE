@@ -43,6 +43,12 @@ public class PurchaseController {
 		return ResponseEntity.ok(new RsData<>("200", "결제 준비 완료", response));
 	}
 
+	/**
+	 * 티켓 구매 승인
+	 *
+	 * @param request 결제 준비 완료된 데이터
+	 * @return 결제 승인 완료 응답
+	 */
 	@PostMapping("/confirm")
 	public ResponseEntity<RsData<ConfirmPaymentResponse>> confirmPayment(
 		@RequestBody ConfirmPaymentRequest request
@@ -52,6 +58,13 @@ public class PurchaseController {
 		return ResponseEntity.ok(new RsData<>("200", "결제 승인 완료", response));
 	}
 
+	/**
+	 * 유저 측 티켓 결제 취소
+	 *
+	 * @param paymentKey 결제 키 (Toss에서 발급된 고유 키)
+	 * @param request 취소 사유 및 취소 금액
+	 * @return 결제 취소 완료 응답
+	 */
 	@PostMapping("/{paymentKey}/cancel")
 	public ResponseEntity<RsData<CancelPaymentResponse>> cancelPayment(
 		@PathVariable String paymentKey,

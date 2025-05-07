@@ -66,6 +66,9 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 		}
 	}
 
+	/**
+	 * Toss 서버에 전액 결제 취소를 요청하고 결과 정보를 반환
+	 */
 	@Override
 	public CanceledPaymentInfo cancelPayment(String paymentKey, String cancelReason) {
 		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
@@ -93,6 +96,9 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 		}
 	}
 
+	/**
+	 * Toss 서버에 부분 결제 취소를 요청하고 결과 정보를 반환
+	 */
 	@Override
 	public CanceledPaymentInfo cancelPartialPayment(String paymentKey, String cancelReason, Integer cancelAmount) {
 		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
