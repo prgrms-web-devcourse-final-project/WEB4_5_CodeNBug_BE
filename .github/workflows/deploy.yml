@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - ".github/workflows/**"
+      - "build.gradle"
+      - "settings.gradle"
       - "service/main-server/src/**"
       - "service/main-server/build.gradle"
       - "service/main-server/Dockerfile"
