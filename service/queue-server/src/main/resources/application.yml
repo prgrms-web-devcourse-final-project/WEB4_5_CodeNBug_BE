@@ -60,3 +60,7 @@ sns:
       url: https://api.main.ticketone.site/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: https://kauth.kakao.com/oauth/token # 고정값
+
+allowed:
+  redirect:
+    domains: localhost:3001,localhost:9000,code-bug.vercel.app
