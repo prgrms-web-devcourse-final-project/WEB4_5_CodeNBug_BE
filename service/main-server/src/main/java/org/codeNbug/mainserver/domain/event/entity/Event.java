@@ -21,7 +21,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -30,7 +29,6 @@ import lombok.Setter;
 @Table(name = "event")
 @Getter
 @NoArgsConstructor
-@AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 @FilterDef(name = "activeEventFilter", parameters = @ParamDef(name = "isDeleted", type = Boolean.class))
 @Filter(name = "activeEventFilter", condition = "is_deleted = :isDeleted")

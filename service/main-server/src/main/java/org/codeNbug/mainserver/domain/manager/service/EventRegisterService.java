@@ -65,7 +65,6 @@ public class EventRegisterService {
 		SeatLayout seatLayout = new SeatLayout(
 			null, eventDomainService.serializeLayoutToJson(request.getLayout()), null);
 		Event event = new Event(
-			null,
 			eventType.getEventTypeId(),
 			EventInformation.builder()
 				.title(request.getTitle())
