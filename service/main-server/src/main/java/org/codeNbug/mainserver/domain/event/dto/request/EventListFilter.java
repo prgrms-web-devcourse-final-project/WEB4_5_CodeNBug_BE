@@ -80,14 +80,15 @@ public class EventListFilter {
 	}
 
 	public BooleanExpression getEventStatusIncludeQuery() {
-		BooleanExpression expression = Expressions.TRUE.eq(true);
+
 
 		if (eventStatusList == null || eventStatusList.isEmpty()) {
-			return expression;
+			return Expressions.TRUE;
 		}
 
+		BooleanExpression expression = Expressions.FALSE;
 		for (EventStatusEnum eventStatus : eventStatusList) {
-			expression.or(QEvent.event.status.eq(eventStatus));
+			expression = expression.or(QEvent.event.status.eq(eventStatus));
 		}
 		return expression;
 	}
