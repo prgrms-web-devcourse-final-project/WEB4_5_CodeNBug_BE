@@ -3,7 +3,7 @@ package org.codeNbug.mainserver.domain.seat.repository;
 import java.util.List;
 import java.util.Optional;
 
-import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

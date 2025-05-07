@@ -1,12 +1,13 @@
 package org.codeNbug.mainserver.domain.manager.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
-import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Getter
 @Data

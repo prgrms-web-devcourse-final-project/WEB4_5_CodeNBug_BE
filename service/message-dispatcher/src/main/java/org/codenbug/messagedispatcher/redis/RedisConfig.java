@@ -59,6 +59,7 @@ public class RedisConfig {
 		} catch (Exception e) {
 			redisTemplate.opsForStream().createGroup(ENTRY_QUEUE_KEY_NAME, ENTRY_QUEUE_GROUP_NAME);
 		}
+		redisTemplate.opsForValue().set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
 
 		return redisTemplate;
 	}
