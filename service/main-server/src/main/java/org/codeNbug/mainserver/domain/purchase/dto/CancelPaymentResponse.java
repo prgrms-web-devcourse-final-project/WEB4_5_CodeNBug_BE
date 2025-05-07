@@ -1,18 +1,35 @@
 package org.codeNbug.mainserver.domain.purchase.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class CancelPaymentResponse {
 	private String paymentKey;
 	private String orderId;
 	private String status;
-	private Integer cancelAmount;
-	private String canceledAt;
-	private String cancelReason;
+	private String method;
+	private Integer totalAmount;
+	private Integer balanceAmount;
+	private Boolean isPartialCancelable;
 	private String receiptUrl;
+	private List<CancelDetail> cancels;
+
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@Builder
+	public static class CancelDetail {
+		private Integer cancelAmount;
+		private LocalDateTime canceledAt;
+		private String cancelReason;
+	}
 }
