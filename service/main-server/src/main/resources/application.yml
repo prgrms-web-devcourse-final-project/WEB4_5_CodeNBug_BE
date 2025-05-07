@@ -4,7 +4,8 @@ server:
 spring:
   profiles:
     active: dev
-    include: secret
+  config:
+    import: application-secret.yml
   data:
     redis:
       port: ${redis.port}
@@ -18,7 +19,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: false
     properties:
       hibernate:
