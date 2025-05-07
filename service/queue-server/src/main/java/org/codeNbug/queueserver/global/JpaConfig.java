@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
-@EntityScan(basePackages = {"org.codenbug.user.entity"})
-@EnableJpaRepositories(basePackages = {"org.codenbug.user.repository"})
+@EntityScan(basePackages = {"org.codenbug.user"})
+@EnableJpaRepositories(basePackages = {"org.codenbug.user"})
 public class JpaConfig {
 }

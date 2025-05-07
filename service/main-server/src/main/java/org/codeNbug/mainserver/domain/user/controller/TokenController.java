@@ -1,8 +1,8 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
-import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.codenbug.common.util.CookieUtil;
+import org.codenbug.user.redis.service.TokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

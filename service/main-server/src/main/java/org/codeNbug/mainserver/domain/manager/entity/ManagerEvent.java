@@ -1,6 +1,6 @@
 package org.codeNbug.mainserver.domain.manager.entity;
 
-import org.codenbug.user.entity.User;
+import org.codenbug.user.domain.user.entity.User;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

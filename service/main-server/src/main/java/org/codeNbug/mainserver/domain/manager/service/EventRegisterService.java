@@ -15,8 +15,8 @@ import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
-import org.codenbug.user.entity.User;
-import org.codenbug.user.repository.UserRepository;
+import org.codenbug.user.domain.user.entity.User;
+import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,6 +1,6 @@
 package org.codeNbug.mainserver.domain.user.dto.request;
 
-import org.codenbug.user.entity.User;
+import org.codenbug.user.domain.user.entity.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import jakarta.validation.constraints.Email;

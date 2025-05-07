@@ -3,7 +3,7 @@ package org.codeNbug.mainserver.global.exception;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
-import org.codenbug.security.exception.AuthenticationFailedException;
+import org.codenbug.user.security.exception.AuthenticationFailedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;

@@ -5,8 +5,8 @@ import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 import java.util.Map;
 
 import org.codeNbug.queueserver.external.redis.RedisConfig;
-import org.codenbug.user.entity.User;
-import org.codenbug.user.repository.UserRepository;
+import org.codenbug.user.domain.user.entity.User;
+import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;

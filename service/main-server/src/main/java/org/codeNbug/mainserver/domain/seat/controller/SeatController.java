@@ -6,7 +6,7 @@ import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
 import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.dto.RsData;
-import org.codenbug.security.util.SecurityUtil;
+import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

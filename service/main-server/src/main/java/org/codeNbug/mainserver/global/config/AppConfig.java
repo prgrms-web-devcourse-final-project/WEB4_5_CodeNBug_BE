@@ -4,6 +4,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ComponentScan(basePackages = {"org.codeNbug.mainserver", "org.codenbug.security", "org.codenbug.common"})
+@ComponentScan(basePackages = {"org.codeNbug.mainserver", "org.codenbug.user",
+	"org.codenbug.common"})
 public class AppConfig {
 }

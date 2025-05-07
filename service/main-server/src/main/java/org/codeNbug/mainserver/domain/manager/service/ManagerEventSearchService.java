@@ -5,11 +5,9 @@ import java.util.List;
 import org.codeNbug.mainserver.domain.manager.dto.ManagerEventListResponse;
 import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.manager.entity.EventType;
-import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
-import org.codenbug.user.entity.User;
-import org.codenbug.user.repository.UserRepository;
+import org.codenbug.user.domain.user.entity.User;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;

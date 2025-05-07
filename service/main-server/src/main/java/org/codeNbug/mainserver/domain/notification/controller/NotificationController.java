@@ -4,9 +4,9 @@ import org.codeNbug.mainserver.domain.notification.dto.NotificationCreateRequest
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.global.dto.RsData;
-import org.codenbug.security.annotation.RoleRequired;
-import org.codenbug.security.util.SecurityUtil;
-import org.codenbug.user.constant.UserRole;
+import org.codeNbug.mainserver.global.util.SecurityUtil;
+import org.codenbug.user.domain.user.constant.UserRole;
+import org.codenbug.user.security.annotation.RoleRequired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;

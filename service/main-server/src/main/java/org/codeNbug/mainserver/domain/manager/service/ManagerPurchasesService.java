@@ -10,7 +10,7 @@ import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
-import org.codenbug.user.entity.User;
+import org.codenbug.user.domain.user.entity.User;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 

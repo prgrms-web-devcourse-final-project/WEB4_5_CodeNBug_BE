@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.manager.entity.ManagerEvent;
-import org.codenbug.user.entity.User;
+import org.codenbug.user.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
