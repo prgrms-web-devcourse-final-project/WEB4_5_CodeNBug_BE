@@ -1,8 +1,6 @@
 package org.codeNbug.mainserver.external.toss.dto;
 
-import java.time.OffsetDateTime;
-
-import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -10,37 +8,36 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Toss 결제 승인 응답을 담는 DTO (TOSS API 응답)
- * Toss API 문서에 명시된 필드를 기반으로 매핑
- */
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConfirmedPaymentInfo {
-
+public class CanceledPaymentInfo {
 	private String paymentKey;
-
 	private String orderId;
-
-	private String orderName;
-
-	private Integer totalAmount;
-
 	private String status;
-
 	private String method;
-
-	private OffsetDateTime approvedAt;
-
+	private Integer totalAmount;
+	private Integer balanceAmount;
+	private Boolean isPartialCancelable;
 	private Receipt receipt;
+	private List<CancelDetail> cancels;
 
 	@Getter
 	@NoArgsConstructor
 	@AllArgsConstructor
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	public static class Receipt extends ConfirmPaymentResponse.Receipt {
+	public static class Receipt {
 		private String url;
+	}
+
+	@Getter
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public static class CancelDetail {
+		private Integer cancelAmount;
+		private String canceledAt;
+		private String cancelReason;
 	}
 }
