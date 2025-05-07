@@ -25,11 +25,11 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
 			.where(
 				Expressions.allOf(
-					filter.getCostRangeQuery(),
-					filter.getLocationListIncludeQuery(),
-					filter.getEventTypeIncludeQuery(),
-					filter.getEventStatusIncludeQuery(),
-					filter.getBetweenDateQuery()
+					filter.getCostRangeQuery()
+						.and(filter.getLocationListIncludeQuery())
+						.and(filter.getEventTypeIncludeQuery())
+						.and(filter.getEventStatusIncludeQuery())
+						.and(filter.getBetweenDateQuery())
 				)
 			)
 			.orderBy(QEvent.event.createdAt.desc());
@@ -50,14 +50,13 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 	public List<Event> findAllByFilterAndKeyword(String keyword, EventListFilter filter) {
 		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
 			.where(
-				Expressions.allOf(
-					filter.getCostRangeQuery(),
-					filter.getLocationListIncludeQuery(),
-					filter.getEventTypeIncludeQuery(),
-					filter.getEventStatusIncludeQuery(),
-					filter.getBetweenDateQuery(),
-					QEvent.event.information.title.like("%" + keyword + "%")
-				));
+				filter.getCostRangeQuery()
+					.and(filter.getLocationListIncludeQuery())
+					.and(filter.getEventTypeIncludeQuery())
+					.and(filter.getEventStatusIncludeQuery())
+					.and(filter.getBetweenDateQuery())
+					.and(QEvent.event.information.title.like("%" + keyword + "%"))
+			);
 		List<Event> data = query.fetch();
 		return data;
 	}

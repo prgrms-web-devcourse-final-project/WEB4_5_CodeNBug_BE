@@ -1,7 +1,7 @@
 
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.5' apply(false)
+    id 'org.springframework.boot' version '3.4.5'
 }
 configurations {
     compileOnly {
@@ -32,8 +32,8 @@ subprojects {
     apply plugin: 'io.spring.dependency-management'
 
     dependencies {
-        implementation 'com.querydsl:querydsl-core'
-        implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+        compileOnly 'com.querydsl:querydsl-core'
+        compileOnly 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
 
         annotationProcessor("com.querydsl:querydsl-apt:5.0.0:jakarta") // querydsl JPAAnnotationProcessor 사용 지정
         annotationProcessor("jakarta.persistence:jakarta.persistence-api")
@@ -74,5 +74,17 @@ subprojects {
         options.annotationProcessorGeneratedSourcesDirectory = file("$buildDir/generated/querydsl")
     }
     sourceSets.main.java.srcDir("$buildDir/generated/querydsl")
+
+    tasks.named('bootJar') {
+        enabled = false
+    }
+
+    tasks.named('jar') {
+        enabled = true
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
 }
 
