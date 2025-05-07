@@ -82,9 +82,6 @@ sns:
       url: https://oauth2.googleapis.com/token # 고정값
   kakao:
     url: https://kauth.kakao.com/oauth/authorize # 고정값
-    client:
-      id: ON_SECRET
-      secret: ON_SECRET
     callback:
       url: https://localhost:3001/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
