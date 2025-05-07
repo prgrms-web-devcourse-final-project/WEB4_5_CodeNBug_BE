@@ -5,6 +5,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation("com.google.code.gson:gson:2.10.1")
 
-    implementation project(':service:common')
+    implementation project(':common')
 
+}
+tasks.named('bootJar') {
+    enabled = false
+}
+
+tasks.named('jar') {
+    enabled = true
 }

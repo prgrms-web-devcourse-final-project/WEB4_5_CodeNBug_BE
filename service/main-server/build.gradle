@@ -23,8 +23,8 @@ dependencies {
 //    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 //    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
-    implementation project(':service:user')
-    implementation project(':service:common')
+    implementation project(':user')
+    implementation project(':common')
 }
 //// Querydsl 빌드 옵션 설정
 //def generated = 'src/main/generated'
@@ -40,9 +40,7 @@ dependencies {
 //}
 //
 //// gradle clean 시에 QClass 디렉토리 삭제
-//clean {
-//    delete file(generated)
-//}
+
 //test {
 //    useJUnitPlatform()
 //}
