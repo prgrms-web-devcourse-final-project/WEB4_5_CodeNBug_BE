@@ -43,11 +43,31 @@ public class OauthService {
 		SocialOauth socialOauth = this.findSocialOauthByType(socialLoginType); // 주어진 소셜 로그인 타입에 맞는 OAuth 객체 찾기
 		return socialOauth.getOauthRedirectURL(); // 해당 OAuth 객체의 리디렉션 URL 반환
 	}
+	
+	// 소셜 로그인 요청 URL을 반환하는 메서드 (커스텀 리다이렉트 URL 사용)
+	public String request(SocialLoginType socialLoginType, String redirectUrl) {
+		SocialOauth socialOauth = this.findSocialOauthByType(socialLoginType); // 주어진 소셜 로그인 타입에 맞는 OAuth 객체 찾기
+		if (redirectUrl != null && !redirectUrl.trim().isEmpty()) {
+			logger.info(">> 커스텀 리다이렉트 URL을 사용하여 소셜 로그인 요청: {} -> {}", socialLoginType, redirectUrl);
+			return socialOauth.getOauthRedirectURL(redirectUrl); // 커스텀 리다이렉트 URL을 사용하여 리디렉션 URL 반환
+		}
+		return socialOauth.getOauthRedirectURL(); // 기본 리다이렉트 URL 사용
+	}
 
 	// 인증 코드로 액세스 토큰을 요청하는 메서드
 	public String requestAccessToken(SocialLoginType socialLoginType, String code) {
 		SocialOauth socialOauth = this.findSocialOauthByType(socialLoginType); // 주어진 소셜 로그인 타입에 맞는 OAuth 객체 찾기
 		return socialOauth.requestAccessToken(code); // 액세스 토큰 요청
+	}
+	
+	// 인증 코드로 액세스 토큰을 요청하는 메서드 (커스텀 리다이렉트 URL 사용)
+	public String requestAccessToken(SocialLoginType socialLoginType, String code, String redirectUrl) {
+		SocialOauth socialOauth = this.findSocialOauthByType(socialLoginType); // 주어진 소셜 로그인 타입에 맞는 OAuth 객체 찾기
+		if (redirectUrl != null && !redirectUrl.trim().isEmpty()) {
+			logger.info(">> 커스텀 리다이렉트 URL을 사용하여 액세스 토큰 요청: {} -> {}", socialLoginType, redirectUrl);
+			return socialOauth.requestAccessToken(code, redirectUrl); // 커스텀 리다이렉트 URL을 사용하여 액세스 토큰 요청
+		}
+		return socialOauth.requestAccessToken(code); // 기본 리다이렉트 URL 사용
 	}
 
 	// JSON에서 액세스 토큰만 추출하는 메서드
@@ -70,6 +90,83 @@ public class OauthService {
 		// 1. 액세스 토큰을 포함한 JSON 응답을 요청
 		String accessTokenJson = this.requestAccessToken(socialLoginType, code);
 		logger.info(">> 소셜 로그인 액세스 토큰 응답: {}", accessTokenJson);
+
+		// 2. JSON에서 액세스 토큰만 추출
+		String accessToken = extractAccessTokenFromJson(accessTokenJson);
+
+		if (accessToken == null) {
+			logger.error(">> 액세스 토큰 추출 실패");
+			throw new RuntimeException("access token 추출에 실패했습니다.");
+		}
+		logger.info(">> 추출된 액세스 토큰: {}", accessToken);
+
+		// 3. 액세스 토큰을 사용해 사용자 정보 요청
+		String userInfo = getUserInfo(socialLoginType, accessToken);
+		logger.info(">> 소셜 API에서 받은 사용자 정보: {}", userInfo);
+
+		// 4. 사용자 정보를 파싱하여 SnsUser 객체 생성
+		SnsUser user = parseUserInfo(userInfo, socialLoginType);
+		logger.info(">> 파싱된 사용자 정보: socialId={}, name={}, provider={}, email={}", 
+			user.getSocialId(), user.getName(), user.getProvider(), user.getEmail());
+
+		// 5. 기존 사용자 확인 후 처리
+		Optional<SnsUser> existingUser = snsUserRepository.findBySocialId(user.getSocialId());
+		SnsUser savedUser;
+
+		if (existingUser.isPresent()) {
+			// 이미 존재하는 사용자라면 로그인 처리
+			SnsUser existing = existingUser.get();
+			logger.info(">> 기존 사용자 확인: id={}, socialId={}", existing.getId(), existing.getSocialId());
+			existing.setUpdatedAt(new Timestamp(System.currentTimeMillis())); // 수정 시간 갱신
+			
+			// 필요한 필드 업데이트
+			existing.setName(user.getName());
+			if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+				existing.setEmail(user.getEmail());
+			}
+			
+			try {
+				savedUser = snsUserRepository.save(existing);
+				logger.info(">> 기존 사용자 정보 업데이트 성공: id={}", savedUser.getId());
+			} catch (Exception e) {
+				logger.error(">> 기존 사용자 정보 업데이트 실패: {}", e.getMessage(), e);
+				throw new RuntimeException("사용자 정보 업데이트 실패: " + e.getMessage(), e);
+			}
+		} else {
+			// 새 사용자라면 저장
+			logger.info(">> 신규 사용자 등록 시작: socialId={}, provider={}", user.getSocialId(), user.getProvider());
+			user.setCreatedAt(new Timestamp(System.currentTimeMillis())); // 생성 시간 설정
+			user.setUpdatedAt(new Timestamp(System.currentTimeMillis())); // 수정 시간 설정
+			user.setIsAdditionalInfoCompleted(false); // 추가 정보 미입력 상태로 설정
+			
+			try {
+				savedUser = snsUserRepository.save(user);
+				logger.info(">> 신규 사용자 등록 성공: id={}, socialId={}", savedUser.getId(), savedUser.getSocialId());
+			} catch (Exception e) {
+				logger.error(">> 신규 사용자 등록 실패: {}", e.getMessage(), e);
+				throw new RuntimeException("신규 사용자 등록 실패: " + e.getMessage(), e);
+			}
+		}
+
+		// 6. SNS 사용자용 JWT 토큰 생성
+		// SNS 사용자용 토큰 생성 메서드 사용
+		logger.info(">> SNS 사용자 토큰 생성: socialId={}, provider={}", savedUser.getSocialId(), savedUser.getProvider());
+		TokenService.TokenInfo tokenInfo = tokenService.generateTokensForSnsUser(
+			savedUser.getSocialId(), savedUser.getProvider());
+		logger.debug(">> SNS 사용자 토큰 생성 완료: accessToken={}, refreshToken={}",
+			tokenInfo.getAccessToken(), tokenInfo.getRefreshToken());
+
+		// 7. 토큰 및 사용자 정보를 포함한 응답 반환
+		return new UserResponse(savedUser.getName(), tokenInfo.getAccessToken(),
+			tokenInfo.getRefreshToken(), savedUser.getProvider());
+	}
+
+	// 액세스 토큰을 사용하여 사용자 정보를 가져오고, 사용자 정보가 있으면 저장하는 메서드 (커스텀 리다이렉트 URL 사용)
+	@Transactional
+	public UserResponse requestAccessTokenAndSaveUser(SocialLoginType socialLoginType, String code, String redirectUrl) {
+		// 1. 액세스 토큰을 포함한 JSON 응답을 요청 (커스텀 리다이렉트 URL 사용)
+		String accessTokenJson = this.requestAccessToken(socialLoginType, code, redirectUrl);
+		logger.info(">> 소셜 로그인 액세스 토큰 응답 (커스텀 리다이렉트 URL 사용): {}", accessTokenJson);
 
 		// 2. JSON에서 액세스 토큰만 추출
 		String accessToken = extractAccessTokenFromJson(accessTokenJson);
