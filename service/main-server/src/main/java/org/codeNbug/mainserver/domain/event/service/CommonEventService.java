@@ -31,12 +31,13 @@ public class CommonEventService {
 	}
 
 	private List<EventListResponse> getEventsOnlyKeyword(String keyword) {
-		commonEventRepository.find
+		return commonEventRepository.findAllByKeyword(keyword)
+			.stream().map(event -> new EventListResponse(event)).toList();
 
 	}
 
 	private List<EventListResponse> getEventsOnlyFilters(EventListFilter filter) {
 		return commonEventRepository.findAllByFilter(filter)
-			.stream().map(event -> new EventListResponse(event));
+			.stream().map(event -> new EventListResponse(event)).toList();
 	}
 }

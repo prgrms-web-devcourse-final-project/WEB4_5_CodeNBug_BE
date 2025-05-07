@@ -36,4 +36,13 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 		List<Event> data = query.fetch();
 		return data;
 	}
+
+	@Override
+	public List<Event> findAllByKeyword(String keyword) {
+		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
+			.where(QEvent.event.information.title.like("%" + keyword + "%"))
+			.orderBy(QEvent.event.createdAt.desc());
+		List<Event> data = query.fetch();
+		return data;
+	}
 }

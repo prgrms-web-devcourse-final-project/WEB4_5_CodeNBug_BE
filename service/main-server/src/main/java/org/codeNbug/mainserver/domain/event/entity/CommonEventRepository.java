@@ -6,4 +6,6 @@ import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 
 public interface CommonEventRepository {
 	List<Event> findAllByFilter(EventListFilter filter);
+
+	List<Event> findAllByKeyword(String keyword);
 }
