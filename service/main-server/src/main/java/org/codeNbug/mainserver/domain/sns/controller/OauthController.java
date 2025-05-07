@@ -34,9 +34,15 @@ public class OauthController {
 
     @GetMapping(value = "/{socialLoginType}")
     public ResponseEntity<String> socialLoginType(
-            @PathVariable(name = "socialLoginType") SocialLoginType socialLoginType) {
+            @PathVariable(name = "socialLoginType") SocialLoginType socialLoginType,
+            @RequestParam(name = "redirectUrl", required = false) String redirectUrl) {
         log.info(">> 사용자로부터 SNS 로그인 요청을 받음 :: {} Social Login", socialLoginType);
-        String redirectURL = oauthService.request(socialLoginType);
+        log.info(">> 요청된 리다이렉트 URL: {}", redirectUrl);
+        
+        String redirectURL = redirectUrl != null 
+                ? oauthService.request(socialLoginType, redirectUrl)
+                : oauthService.request(socialLoginType);
+                
         return ResponseEntity.ok(redirectURL);  // 리다이렉션 URL을 응답으로 반환
     }
 
@@ -44,13 +50,17 @@ public class OauthController {
     public ResponseEntity<RsData<UserResponse>> callback(
             @PathVariable(name = "socialLoginType") SocialLoginType socialLoginType,
             @RequestParam(name = "code") String code,
+            @RequestParam(name = "redirectUrl", required = false) String redirectUrl,
             HttpServletResponse response) {
 
         log.info(">> 소셜 로그인 API 서버로부터 받은 code :: {}", code);
+        log.info(">> 콜백 시 사용된 리다이렉트 URL: {}", redirectUrl);
 
         try {
-            // 액세스 토큰을 통해 사용자 정보를 받아오고 JWT 토큰 생성
-            UserResponse userResponse = oauthService.requestAccessTokenAndSaveUser(socialLoginType, code);
+            // 액세스 토큰을 통해 사용자 정보를 받아오고 JWT 토큰 생성 (리다이렉트 URL 전달)
+            UserResponse userResponse = redirectUrl != null 
+                    ? oauthService.requestAccessTokenAndSaveUser(socialLoginType, code, redirectUrl)
+                    : oauthService.requestAccessTokenAndSaveUser(socialLoginType, code);
 
             // 쿠키에 토큰 저장 (UserController.login 메서드와 유사하게)
             cookieUtil.setAccessTokenCookie(response, userResponse.getAccessToken());
