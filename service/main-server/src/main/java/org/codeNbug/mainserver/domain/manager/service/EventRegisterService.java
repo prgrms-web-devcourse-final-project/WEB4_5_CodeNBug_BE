@@ -43,6 +43,7 @@ public class EventRegisterService {
 		Map<String, SeatGrade> seatGradeMap = eventDomainService.createAndSaveSeatGrades(event, request.getPrice());
 		eventDomainService.createAndSaveSeats(event, seatLayout, request.getLayout(), seatGradeMap);
 		saveManagerEvent(managerId, event);
+		event.setSeatLayout(seatLayout);
 		return eventDomainService.buildEventRegisterResponse(request, event);
 	}
 
@@ -62,8 +63,7 @@ public class EventRegisterService {
 	 * Event 생성 및 저장
 	 */
 	private Event createAndSaveEvent(EventRegisterRequest request, EventType eventType) {
-		SeatLayout seatLayout = new SeatLayout(
-			null, eventDomainService.serializeLayoutToJson(request.getLayout()), null);
+
 		Event event = new Event(
 			eventType.getEventTypeId(),
 			EventInformation.builder()
@@ -86,7 +86,7 @@ public class EventRegisterService {
 			EventStatusEnum.OPEN,
 			true,
 			false,
-			seatLayout
+			null
 		);
 
 		return eventRepository.save(event);

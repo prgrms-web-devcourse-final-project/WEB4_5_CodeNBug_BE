@@ -3,9 +3,9 @@ package org.codeNbug.mainserver.domain.event.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.codeNbug.mainserver.domain.event.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
+import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

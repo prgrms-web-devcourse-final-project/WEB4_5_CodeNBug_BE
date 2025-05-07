@@ -2,7 +2,7 @@ package org.codeNbug.mainserver.domain.ticket.repository;
 
 import java.util.List;
 
-import org.codeNbug.mainserver.domain.event.dto.TicketDto;
+import org.codeNbug.mainserver.domain.manager.dto.TicketDto;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

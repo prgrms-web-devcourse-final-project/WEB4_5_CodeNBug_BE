@@ -7,6 +7,7 @@ import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.event.service.CommonEventService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,6 +23,7 @@ public class EventController {
 		this.commonEventService = commonEventService;
 	}
 
+	@GetMapping("/events")
 	public ResponseEntity<RsData<List<EventListResponse>>> getEvents(@RequestParam(name = "keyword") String keyword,
 		@ModelAttribute EventListFilter filter) {
 

@@ -10,6 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -34,7 +35,8 @@ import lombok.Setter;
 @Filter(name = "activeEventFilter", condition = "is_deleted = :isDeleted")
 public class Event {
 
-	@OneToOne
+	@Setter
+	@OneToOne(mappedBy = "event", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
 	private SeatLayout seatLayout;
 
 	@Id
@@ -89,6 +91,5 @@ public class Event {
 		this.isDeleted = isDeleted;
 		this.seatLayout = seatLayout;
 
-		this.seatLayout.setEvent(this);
 	}
 }
