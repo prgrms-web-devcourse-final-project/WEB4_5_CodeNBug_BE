@@ -1,8 +1,16 @@
 rootProject.name = 'ticketon'
 
 
-include 'service:main-server'
-include 'service:queue-server'
-include 'service:message-dispatcher'
-include 'service:user'
-include 'service:common'
+include ':main-server'
+include ':queue-server'
+include ':message-dispatcher'
+include ':user'
+include ':common'
+
+
+project(':message-dispatcher').projectDir = file('service/message-dispatcher')
+project(':main-server').projectDir = file('service/main-server')
+project(':queue-server').projectDir = file('service/queue-server')
+project(':user').projectDir = file('service/user')
+project(':common').projectDir = file('service/common')
+

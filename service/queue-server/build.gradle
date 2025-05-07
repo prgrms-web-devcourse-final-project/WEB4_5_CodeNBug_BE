@@ -9,7 +9,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
 
-    implementation project(':service:user')
-    implementation project(':service:common')
+    implementation project(':user')
+    implementation project(':common')
 
 }
