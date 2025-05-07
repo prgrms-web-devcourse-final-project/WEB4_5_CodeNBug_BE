@@ -43,3 +43,4 @@ application-secret.yml
 ### cursor ###
 .cursor/rules/*
 .cursor/*
+/service/main-server/src/main/generated/org/codeNbug/mainserver/domain/
