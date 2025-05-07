@@ -19,21 +19,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ConfirmedPaymentInfo {
-
 	private String paymentKey;
-
 	private String orderId;
-
 	private String orderName;
-
 	private Integer totalAmount;
-
 	private String status;
-
 	private String method;
-
 	private OffsetDateTime approvedAt;
-
 	private Receipt receipt;
 
 	@Getter

@@ -1,6 +1,5 @@
 package org.codeNbug.mainserver.domain.purchase.service;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -11,7 +10,6 @@ import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
-import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
@@ -81,22 +79,21 @@ public class PurchaseService {
 
 	/**
 	 * 결제 승인
-	 * - 결제 승인 시 결제 정보 반환
+	 * - 결제 승인 시 구매 정보를 갱신하고 티켓을 생성한 후 결제 응답을 반환합니다.
 	 *
-	 * @param request 결제 정보가 포함된 요청 DTO
-	 * @param userId 현재 로그인한 사용자 ID
-	 * @return 결제 UUID 및 상태 정보를 포함한 응답 DTO
+	 * @param info       결제 승인 결과 정보
+	 * @param purchaseId 결제 대상 구매 ID
+	 * @param userId     현재 로그인한 사용자 ID
+	 * @return 결제 UUID, 금액, 결제 수단, 승인 시각 등을 포함한 응답 DTO
 	 */
-	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId) throws
-		IOException,
-		InterruptedException {
+	public ConfirmPaymentResponse confirmPayment(ConfirmedPaymentInfo info, Long purchaseId, Long userId) {
 		userRepository.findById(userId)
 			.orElseThrow(() -> new IllegalArgumentException("[confirm] 사용자가 존재하지 않습니다."));
 
-		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
+		Purchase purchase = purchaseRepository.findById(purchaseId)
 			.orElseThrow(() -> new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
 
-		if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
+		if (!Objects.equals(purchase.getAmount(), info.getTotalAmount())) {
 			throw new IllegalArgumentException("[confirm] 결제 금액이 일치하지 않습니다.");
 		}
 
@@ -111,10 +108,6 @@ public class PurchaseService {
 			throw new IllegalStateException("[confirm] 일부 좌석을 찾을 수 없습니다.");
 		}
 		seats.forEach(seat -> seat.setAvailable(false));
-
-		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
-			request.getPaymentKey(), request.getOrderId(), request.getAmount()
-		);
 
 		PaymentMethodEnum methodEnum = PaymentMethodEnum.from(info.getMethod());
 
@@ -232,66 +225,51 @@ public class PurchaseService {
 	 * @param userId 현재 로그인한 사용자 ID
 	 * @return 결제 UUID 및 취소 상태 정보를 포함한 응답 DTO
 	 */
-	public CancelPaymentResponse cancelPayment(String paymentKey, CancelPaymentRequest request, Long userId) {
+	public CancelPaymentResponse cancelPayment(CancelPaymentRequest request, String paymentKey, Long userId) {
 		userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("[cancelPayment] 사용자가 존재하지 않습니다."));
-
-		CanceledPaymentInfo info = request.getCancelAmount() == null
-			? tossPaymentService.cancelPayment(paymentKey, request.getCancelReason())
-			: tossPaymentService.cancelPartialPayment(paymentKey, request.getCancelReason(), request.getCancelAmount());
+			.orElseThrow(() -> new IllegalArgumentException("[confirm] 사용자가 존재하지 않습니다."));
 
 		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
-			.orElseThrow(() -> new IllegalArgumentException("[cancelPayment] 해당 paymentKey의 구매 정보를 찾을 수 없습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("해당 결제 정보를 찾을 수 없습니다."));
 
-		List<Ticket> tickets = ticketRepository.findAllByPurchaseId(purchase.getId());
-
-		tickets.forEach(ticket -> {
-			Seat seat = seatRepository.findByTicketId(ticket.getId()).orElse(null);
-			if (seat != null) {
-				seat.setTicket(null);
-				seat.setAvailable(true);
-				seatRepository.save(seat);
-			}
-		});
-
-		ticketRepository.deleteAll(tickets);
+		CanceledPaymentInfo canceledPaymentInfo = request.getCancelAmount() == null
+			? tossPaymentService.cancelPayment(paymentKey, request.getCancelReason())
+			: tossPaymentService.cancelPartialPayment(paymentKey, request.getCancelReason(), request.getCancelAmount());
 
 		purchase.updateCancelStatus(PaymentStatusEnum.CANCELED);
 		purchaseRepository.save(purchase);
 
-		for (CanceledPaymentInfo.CancelDetail cancelDetail : info.getCancels()) {
-			boolean isPartial = info.getBalanceAmount() > 0;
+		for (CanceledPaymentInfo.CancelDetail cancelDetail : canceledPaymentInfo.getCancels()) {
+			boolean isPartial = canceledPaymentInfo.getBalanceAmount() > 0;
 
-			PurchaseCancel cancelRecord = PurchaseCancel.builder()
+			PurchaseCancel purchaseCancel = PurchaseCancel.builder()
 				.purchase(purchase)
 				.cancelAmount(cancelDetail.getCancelAmount())
 				.cancelReason(cancelDetail.getCancelReason())
 				.canceledAt(OffsetDateTime.parse(cancelDetail.getCanceledAt()).toLocalDateTime())
-				.receiptUrl(info.getReceipt() != null ? info.getReceipt().getUrl() : null)
+				.receiptUrl(canceledPaymentInfo.getReceipt() != null ? canceledPaymentInfo.getReceipt().getUrl() : null)
 				.isPartial(isPartial)
 				.build();
 
-			purchaseCancelRepository.save(cancelRecord);
+			purchaseCancelRepository.save(purchaseCancel);
 		}
 
 		return CancelPaymentResponse.builder()
-			.paymentKey(info.getPaymentKey())
-			.orderId(info.getOrderId())
-			.status(info.getStatus())
-			.method(info.getMethod())
-			.totalAmount(info.getTotalAmount())
-			.balanceAmount(info.getBalanceAmount())
-			.isPartialCancelable(info.getIsPartialCancelable())
-			.receiptUrl(info.getReceipt() != null ? info.getReceipt().getUrl() : null)
-			.cancels(
-				info.getCancels().stream()
-					.map(c -> CancelPaymentResponse.CancelDetail.builder()
-						.cancelAmount(c.getCancelAmount())
-						.canceledAt(OffsetDateTime.parse(c.getCanceledAt()).toLocalDateTime())
-						.cancelReason(c.getCancelReason())
-						.build())
-					.toList()
-			)
+			.paymentKey(canceledPaymentInfo.getPaymentKey())
+			.orderId(canceledPaymentInfo.getOrderId())
+			.status(canceledPaymentInfo.getStatus())
+			.method(canceledPaymentInfo.getMethod())
+			.totalAmount(canceledPaymentInfo.getTotalAmount())
+			.balanceAmount(canceledPaymentInfo.getBalanceAmount())
+			.isPartialCancelable(canceledPaymentInfo.getIsPartialCancelable())
+			.receiptUrl(canceledPaymentInfo.getReceipt() != null ? canceledPaymentInfo.getReceipt().getUrl() : null)
+			.cancels(canceledPaymentInfo.getCancels().stream()
+				.map(c -> CancelPaymentResponse.CancelDetail.builder()
+					.cancelAmount(c.getCancelAmount())
+					.canceledAt(OffsetDateTime.parse(c.getCanceledAt()).toLocalDateTime())
+					.cancelReason(c.getCancelReason())
+					.build())
+				.toList())
 			.build();
 	}
 }
