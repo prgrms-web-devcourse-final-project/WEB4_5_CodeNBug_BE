@@ -17,7 +17,6 @@ RUN gradle dependencies --no-daemon
 # 소스 코드 복사
 COPY service/queue-server/src ./service/queue-server/src
 COPY service/common/src/main/java ./service/common/src/main/java
-COPY service/common/src/main/resources ./service/common/src/main/resources
 COPY service/user/src/main/java ./service/user/src/main/java
 
 # 애플리케이션 빌드

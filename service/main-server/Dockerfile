@@ -20,7 +20,6 @@ RUN gradle dependencies --no-daemon
 COPY service/main-server/src/main/java ./service/main-server/src/main/java
 COPY service/main-server/src/main/resources ./service/main-server/src/main/resources
 COPY service/common/src/main/java ./service/common/src/main/java
-COPY service/common/src/main/resources ./service/common/src/main/resources
 COPY service/user/src/main/java ./service/user/src/main/java
 
 RUN ls -al ./service/main-server/src/main/resources
