@@ -1,27 +1,26 @@
 package org.codeNbug.mainserver.domain.user.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
-import org.codeNbug.mainserver.external.sns.Entity.SnsUser;
-import org.codeNbug.mainserver.external.sns.repository.SnsUserRepository;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
-import org.codeNbug.mainserver.global.exception.security.AuthenticationFailedException;
-import org.codeNbug.mainserver.global.Redis.service.TokenService;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.codenbug.user.domain.user.entity.User;
+import org.codenbug.user.domain.user.repository.UserRepository;
+import org.codenbug.user.redis.service.TokenService;
+import org.codenbug.user.security.exception.AuthenticationFailedException;
+import org.codenbug.user.sns.Entity.SnsUser;
+import org.codenbug.user.sns.repository.SnsUserRepository;
+import org.codenbug.user.sns.util.KakaoOauth;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.codeNbug.mainserver.external.sns.util.KakaoOauth;
-import org.codeNbug.mainserver.external.sns.constant.SocialLoginType;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 사용자 관련 서비스

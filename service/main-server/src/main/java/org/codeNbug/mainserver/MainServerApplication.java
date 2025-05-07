@@ -1,6 +1,6 @@
 package org.codeNbug.mainserver;
 
-import org.codeNbug.mainserver.global.security.config.CorsProperties;
+import org.codenbug.user.security.config.CorsProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

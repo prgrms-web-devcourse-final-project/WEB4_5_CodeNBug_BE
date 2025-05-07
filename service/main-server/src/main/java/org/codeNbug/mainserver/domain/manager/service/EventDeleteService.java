@@ -1,14 +1,15 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
-import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codenbug.user.domain.user.entity.User;
+import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
