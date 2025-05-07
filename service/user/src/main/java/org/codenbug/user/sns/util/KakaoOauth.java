@@ -46,7 +46,7 @@ public class KakaoOauth implements SocialOauth {
     @Value("${sns.kakao.token.url}")
     private String KAKAO_SNS_TOKEN_BASE_URL;  // 토큰 요청을 위한 URL
     
-    @Value("${allowed.redirect.domains}")
+    @Value("#{'${allowed.redirect.domains}'.split(',')}")
     private List<String> allowedDomains;
 
     /**

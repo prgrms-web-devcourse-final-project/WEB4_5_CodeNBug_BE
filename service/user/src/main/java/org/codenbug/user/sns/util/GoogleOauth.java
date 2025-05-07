@@ -29,7 +29,7 @@ public class GoogleOauth implements SocialOauth {
     @Value("${sns.google.token.url}")
     private String GOOGLE_SNS_TOKEN_BASE_URL;
     
-    @Value("${allowed.redirect.domains}")
+    @Value("#{'${allowed.redirect.domains}'.split(',')}")
     private List<String> allowedDomains;
 
     @Override

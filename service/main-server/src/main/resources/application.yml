@@ -93,7 +93,4 @@ sns:
 # 허용된 리다이렉트 도메인 설정
 allowed:
   redirect:
-    domains:
-      - localhost:3001
-      - localhost:9000
-      - code-bug.vercel.app
+    domains: localhost:3001,localhost:9000,code-bug.vercel.app
