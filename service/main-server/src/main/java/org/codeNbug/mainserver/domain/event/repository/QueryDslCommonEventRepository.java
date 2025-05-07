@@ -5,8 +5,11 @@ import java.util.List;
 import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.QEvent;
 import org.springframework.stereotype.Repository;
 
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 @Repository
@@ -19,8 +22,18 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 
 	@Override
 	public List<Event> findAllByFilter(EventListFilter filter) {
-		// jpaQueryFactory.selectFrom(QEvent.event)
-		// 	.where()
-		return null;
+		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
+			.where(
+				Expressions.allOf(
+					filter.getCostRangeQuery(),
+					filter.getLocationListIncludeQuery(),
+					filter.getEventTypeIncludeQuery(),
+					filter.getEventStatusIncludeQuery(),
+					filter.getBetweenDateQuery()
+				)
+			)
+			.orderBy(QEvent.event.createdAt.desc());
+		List<Event> data = query.fetch();
+		return data;
 	}
 }

@@ -1,12 +1,16 @@
 package org.codeNbug.mainserver.domain.event.dto.request;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.entity.CostRange;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.event.entity.Location;
+import org.codeNbug.mainserver.domain.event.entity.QEvent;
+
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 
 import lombok.Getter;
 
@@ -16,14 +20,14 @@ public class EventListFilter {
 	private List<Location> locationList;
 	private List<EventType> eventTypeList;
 	private List<EventStatusEnum> eventStatusList;
-	private LocalDate startDate;
-	private LocalDate endDate;
+	private LocalDateTime startDate;
+	private LocalDateTime endDate;
 
 	public EventListFilter() {
 	}
 
 	public EventListFilter(CostRange costRange, List<Location> locationList, List<EventType> eventTypeList,
-		List<EventStatusEnum> eventStatusList, LocalDate startDate, LocalDate endDate) {
+		List<EventStatusEnum> eventStatusList, LocalDateTime startDate, LocalDateTime endDate) {
 		this.costRange = costRange;
 		this.locationList = locationList;
 		this.eventTypeList = eventTypeList;
@@ -41,8 +45,60 @@ public class EventListFilter {
 			|| endDate != null;
 	}
 
-	public void getCostRangeQuery() {
-		// QSeatLayout.seatLayout.layout
+	public BooleanExpression getCostRangeQuery() {
+		if (costRange == null) {
+			return Expressions.TRUE.eq(true);
+		}
+		return QEvent.event.seatLayout.seats.any().grade.amount.between(costRange.getMin(), costRange.getMax());
 	}
-	
+
+	public BooleanExpression getLocationListIncludeQuery() {
+		if (locationList == null || locationList.isEmpty()) {
+			return Expressions.TRUE.eq(true);
+		}
+		BooleanExpression expression = Expressions.TRUE.eq(true);
+
+		for (Location location : locationList) {
+			expression = expression.or(
+				QEvent.event.information.location.like("%" + location.getLocation() + "%"));
+		}
+
+		return expression;
+	}
+
+	public BooleanExpression getEventTypeIncludeQuery() {
+		BooleanExpression expression = Expressions.TRUE.eq(true);
+
+		if (eventTypeList == null || eventTypeList.isEmpty()) {
+			return expression;
+		}
+
+		for (EventType eventType : eventTypeList) {
+			expression.or(QEvent.event.typeId.eq(eventType.getEventTypeId()));
+		}
+		return expression;
+	}
+
+	public BooleanExpression getEventStatusIncludeQuery() {
+		BooleanExpression expression = Expressions.TRUE.eq(true);
+
+		if (eventStatusList == null || eventStatusList.isEmpty()) {
+			return expression;
+		}
+
+		for (EventStatusEnum eventStatus : eventStatusList) {
+			expression.or(QEvent.event.status.eq(eventStatus));
+		}
+		return expression;
+	}
+
+	public BooleanExpression getBetweenDateQuery() {
+		if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
+			return null;
+		}
+
+		return QEvent.event.information.eventStart.goe(startDate)
+			.and(QEvent.event.information.eventEnd.loe(endDate));
+	}
+
 }

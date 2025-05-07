@@ -15,4 +15,8 @@ public class Location {
 
 	public Location() {
 	}
+
+	public String getLocation() {
+		return location;
+	}
 }
