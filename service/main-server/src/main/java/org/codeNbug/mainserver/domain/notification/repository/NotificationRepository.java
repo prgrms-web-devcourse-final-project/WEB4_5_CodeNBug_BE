@@ -59,4 +59,14 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      * @return 페이징된 미읽은 알림 목록
      */
     Page<Notification> findByUserIdAndIsReadFalseOrderBySentAtDesc(Long userId, Pageable pageable);
+
+    /**
+     * 특정 사용자의 특정 알림 ID 이후의 알림 목록을 조회
+     *
+     * @param userId 사용자 ID
+     * @param id 알림 ID
+     * @param pageable 페이징 정보
+     * @return ID 이후의 알림 목록
+     */
+    List<Notification> findByUserIdAndIdGreaterThanOrderByIdAsc(Long userId, Long id, Pageable pageable);
 }
