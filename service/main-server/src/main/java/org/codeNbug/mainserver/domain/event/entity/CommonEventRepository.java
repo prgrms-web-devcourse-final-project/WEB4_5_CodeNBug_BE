@@ -8,4 +8,6 @@ public interface CommonEventRepository {
 	List<Event> findAllByFilter(EventListFilter filter);
 
 	List<Event> findAllByKeyword(String keyword);
+
+	List<Event> findAllByFilterAndKeyword(String keyword, EventListFilter filter);
 }

@@ -27,7 +27,9 @@ public class CommonEventService {
 	}
 
 	private List<EventListResponse> getEventsWithFilterAndKeyword(String keyword, EventListFilter filter) {
-		return null;
+		return commonEventRepository.findAllByFilterAndKeyword(keyword, filter)
+			.stream().map(event -> new EventListResponse(event)).toList();
+
 	}
 
 	private List<EventListResponse> getEventsOnlyKeyword(String keyword) {
