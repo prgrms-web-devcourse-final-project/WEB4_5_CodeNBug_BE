@@ -69,20 +69,25 @@ public class OauthService {
 	public UserResponse requestAccessTokenAndSaveUser(SocialLoginType socialLoginType, String code) {
 		// 1. 액세스 토큰을 포함한 JSON 응답을 요청
 		String accessTokenJson = this.requestAccessToken(socialLoginType, code);
+		logger.info(">> 소셜 로그인 액세스 토큰 응답: {}", accessTokenJson);
 
 		// 2. JSON에서 액세스 토큰만 추출
 		String accessToken = extractAccessTokenFromJson(accessTokenJson);
 
 		if (accessToken == null) {
-			// 액세스 토큰이 없으면 예외 처리
-			throw new RuntimeException("access token 추출에 실패했습니다..");
+			logger.error(">> 액세스 토큰 추출 실패");
+			throw new RuntimeException("access token 추출에 실패했습니다.");
 		}
+		logger.info(">> 추출된 액세스 토큰: {}", accessToken);
 
 		// 3. 액세스 토큰을 사용해 사용자 정보 요청
 		String userInfo = getUserInfo(socialLoginType, accessToken);
+		logger.info(">> 소셜 API에서 받은 사용자 정보: {}", userInfo);
 
 		// 4. 사용자 정보를 파싱하여 SnsUser 객체 생성
 		SnsUser user = parseUserInfo(userInfo, socialLoginType);
+		logger.info(">> 파싱된 사용자 정보: socialId={}, name={}, provider={}, email={}", 
+			user.getSocialId(), user.getName(), user.getProvider(), user.getEmail());
 
 		// 5. 기존 사용자 확인 후 처리
 		Optional<SnsUser> existingUser = snsUserRepository.findBySocialId(user.getSocialId());
@@ -91,12 +96,36 @@ public class OauthService {
 		if (existingUser.isPresent()) {
 			// 이미 존재하는 사용자라면 로그인 처리
 			SnsUser existing = existingUser.get();
+			logger.info(">> 기존 사용자 확인: id={}, socialId={}", existing.getId(), existing.getSocialId());
 			existing.setUpdatedAt(new Timestamp(System.currentTimeMillis())); // 수정 시간 갱신
-			savedUser = snsUserRepository.save(existing);
+			
+			// 필요한 필드 업데이트
+			existing.setName(user.getName());
+			if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+				existing.setEmail(user.getEmail());
+			}
+			
+			try {
+				savedUser = snsUserRepository.save(existing);
+				logger.info(">> 기존 사용자 정보 업데이트 성공: id={}", savedUser.getId());
+			} catch (Exception e) {
+				logger.error(">> 기존 사용자 정보 업데이트 실패: {}", e.getMessage(), e);
+				throw new RuntimeException("사용자 정보 업데이트 실패: " + e.getMessage(), e);
+			}
 		} else {
 			// 새 사용자라면 저장
+			logger.info(">> 신규 사용자 등록 시작: socialId={}, provider={}", user.getSocialId(), user.getProvider());
 			user.setCreatedAt(new Timestamp(System.currentTimeMillis())); // 생성 시간 설정
-			savedUser = snsUserRepository.save(user);
+			user.setUpdatedAt(new Timestamp(System.currentTimeMillis())); // 수정 시간 설정
+			user.setIsAdditionalInfoCompleted(false); // 추가 정보 미입력 상태로 설정
+			
+			try {
+				savedUser = snsUserRepository.save(user);
+				logger.info(">> 신규 사용자 등록 성공: id={}, socialId={}", savedUser.getId(), savedUser.getSocialId());
+			} catch (Exception e) {
+				logger.error(">> 신규 사용자 등록 실패: {}", e.getMessage(), e);
+				throw new RuntimeException("신규 사용자 등록 실패: " + e.getMessage(), e);
+			}
 		}
 
 		// 6. SNS 사용자용 JWT 토큰 생성
