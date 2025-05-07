@@ -10,7 +10,7 @@ import java.util.List;
 @Getter
 @Builder
 @AllArgsConstructor
-public class PurchaseHistoryResponse {
+public class PurchaseHistoryDetailResponse {
     private List<PurchaseDto> purchases; // 구매 이력 목록 -> PurchaseDto를 통해 구매이력 객체를 리스트로 반환 의도
 
     @Getter

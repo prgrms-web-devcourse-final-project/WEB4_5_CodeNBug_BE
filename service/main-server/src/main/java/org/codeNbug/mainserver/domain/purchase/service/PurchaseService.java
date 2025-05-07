@@ -12,7 +12,8 @@ import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
-import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryListResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryDetailResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentMethodEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
@@ -148,44 +149,69 @@ public class PurchaseService {
 	}
 
 	/**
-	 * 사용자의 구매 이력을 조회합니다.
+	 * 사용자의 구매 이력 목록을 조회합니다.
 	 *
 	 * @param userId 사용자 ID
-	 * @return 구매 이력 응답 DTO
+	 * @return 구매 이력 목록 응답 DTO
 	 */
-	public PurchaseHistoryResponse getPurchaseHistory(Long userId) {
+	public PurchaseHistoryListResponse getPurchaseHistoryList(Long userId) {
 		List<Purchase> purchases = purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(
 			userId,
 			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED)
 		);
 
-		// 구매 이력 목록의 각 구매 객체를 PurchaseDto로 변환
-		List<PurchaseHistoryResponse.PurchaseDto> purchaseDtos = purchases.stream()
-			.map(purchase -> {
-				// 첫 번째 티켓에서 이벤트 ID를 가져옴 (모든 티켓은 같은 이벤트에 속함) -> 이게 최선일까?
-				Long eventId = purchase.getTickets().isEmpty() ? null :
-					purchase.getTickets().get(0).getEvent().getEventId();
-
-				return PurchaseHistoryResponse.PurchaseDto.builder()
-					.purchaseId(purchase.getId())
-					.eventId(eventId)
-					.itemName(purchase.getOrderName())
-					.amount(purchase.getAmount())
-					.purchaseDate(purchase.getPurchaseDate())
-					.paymentMethod(purchase.getPaymentMethod().name())
-					.paymentStatus(purchase.getPaymentStatus().name())
-					.tickets(purchase.getTickets().stream()
-						.map(ticket -> PurchaseHistoryResponse.TicketInfo.builder()
-							.ticketId(ticket.getId())
-							.seatLocation(ticket.getSeatInfo())
-							.build())
-						.toList())
-					.build();
-			})
+		List<PurchaseHistoryListResponse.PurchaseSummaryDto> purchaseDtos = purchases.stream()
+			.map(purchase -> PurchaseHistoryListResponse.PurchaseSummaryDto.builder()
+				.purchaseId(purchase.getId())
+				.itemName(purchase.getOrderName())
+				.amount(purchase.getAmount())
+				.purchaseDate(purchase.getPurchaseDate())
+				.paymentMethod(purchase.getPaymentMethod().name())
+				.paymentStatus(purchase.getPaymentStatus().name())
+				.build())
 			.toList();
 
-		return PurchaseHistoryResponse.builder()
+		return PurchaseHistoryListResponse.builder()
 			.purchases(purchaseDtos)
+			.build();
+	}
+
+	/**
+	 * 사용자의 특정 구매 이력 상세 정보를 조회합니다.
+	 *
+	 * @param userId 사용자 ID
+	 * @param purchaseId 구매 ID
+	 * @return 구매 이력 상세 응답 DTO
+	 */
+	public PurchaseHistoryDetailResponse getPurchaseHistoryDetail(Long userId, Long purchaseId) {
+		Purchase purchase = purchaseRepository.findById(purchaseId)
+			.orElseThrow(() -> new IllegalArgumentException("구매 정보를 찾을 수 없습니다."));
+
+		if (!purchase.getUser().getUserId().equals(userId)) {
+			throw new IllegalArgumentException("해당 구매 정보에 대한 접근 권한이 없습니다.");
+		}
+
+		Long eventId = purchase.getTickets().isEmpty() ? null :
+			purchase.getTickets().get(0).getEvent().getEventId();
+
+		PurchaseHistoryDetailResponse.PurchaseDto purchaseDto = PurchaseHistoryDetailResponse.PurchaseDto.builder()
+			.purchaseId(purchase.getId())
+			.eventId(eventId)
+			.itemName(purchase.getOrderName())
+			.amount(purchase.getAmount())
+			.purchaseDate(purchase.getPurchaseDate())
+			.paymentMethod(purchase.getPaymentMethod().name())
+			.paymentStatus(purchase.getPaymentStatus().name())
+			.tickets(purchase.getTickets().stream()
+				.map(ticket -> PurchaseHistoryDetailResponse.TicketInfo.builder()
+					.ticketId(ticket.getId())
+					.seatLocation(ticket.getSeatInfo())
+					.build())
+				.toList())
+			.build();
+
+		return PurchaseHistoryDetailResponse.builder()
+			.purchases(List.of(purchaseDto))
 			.build();
 	}
 }
