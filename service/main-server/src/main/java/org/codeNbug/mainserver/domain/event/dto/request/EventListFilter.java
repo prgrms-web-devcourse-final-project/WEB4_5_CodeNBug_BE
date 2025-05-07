@@ -67,14 +67,14 @@ public class EventListFilter {
 	}
 
 	public BooleanExpression getEventTypeIncludeQuery() {
-		BooleanExpression expression = Expressions.TRUE.eq(true);
+
 
 		if (eventTypeList == null || eventTypeList.isEmpty()) {
-			return expression;
+			return Expressions.TRUE;
 		}
-
+		BooleanExpression expression = Expressions.FALSE;
 		for (EventType eventType : eventTypeList) {
-			expression.or(QEvent.event.typeId.eq(eventType.getEventTypeId()));
+			expression = expression.or(QEvent.event.typeId.eq(eventType.getEventTypeId()));
 		}
 		return expression;
 	}
