@@ -4,6 +4,7 @@ import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -35,7 +36,7 @@ public class Seat {
 	@NotNull
 	private boolean available = true;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "grade_id", nullable = false)
 	private SeatGrade grade;
 

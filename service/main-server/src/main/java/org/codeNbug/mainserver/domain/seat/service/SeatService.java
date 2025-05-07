@@ -48,7 +48,7 @@ public class SeatService {
 		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
-		List<Seat> seatList = seatRepository.findAllByLayoutIdWithGrade((seatLayout.getId()));
+		List<Seat> seatList = seatRepository.findAllByLayoutIdWithGrade(seatLayout.getId());
 		return new SeatLayoutResponse(seatList);
 	}
 
