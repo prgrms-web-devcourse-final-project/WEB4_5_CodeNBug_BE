@@ -89,3 +89,8 @@ sns:
       url: https://localhost:3001/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: https://kauth.kakao.com/oauth/token # 고정값
+
+# 허용된 리다이렉트 도메인 설정
+allowed:
+  redirect:
+    domains: localhost:3001,localhost:9000,code-bug.vercel.app
