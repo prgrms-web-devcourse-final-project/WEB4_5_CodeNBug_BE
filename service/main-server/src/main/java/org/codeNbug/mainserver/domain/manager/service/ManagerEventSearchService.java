@@ -2,11 +2,11 @@ package org.codeNbug.mainserver.domain.manager.service;
 
 import java.util.List;
 
-import org.codeNbug.mainserver.domain.event.dto.ManagerEventListResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventType;
-import org.codeNbug.mainserver.domain.event.repository.EventTypeRepository;
-import org.codeNbug.mainserver.domain.event.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.manager.dto.ManagerEventListResponse;
+import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
+import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codenbug.user.domain.user.entity.User;
 import org.springframework.stereotype.Service;
 

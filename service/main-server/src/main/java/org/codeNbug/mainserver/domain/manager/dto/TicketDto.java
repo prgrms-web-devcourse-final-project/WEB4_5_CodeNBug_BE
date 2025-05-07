@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.domain.event.dto;
+package org.codeNbug.mainserver.domain.manager.dto;
 
 import java.time.LocalDateTime;
 

@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.domain.event.dto.layout;
+package org.codeNbug.mainserver.domain.manager.dto.layout;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

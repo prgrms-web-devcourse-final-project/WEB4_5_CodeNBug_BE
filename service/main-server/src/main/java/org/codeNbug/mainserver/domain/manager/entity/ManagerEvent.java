@@ -1,5 +1,6 @@
-package org.codeNbug.mainserver.domain.event.entity;
+package org.codeNbug.mainserver.domain.manager.entity;
 
+import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codenbug.user.domain.user.entity.User;
 
 import jakarta.persistence.Entity;

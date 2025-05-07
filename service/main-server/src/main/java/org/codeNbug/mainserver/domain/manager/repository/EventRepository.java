@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.domain.event.repository;
+package org.codeNbug.mainserver.domain.manager.repository;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;

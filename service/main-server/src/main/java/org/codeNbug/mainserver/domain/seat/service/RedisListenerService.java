@@ -1,6 +1,6 @@
 package org.codeNbug.mainserver.domain.seat.service;
 
-import org.codeNbug.mainserver.domain.event.repository.EventRepository;
+import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.springframework.beans.factory.annotation.Value;

@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
-import org.codeNbug.mainserver.domain.event.repository.EventRepository;
+import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;

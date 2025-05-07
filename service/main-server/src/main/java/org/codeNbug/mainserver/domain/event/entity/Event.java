@@ -65,6 +65,7 @@ public class Event {
 	private LocalDateTime modifiedAt;
 	@Setter
 	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false)
 	private EventStatusEnum status;
 	@Setter
 	@Column(columnDefinition = "boolean default true")

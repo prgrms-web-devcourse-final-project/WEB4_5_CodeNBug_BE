@@ -5,13 +5,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
-import org.codeNbug.mainserver.domain.event.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventType;
-import org.codeNbug.mainserver.domain.event.repository.EventTypeRepository;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
+import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
+import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGradeEnum;

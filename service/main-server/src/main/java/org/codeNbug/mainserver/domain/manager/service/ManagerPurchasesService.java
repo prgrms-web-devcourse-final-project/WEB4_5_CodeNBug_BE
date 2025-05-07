@@ -3,11 +3,11 @@ package org.codeNbug.mainserver.domain.manager.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.codeNbug.mainserver.domain.event.dto.EventPurchaseResponse;
-import org.codeNbug.mainserver.domain.event.dto.TicketDto;
 import org.codeNbug.mainserver.domain.event.entity.Event;
-import org.codeNbug.mainserver.domain.event.repository.EventRepository;
-import org.codeNbug.mainserver.domain.event.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.manager.dto.EventPurchaseResponse;
+import org.codeNbug.mainserver.domain.manager.dto.TicketDto;
+import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codenbug.user.domain.user.entity.User;
