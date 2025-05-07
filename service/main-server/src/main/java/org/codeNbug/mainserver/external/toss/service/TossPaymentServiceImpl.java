@@ -33,37 +33,25 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	@Value("${payment.toss.api-url}")
 	private String TOSS_API_URL;
 
+	private HttpHeaders createAuthHeaders() {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		return headers;
+	}
+
 	/**
 	 * Toss 서버에 결제 승인을 요청하고 결과 정보를 반환
 	 */
 	@Override
 	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, Integer amount) {
 		String url = TOSS_API_URL + "/confirm";
-
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
-		headers.setContentType(MediaType.APPLICATION_JSON);
-
 		Map<String, Object> body = Map.of(
 			"paymentKey", paymentKey,
 			"orderId", orderId,
 			"amount", amount
 		);
-
-		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
-		ResponseEntity<String> response = restTemplate.exchange(
-			url, HttpMethod.POST, request, String.class
-		);
-
-		try {
-			ObjectMapper objectMapper = new ObjectMapper();
-			objectMapper.findAndRegisterModules();
-
-			return objectMapper.readValue(response.getBody(), ConfirmedPaymentInfo.class);
-		} catch (Exception e) {
-			throw new RuntimeException("Toss 응답 파싱 실패: " + e.getMessage(), e);
-		}
+		return postToToss(url, body, ConfirmedPaymentInfo.class);
 	}
 
 	/**
@@ -72,28 +60,8 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	@Override
 	public CanceledPaymentInfo cancelPayment(String paymentKey, String cancelReason) {
 		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
-
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
-		headers.setContentType(MediaType.APPLICATION_JSON);
-
-		Map<String, Object> body = Map.of(
-			"cancelReason", cancelReason
-		);
-
-		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
-		ResponseEntity<String> response = restTemplate.exchange(
-			url, HttpMethod.POST, request, String.class
-		);
-
-		try {
-			ObjectMapper objectMapper = new ObjectMapper();
-			objectMapper.findAndRegisterModules();
-			return objectMapper.readValue(response.getBody(), CanceledPaymentInfo.class);
-		} catch (Exception e) {
-			throw new RuntimeException("Toss 전액 취소 응답 파싱 실패: " + e.getMessage(), e);
-		}
+		Map<String, Object> body = Map.of("cancelReason", cancelReason);
+		return postToToss(url, body, CanceledPaymentInfo.class);
 	}
 
 	/**
@@ -102,28 +70,22 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	@Override
 	public CanceledPaymentInfo cancelPartialPayment(String paymentKey, String cancelReason, Integer cancelAmount) {
 		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
-
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
-		headers.setContentType(MediaType.APPLICATION_JSON);
-
 		Map<String, Object> body = Map.of(
 			"cancelReason", cancelReason,
 			"cancelAmount", cancelAmount
 		);
+		return postToToss(url, body, CanceledPaymentInfo.class);
+	}
 
-		HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-
-		ResponseEntity<String> response = restTemplate.exchange(
-			url, HttpMethod.POST, request, String.class
-		);
-
+	private <T> T postToToss(String url, Map<String, Object> body, Class<T> clazz) {
 		try {
+			HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, createAuthHeaders());
+			ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
 			ObjectMapper objectMapper = new ObjectMapper();
 			objectMapper.findAndRegisterModules();
-			return objectMapper.readValue(response.getBody(), CanceledPaymentInfo.class);
+			return objectMapper.readValue(response.getBody(), clazz);
 		} catch (Exception e) {
-			throw new RuntimeException("Toss 부분 취소 응답 파싱 실패: " + e.getMessage(), e);
+			throw new RuntimeException("Toss 응답 파싱 실패: " + e.getMessage(), e);
 		}
 	}
 }
