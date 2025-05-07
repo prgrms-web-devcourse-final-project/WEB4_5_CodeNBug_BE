@@ -56,7 +56,7 @@ public class EventListFilter {
 		if (locationList == null || locationList.isEmpty()) {
 			return Expressions.TRUE.eq(true);
 		}
-		BooleanExpression expression = Expressions.TRUE.eq(true);
+		BooleanExpression expression = Expressions.FALSE;
 
 		for (Location location : locationList) {
 			expression = expression.or(
