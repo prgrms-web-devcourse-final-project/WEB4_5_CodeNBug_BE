@@ -2,6 +2,8 @@ package org.codeNbug.mainserver.domain.purchase.controller;
 
 import java.io.IOException;
 
+import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
@@ -10,6 +12,7 @@ import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,5 +50,15 @@ public class PurchaseController {
 		Long userId = SecurityUtil.getCurrentUserId();
 		ConfirmPaymentResponse response = purchaseService.confirmPayment(request, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 승인 완료", response));
+	}
+
+	@PostMapping("/{paymentKey}/cancel")
+	public ResponseEntity<RsData<CancelPaymentResponse>> cancelPayment(
+		@PathVariable String paymentKey,
+		@RequestBody CancelPaymentRequest request
+	) {
+		Long userId = SecurityUtil.getCurrentUserId();
+		CancelPaymentResponse response = purchaseService.cancelPayment(paymentKey, request, userId);
+		return ResponseEntity.ok(new RsData<>("200", "결제 취소 완료", response));
 	}
 }

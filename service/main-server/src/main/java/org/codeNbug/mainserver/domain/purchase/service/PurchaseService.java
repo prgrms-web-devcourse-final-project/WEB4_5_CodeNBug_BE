@@ -2,18 +2,21 @@ package org.codeNbug.mainserver.domain.purchase.service;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
-import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryListResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryDetailResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryListResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentMethodEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
@@ -25,6 +28,7 @@ import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.domain.user.entity.User;
 import org.codeNbug.mainserver.domain.user.repository.UserRepository;
+import org.codeNbug.mainserver.external.toss.dto.CanceledPaymentInfo;
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.springframework.stereotype.Service;
@@ -212,6 +216,70 @@ public class PurchaseService {
 
 		return PurchaseHistoryDetailResponse.builder()
 			.purchases(List.of(purchaseDto))
+			.build();
+	}
+
+	/**
+	 * 결제 취소
+	 * - 전액 또는 부분 취소 요청 시 Toss 결제 취소 API 호출
+	 * - 결제 취소 결과 정보를 반환
+	 *
+	 * @param paymentKey 결제 uuid 키
+	 * @param request 결제 취소 정보가 포함된 요청 DTO (사유, 부분 취소 금액 등)
+	 * @param userId 현재 로그인한 사용자 ID
+	 * @return 결제 UUID 및 취소 상태 정보를 포함한 응답 DTO
+	 */
+	public CancelPaymentResponse cancelPayment(String paymentKey, CancelPaymentRequest request, Long userId) {
+		userRepository.findById(userId)
+			.orElseThrow(() -> new IllegalArgumentException("[cancelPayment] 사용자가 존재하지 않습니다."));
+		CanceledPaymentInfo info;
+
+		if (request.getCancelAmount() == null) {
+			// 전액 취소
+			info = tossPaymentService.cancelPayment(paymentKey, request.getCancelReason());
+		} else {
+			// 부분 취소
+			info = tossPaymentService.cancelPartialPayment(paymentKey, request.getCancelReason(),
+				request.getCancelAmount());
+		}
+
+		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
+			.orElseThrow(() -> new IllegalArgumentException("[cancelPayment] 해당 paymentKey의 구매 정보를 찾을 수 없습니다."));
+
+		List<Ticket> tickets = ticketRepository.findAllByPurchaseId(purchase.getId());
+
+		tickets.forEach(ticket -> {
+			Seat seat = seatRepository.findByTicketId(ticket.getId()).orElse(null);
+			if (seat != null) {
+				seat.setTicket(null);
+				seat.setAvailable(true);
+				seatRepository.save(seat);
+			}
+		});
+
+		ticketRepository.deleteAll(tickets);
+
+		purchase.updateCancelStatus(PaymentStatusEnum.CANCELED);
+		purchaseRepository.save(purchase);
+
+		return CancelPaymentResponse.builder()
+			.paymentKey(info.getPaymentKey())
+			.orderId(info.getOrderId())
+			.status(info.getStatus())
+			.method(info.getMethod())
+			.totalAmount(info.getTotalAmount())
+			.balanceAmount(info.getBalanceAmount())
+			.isPartialCancelable(info.getIsPartialCancelable())
+			.receiptUrl(info.getReceipt() != null ? info.getReceipt().getUrl() : null)
+			.cancels(
+				info.getCancels().stream()
+					.map(c -> CancelPaymentResponse.CancelDetail.builder()
+						.cancelAmount(c.getCancelAmount())
+						.canceledAt(OffsetDateTime.parse(c.getCanceledAt()).toLocalDateTime())
+						.cancelReason(c.getCancelReason())
+						.build())
+					.toList()
+			)
 			.build();
 	}
 }

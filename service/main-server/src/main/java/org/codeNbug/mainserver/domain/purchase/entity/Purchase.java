@@ -84,8 +84,7 @@ public class Purchase {
 		this.purchaseDate = purchaseDate;
 	}
 
-	public void addTicket(Ticket ticket) {
-		tickets.add(ticket);
-		ticket.setPurchase(this);
+	public void updateCancelStatus(PaymentStatusEnum newStatus) {
+		this.paymentStatus = newStatus;
 	}
 }
