@@ -1,6 +1,6 @@
 package org.codeNbug.mainserver.domain.seat.entity;
 
-import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 
 import jakarta.persistence.Entity;
