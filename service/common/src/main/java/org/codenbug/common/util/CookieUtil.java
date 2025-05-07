@@ -41,9 +41,10 @@ public class CookieUtil {
 
 		// 개발 환경 확인 (localhost에서는 secure=false로 설정)
 		boolean isDev = "dev".equals(activeProfile);
-		cookie.setSecure(isDev ? false : isSecure);
+		// SameSite=None인 경우 Secure=true 필수
+		cookie.setSecure(isDev ? false : true);
 
-		// SameSite 속성을 Lax로 변경 (크로스 사이트 요청에 더 관대)
+		// SameSite 속성을 None으로 설정 (크로스 사이트 요청 허용)
 		cookie.setAttribute("SameSite", "None");
 
 		response.addCookie(cookie);
@@ -63,8 +64,8 @@ public class CookieUtil {
 		boolean isDev = "dev".equals(activeProfile);
 		cookie.setSecure(isDev ? false : isSecure);
 
-		// SameSite 속성을 Lax로 변경
-		cookie.setAttribute("SameSite", "Lax");
+		// SameSite 속성을 None로 변경
+		cookie.setAttribute("SameSite", "None");
 
 		response.addCookie(cookie);
 	}
@@ -81,9 +82,11 @@ public class CookieUtil {
 
 		// 개발 환경 확인
 		boolean isDev = "dev".equals(activeProfile);
-		cookie.setSecure(isDev ? false : isSecure);
+		// SameSite=None인 경우 Secure=true 필수
+		cookie.setSecure(isDev ? false : true);
 
-		cookie.setAttribute("SameSite", "Lax");
+		// 로그인 시와 동일하게 SameSite=None 설정
+		cookie.setAttribute("SameSite", "None");
 		response.addCookie(cookie);
 	}
 
@@ -101,7 +104,8 @@ public class CookieUtil {
 		boolean isDev = "dev".equals(activeProfile);
 		cookie.setSecure(isDev ? false : isSecure);
 
-		cookie.setAttribute("SameSite", "Lax");
+		// 로그인 시와 동일하게 SameSite=None 설정
+		cookie.setAttribute("SameSite", "None");
 		response.addCookie(cookie);
 	}
 
@@ -133,5 +137,41 @@ public class CookieUtil {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * 요청에서 받은 모든 인증 관련 쿠키를 직접 만료시키는 메서드
+	 * 브라우저의 기존 쿠키를 그대로 사용하여 만료시키는 방식
+	 */
+	public void expireAuthCookies(HttpServletRequest request, HttpServletResponse response) {
+		Cookie[] cookies = request.getCookies();
+		if (cookies != null) {
+			for (Cookie cookie : cookies) {
+				// 인증 관련 쿠키만 만료 처리
+				if (ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName()) || REFRESH_TOKEN_COOKIE_NAME.equals(cookie.getName())) {
+					// 쿠키 값을 비우고 만료 처리
+					cookie.setValue("");
+					cookie.setMaxAge(0);
+					cookie.setPath(cookie.getPath() != null ? cookie.getPath() : COOKIE_PATH);
+					
+					// Secure 및 SameSite 속성 유지
+					boolean isDev = "dev".equals(activeProfile);
+					boolean isAccessToken = ACCESS_TOKEN_COOKIE_NAME.equals(cookie.getName());
+					
+					// accessToken은 SameSite=None, Secure=true 설정
+					if (isAccessToken) {
+						cookie.setSecure(isDev ? false : true);
+						cookie.setAttribute("SameSite", "None");
+					} 
+					// refreshToken은 기존 속성 유지
+					else {
+						cookie.setSecure(isDev ? false : cookie.getSecure());
+						cookie.setAttribute("SameSite", "None");
+					}
+					
+					response.addCookie(cookie);
+				}
+			}
+		}
 	}
 }

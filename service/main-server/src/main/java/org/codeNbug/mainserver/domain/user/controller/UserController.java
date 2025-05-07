@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -38,8 +39,8 @@ import lombok.extern.slf4j.Slf4j;
  * 사용자 관련 컨트롤러
  */
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
+@RequiredArgsConstructor
 @Slf4j
 public class UserController {
     private final UserService userService;
@@ -172,9 +173,8 @@ public class UserController {
                         accessToken != null ? "있음" : "없음", 
                         refreshToken != null ? "있음" : "없음");
                 
-                // 쿠키 삭제 (있는 경우만)
-                cookieUtil.deleteAccessTokenCookie(response);
-                cookieUtil.deleteRefreshTokenCookie(response);
+                // 쿠키 삭제 - 브라우저의 기존 쿠키를 직접 만료 처리
+                cookieUtil.expireAuthCookies(request, response);
                 
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(new RsData<>("401-UNAUTHORIZED", "인증 정보가 필요합니다. 다시 로그인해주세요."));
@@ -189,9 +189,8 @@ public class UserController {
                 // 오류가 발생해도 클라이언트의 쿠키는 삭제
             }
 
-            // 쿠키 삭제
-            cookieUtil.deleteAccessTokenCookie(response);
-            cookieUtil.deleteRefreshTokenCookie(response);
+            // 쿠키 삭제 - 브라우저의 기존 쿠키를 직접 만료 처리
+            cookieUtil.expireAuthCookies(request, response);
             log.info(">> 쿠키 삭제 완료");
 
             return ResponseEntity.ok(
@@ -252,8 +251,7 @@ public class UserController {
             log.info(">> 회원 탈퇴 처리 완료: identifier={}", identifier);
 
             // 쿠키 삭제
-            cookieUtil.deleteAccessTokenCookie(response);
-            cookieUtil.deleteRefreshTokenCookie(response);
+            cookieUtil.expireAuthCookies(request, response);
             log.info(">> 인증 쿠키 삭제 완료");
 
             return ResponseEntity.ok(
