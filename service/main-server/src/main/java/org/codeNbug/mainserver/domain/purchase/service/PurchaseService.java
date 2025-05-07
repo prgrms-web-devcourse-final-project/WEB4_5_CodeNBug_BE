@@ -235,16 +235,10 @@ public class PurchaseService {
 	public CancelPaymentResponse cancelPayment(String paymentKey, CancelPaymentRequest request, Long userId) {
 		userRepository.findById(userId)
 			.orElseThrow(() -> new IllegalArgumentException("[cancelPayment] 사용자가 존재하지 않습니다."));
-		CanceledPaymentInfo info;
 
-		if (request.getCancelAmount() == null) {
-			// 전액 취소
-			info = tossPaymentService.cancelPayment(paymentKey, request.getCancelReason());
-		} else {
-			// 부분 취소
-			info = tossPaymentService.cancelPartialPayment(paymentKey, request.getCancelReason(),
-				request.getCancelAmount());
-		}
+		CanceledPaymentInfo info = request.getCancelAmount() == null
+			? tossPaymentService.cancelPayment(paymentKey, request.getCancelReason())
+			: tossPaymentService.cancelPartialPayment(paymentKey, request.getCancelReason(), request.getCancelAmount());
 
 		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
 			.orElseThrow(() -> new IllegalArgumentException("[cancelPayment] 해당 paymentKey의 구매 정보를 찾을 수 없습니다."));
