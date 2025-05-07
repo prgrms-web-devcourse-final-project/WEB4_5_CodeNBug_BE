@@ -19,7 +19,6 @@ COPY service/queue-server/src ./service/queue-server/src
 COPY service/common/src/main/java ./service/common/src/main/java
 COPY service/common/src/main/resources ./service/common/src/main/resources
 COPY service/user/src/main/java ./service/user/src/main/java
-COPY service/user/src/main/resources ./service/user/src/main/resources
 
 # 애플리케이션 빌드
 RUN gradle  :service:queue-server:bootJar

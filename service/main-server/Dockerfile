@@ -22,7 +22,6 @@ COPY service/main-server/src/main/resources ./service/main-server/src/main/resou
 COPY service/common/src/main/java ./service/common/src/main/java
 COPY service/common/src/main/resources ./service/common/src/main/resources
 COPY service/user/src/main/java ./service/user/src/main/java
-COPY service/user/src/main/resources ./service/user/src/main/resources
 
 RUN ls -al ./service/main-server/src/main/resources
 
