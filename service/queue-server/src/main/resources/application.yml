@@ -30,9 +30,33 @@ spring:
         default_batch_fetch_size: 100
         dialect: org.hibernate.dialect.MySQL8Dialect
     open-in-view: false
-
+# Cookie Configuration
+cookie:
+  domain: localhost
+  secure: false  # dev 환경에서는 false, prod 환경에서는 true로 설정
 jwt:
   expiration: 8640000
 
 custom:
   instance-id: waiting-1
+
+
+sns:
+  google:
+    url: https://accounts.google.com/o/oauth2/v2/auth # 고정값
+    client:
+      id: ON_SECRET
+      secret: ON_SECRET
+    callback:
+      url: https://api.main.ticketone.site/auth/google/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
+    token:
+      url: https://oauth2.googleapis.com/token # 고정값
+  kakao:
+    url: https://kauth.kakao.com/oauth/authorize # 고정값
+    client:
+      id: ON_SECRET
+      secret: ON_SECRET
+    callback:
+      url: https://api.main.ticketone.site/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
+    token:
+      url: https://kauth.kakao.com/oauth/token # 고정값
