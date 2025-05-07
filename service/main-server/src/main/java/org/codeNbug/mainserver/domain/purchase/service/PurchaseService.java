@@ -20,6 +20,8 @@ import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryListResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentMethodEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
+import org.codeNbug.mainserver.domain.purchase.entity.PurchaseCancel;
+import org.codeNbug.mainserver.domain.purchase.repository.PurchaseCancelRepository;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
@@ -42,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PurchaseService {
 	private final TossPaymentService tossPaymentService;
 	private final PurchaseRepository purchaseRepository;
+	private final PurchaseCancelRepository purchaseCancelRepository;
 	private final UserRepository userRepository;
 	private final EventRepository eventRepository;
 	private final SeatRepository seatRepository;
@@ -261,6 +264,21 @@ public class PurchaseService {
 
 		purchase.updateCancelStatus(PaymentStatusEnum.CANCELED);
 		purchaseRepository.save(purchase);
+
+		for (CanceledPaymentInfo.CancelDetail cancelDetail : info.getCancels()) {
+			boolean isPartial = info.getBalanceAmount() > 0;
+
+			PurchaseCancel cancelRecord = PurchaseCancel.builder()
+				.purchase(purchase)
+				.cancelAmount(cancelDetail.getCancelAmount())
+				.cancelReason(cancelDetail.getCancelReason())
+				.canceledAt(OffsetDateTime.parse(cancelDetail.getCanceledAt()).toLocalDateTime())
+				.receiptUrl(info.getReceipt() != null ? info.getReceipt().getUrl() : null)
+				.isPartial(isPartial)
+				.build();
+
+			purchaseCancelRepository.save(cancelRecord);
+		}
 
 		return CancelPaymentResponse.builder()
 			.paymentKey(info.getPaymentKey())
