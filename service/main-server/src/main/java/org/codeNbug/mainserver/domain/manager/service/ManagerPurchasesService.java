@@ -3,9 +3,9 @@ package org.codeNbug.mainserver.domain.manager.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.dto.EventPurchaseResponse;
 import org.codeNbug.mainserver.domain.manager.dto.TicketDto;
-import org.codeNbug.mainserver.domain.manager.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;

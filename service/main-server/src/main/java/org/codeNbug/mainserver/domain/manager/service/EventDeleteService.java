@@ -1,6 +1,6 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
-import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;

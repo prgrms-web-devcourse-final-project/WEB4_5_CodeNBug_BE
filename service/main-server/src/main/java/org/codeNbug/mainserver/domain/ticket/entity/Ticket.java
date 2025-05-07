@@ -2,7 +2,7 @@ package org.codeNbug.mainserver.domain.ticket.entity;
 
 import java.time.LocalDateTime;
 
-import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;

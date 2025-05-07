@@ -6,6 +6,7 @@ import java.util.List;
 import org.codenbug.user.security.filter.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -115,6 +116,7 @@ public class SecurityConfig {
 				.requestMatchers("/auth/**").permitAll()
 				.requestMatchers("/api/auth/**").permitAll()
 				.requestMatchers("/api/public/**").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/v1/events").permitAll()
 				.requestMatchers("/api/v1/email/**").permitAll()
 				.requestMatchers("/api/v1/manager/**").permitAll()
 				.requestMatchers("/api/test/auth/public").permitAll()

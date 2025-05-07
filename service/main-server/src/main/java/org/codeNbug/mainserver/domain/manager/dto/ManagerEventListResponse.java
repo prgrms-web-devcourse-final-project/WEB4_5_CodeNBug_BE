@@ -1,11 +1,13 @@
 package org.codeNbug.mainserver.domain.manager.dto;
 
+import java.time.LocalDateTime;
+
+import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.codeNbug.mainserver.domain.manager.entity.EventStatusEnum;
-import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor

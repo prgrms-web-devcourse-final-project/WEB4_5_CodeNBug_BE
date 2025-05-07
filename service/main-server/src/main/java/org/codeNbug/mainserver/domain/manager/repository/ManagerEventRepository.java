@@ -2,7 +2,7 @@ package org.codeNbug.mainserver.domain.manager.repository;
 
 import java.util.List;
 
-import org.codeNbug.mainserver.domain.manager.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.entity.ManagerEvent;
 import org.codenbug.user.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
