@@ -2,7 +2,7 @@ package org.codeNbug.queueserver.entryauth.service;
 
 import java.util.Map;
 
-import org.codeNbug.queueserver.global.jwt.JwtUtil;
+import org.codenbug.common.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 

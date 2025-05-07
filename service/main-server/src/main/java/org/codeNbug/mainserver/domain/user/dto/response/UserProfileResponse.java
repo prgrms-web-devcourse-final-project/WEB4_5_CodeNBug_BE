@@ -1,15 +1,16 @@
 package org.codeNbug.mainserver.domain.user.dto.response;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+
+import org.codenbug.user.domain.user.entity.User;
+import org.codenbug.user.sns.Entity.SnsUser;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.codeNbug.mainserver.domain.user.entity.User;
-import org.codeNbug.mainserver.external.sns.Entity.SnsUser;
-
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 /**
  * 사용자 프로필 조회 응답 DTO
