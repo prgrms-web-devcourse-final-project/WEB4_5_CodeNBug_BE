@@ -29,7 +29,7 @@ public class EventController {
 	@PostMapping("/events")
 	public ResponseEntity<RsData<List<EventListResponse>>> getEvents(
 		@RequestParam(name = "keyword", required = false) String keyword,
-		@RequestBody EventListFilter filter) {
+		@RequestBody(required = false) EventListFilter filter) {
 
 		List<EventListResponse> eventList = commonEventService.getEvents(keyword, filter);
 

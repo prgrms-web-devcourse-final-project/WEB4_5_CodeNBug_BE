@@ -26,8 +26,11 @@ public class CommonEventService {
 			return getEventsOnlyFilters(filter);
 		} else if (filter == null || !filter.canFiltered()) {
 			return getEventsOnlyKeyword(keyword);
-		} else {
+		} else if (filter.canFiltered() && keyword != null && !keyword.isEmpty()) {
 			return getEventsWithFilterAndKeyword(keyword, filter);
+		} else {
+			return jpaCommonEventRepository.findByIsDeletedFalse()
+				.stream().map(event -> new EventListResponse(event)).toList();
 		}
 	}
 
