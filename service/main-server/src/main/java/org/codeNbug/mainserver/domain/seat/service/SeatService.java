@@ -18,10 +18,12 @@ import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 좌석 도메인 관련 로직을 처리하는 서비스
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SeatService {
@@ -47,6 +49,8 @@ public class SeatService {
 		}
 		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
+
+		log.info("SeatLayout ID: {}", seatLayout.getId());
 
 		List<Seat> seatList = seatRepository.findAllByLayoutIdWithGrade(seatLayout.getId());
 		return new SeatLayoutResponse(seatList);

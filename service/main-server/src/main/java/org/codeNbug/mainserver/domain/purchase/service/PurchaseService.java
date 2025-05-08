@@ -1,7 +1,9 @@
 package org.codeNbug.mainserver.domain.purchase.service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -10,6 +12,7 @@ import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
+import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
@@ -81,19 +84,17 @@ public class PurchaseService {
 	 * 결제 승인
 	 * - 결제 승인 시 구매 정보를 갱신하고 티켓을 생성한 후 결제 응답을 반환합니다.
 	 *
-	 * @param info       결제 승인 결과 정보
-	 * @param purchaseId 결제 대상 구매 ID
+	 * @param request    결제 승인 결과 정보
 	 * @param userId     현재 로그인한 사용자 ID
 	 * @return 결제 UUID, 금액, 결제 수단, 승인 시각 등을 포함한 응답 DTO
 	 */
-	public ConfirmPaymentResponse confirmPayment(ConfirmedPaymentInfo info, Long purchaseId, Long userId) {
-		userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("[confirm] 사용자가 존재하지 않습니다."));
-
-		Purchase purchase = purchaseRepository.findById(purchaseId)
+	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId) throws
+		IOException,
+		InterruptedException {
+		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
 			.orElseThrow(() -> new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
 
-		if (!Objects.equals(purchase.getAmount(), info.getTotalAmount())) {
+		if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
 			throw new IllegalArgumentException("[confirm] 결제 금액이 일치하지 않습니다.");
 		}
 
@@ -109,16 +110,23 @@ public class PurchaseService {
 		}
 		seats.forEach(seat -> seat.setAvailable(false));
 
+		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
+			request.getPaymentKey(), request.getOrderId(), request.getAmount()
+		);
+
 		PaymentMethodEnum methodEnum = PaymentMethodEnum.from(info.getMethod());
+
+		LocalDateTime localDateTime = OffsetDateTime.parse(info.getApprovedAt())
+			.atZoneSameInstant(ZoneId.of("Asia/Seoul"))
+			.toLocalDateTime();
 
 		purchase.updatePaymentInfo(
 			info.getPaymentKey(),
 			info.getTotalAmount(),
 			methodEnum,
-			PaymentStatusEnum.DONE,
 			event.getSeatSelectable() ? "지정석 %d매".formatted(seatIds.size()) :
 				"미지정석 %d매".formatted(seatIds.size()),
-			info.getApprovedAt().toLocalDateTime()
+			localDateTime
 		);
 
 		List<Ticket> tickets = seats.stream()
@@ -143,7 +151,7 @@ public class PurchaseService {
 			info.getTotalAmount(),
 			info.getStatus(),
 			methodEnum,
-			info.getApprovedAt().toLocalDateTime(),
+			localDateTime,
 			info.getReceipt()
 		);
 	}
@@ -192,7 +200,7 @@ public class PurchaseService {
 		}
 
 		Long eventId = purchase.getTickets().isEmpty() ? null :
-			purchase.getTickets().get(0).getEvent().getEventId();
+			purchase.getTickets().getFirst().getEvent().getEventId();
 
 		PurchaseHistoryDetailResponse.PurchaseDto purchaseDto = PurchaseHistoryDetailResponse.PurchaseDto.builder()
 			.purchaseId(purchase.getId())
@@ -236,8 +244,17 @@ public class PurchaseService {
 			? tossPaymentService.cancelPayment(paymentKey, request.getCancelReason())
 			: tossPaymentService.cancelPartialPayment(paymentKey, request.getCancelReason(), request.getCancelAmount());
 
-		purchase.updateCancelStatus(PaymentStatusEnum.CANCELED);
-		purchaseRepository.save(purchase);
+		List<Ticket> tickets = ticketRepository.findAllByPurchaseId(purchase.getId());
+		for (Ticket ticket : tickets) {
+			List<Seat> seats = seatRepository.findByTicketId(ticket.getId());
+			for (Seat seat : seats) {
+				seat.setTicket(null);
+				seat.setAvailable(true);
+				seatRepository.save(seat);
+			}
+
+			ticketRepository.delete(ticket);
+		}
 
 		for (CanceledPaymentInfo.CancelDetail cancelDetail : canceledPaymentInfo.getCancels()) {
 			boolean isPartial = canceledPaymentInfo.getBalanceAmount() > 0;

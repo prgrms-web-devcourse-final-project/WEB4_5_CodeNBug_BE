@@ -1,7 +1,5 @@
 package org.codeNbug.mainserver.external.toss.dto;
 
-import java.time.OffsetDateTime;
-
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -25,7 +23,7 @@ public class ConfirmedPaymentInfo {
 	private Integer totalAmount;
 	private String status;
 	private String method;
-	private OffsetDateTime approvedAt;
+	private String approvedAt;
 	private Receipt receipt;
 
 	@Getter

@@ -1,22 +1,13 @@
 package org.codeNbug.mainserver.external.toss.webhook.service;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
-import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
-import org.codeNbug.mainserver.external.toss.dto.CanceledPaymentInfo;
-import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
-import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -33,13 +24,11 @@ public class WebhookService {
 
 	private final ObjectMapper objectMapper;
 	private final PurchaseRepository purchaseRepository;
-	private final PurchaseService purchaseService;
-	private final TossPaymentService tossPaymentService;
 
 	@Value("${payment.toss.secret-key}")
 	private String tossSecretKey;
 
-	public void handleWebhook(String payload, String signature) throws Exception {
+	public void handleWebhook(String payload, String signature) {
 		try {
 			if (!isValidSignature(payload, signature)) {
 				throw new SecurityException("Toss 시그니처 검증 실패");
@@ -47,16 +36,19 @@ public class WebhookService {
 
 			JsonNode root = objectMapper.readTree(payload);
 			String status = root.path("data").path("status").asText();
-			String paymentKey = root.path("data").path("paymentKey").asText();
-
-			Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
-				.orElseThrow(() -> new IllegalStateException("해당 결제를 찾을 수 없습니다."));
 
 			switch (status) {
-				case "DONE" -> handleApproved(purchase, root);
-				case "CANCELED" -> handleCanceled(purchase, root);
-				case "EXPIRED" -> handleExpired(purchase, root);
-				default -> log.warn("처리되지 않은 결제 상태: {}", status);
+				case "DONE":
+					handleApproved(root);
+					break;
+				case "CANCELED":
+					handleCanceled(root);
+					break;
+				case "EXPIRED":
+					handleExpired(root);
+					break;
+				default:
+					log.warn("처리되지 않은 결제 상태: {}", status);
 			}
 		} catch (Exception e) {
 			log.error("웹훅 처리 실패: ", e);
@@ -92,71 +84,37 @@ public class WebhookService {
 		return builder.toString();
 	}
 
-	private void handleApproved(Purchase purchase, JsonNode root) throws IOException, InterruptedException {
-		log.info("[handleApproved] paymentUuid: {}, orderId: {}, amount: {}", purchase.getPaymentUuid(),
-			purchase.getOrderId(), purchase.getAmount());
-
+	public void handleApproved(JsonNode root) {
 		JsonNode data = root.path("data");
-		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
-			data.path("paymentKey").asText(),
-			data.path("orderId").asText(),
-			data.path("orderName").asText(),
-			data.path("method").asText(),
-			data.path("totalAmount").asInt(),
-			LocalDateTime.parse(data.path("approvedAt").asText()),
-			data.path("receipt").path("url").asText()
-		);
+		String paymentKey = data.path("paymentKey").asText();
 
-		purchaseService.confirmPayment(info, purchase.getId(), purchase.getUser().getUserId());
+		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
+			.orElseThrow(() -> new IllegalArgumentException("[DONE] paymentKey 로 구매 정보를 찾을 수 없습니다."));
 
-		log.info("결제 승인 처리 완료: {}", purchase.getId());
+		purchase.setPaymentStatus(PaymentStatusEnum.DONE);
+		purchaseRepository.save(purchase);
+		log.info("[Webhook] 결제 승인 처리 완료: paymentKey = {}", paymentKey);
 	}
 
-	private void handleCanceled(Purchase purchase, JsonNode root) {
-		log.info("handleCanceled: {}", purchase);
-
-		JsonNode cancelsNode = root.path("data").path("cancels");
-		if (!cancelsNode.isArray()) {
-			log.warn("취소 내역이 없습니다.");
-			return;
-		}
-
-		List<CanceledPaymentInfo.CancelDetail> cancelDetails = new ArrayList<>();
-		for (JsonNode cancelNode : cancelsNode) {
-			cancelDetails.add(new CanceledPaymentInfo.CancelDetail(
-				cancelNode.path("cancelAmount").asInt(),
-				cancelNode.path("cancelReason").asText(),
-				cancelNode.path("canceledAt").asText()
-			));
-		}
-
+	private void handleCanceled(JsonNode root) {
 		JsonNode data = root.path("data");
+		String paymentKey = data.path("paymentKey").asText();
 
-		String receiptUrl = data.path("receipt").path("url").asText();
-		CanceledPaymentInfo.Receipt receipt = receiptUrl != null ? new CanceledPaymentInfo.Receipt(receiptUrl) : null;
+		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
+			.orElseThrow(() -> new IllegalArgumentException("[CANCELED] paymentKey 로 구매 정보를 찾을 수 없습니다."));
 
-		CanceledPaymentInfo info = new CanceledPaymentInfo(
-			data.path("paymentKey").asText(),
-			data.path("orderId").asText(),
-			data.path("status").asText(),
-			data.path("method").asText(),
-			data.path("totalAmount").asInt(),
-			data.path("balanceAmount").asInt(),
-			data.path("isPartialCancelable").isBoolean(),
-			receipt,
-			cancelDetails
-		);
+		purchase.setPaymentStatus(PaymentStatusEnum.CANCELED);
+		purchaseRepository.save(purchase);
 
-		purchaseService.cancelPayment(new CancelPaymentRequest(
-			data.path("cancelReason").asText(),
-			data.path("cancelAmount").asInt()
-		), purchase.getPaymentUuid(), purchase.getUser().getUserId());
-
-		log.info("결제 취소 처리 완료: {}", purchase.getId());
+		log.info("결제 취소 처리 완료: paymentKey = {}", paymentKey);
 	}
 
-	private void handleExpired(Purchase purchase, JsonNode root) {
-		log.info("handleExpired: {}", purchase);
+	private void handleExpired(JsonNode root) {
+		JsonNode data = root.path("data");
+		String paymentKey = data.path("paymentKey").asText();
+
+		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
+			.orElseThrow(() -> new IllegalArgumentException("[EXPIRED] paymentKey 로 구매 정보를 찾을 수 없습니다."));
 
 		purchase.setPaymentStatus(PaymentStatusEnum.EXPIRED);
 		purchaseRepository.save(purchase);

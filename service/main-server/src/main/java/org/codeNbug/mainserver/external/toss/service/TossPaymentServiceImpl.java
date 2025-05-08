@@ -1,6 +1,5 @@
 package org.codeNbug.mainserver.external.toss.service;
 
-import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Map;
 
@@ -45,16 +44,12 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	 * Toss 서버에 결제 승인을 요청하고 결과 정보를 반환
 	 */
 	@Override
-	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, String orderName, String method,
-		Integer amount, LocalDateTime approvedAt, String receipt) {
+	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, Integer amount) {
 		String url = TOSS_API_URL + "/confirm";
 		Map<String, Object> body = Map.of(
 			"paymentKey", paymentKey,
 			"orderId", orderId,
-			"orderName", orderName,
-			"method", method,
-			"amount", amount,
-			"approvedAt", approvedAt
+			"amount", amount
 		);
 		return postToToss(url, body, ConfirmedPaymentInfo.class);
 	}
