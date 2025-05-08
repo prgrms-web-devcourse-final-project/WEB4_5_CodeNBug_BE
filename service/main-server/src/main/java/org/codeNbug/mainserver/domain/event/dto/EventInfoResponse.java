@@ -10,9 +10,7 @@ import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGradeEnum;
 import org.codenbug.common.util.Util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Value;
@@ -36,7 +34,7 @@ public class EventInfoResponse implements Serializable {
 	Boolean seatSelectable;
 	Boolean isDeleted;
 
-	public EventInfoResponse(ObjectMapper objectMapper, Event event) throws JsonProcessingException {
+	public EventInfoResponse(Event event) throws JsonProcessingException {
 		this.eventId = event.getEventId();
 		this.typeId = event.getTypeId();
 		this.information = new EventInformationDto(

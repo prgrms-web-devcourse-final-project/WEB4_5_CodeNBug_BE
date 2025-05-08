@@ -9,10 +9,11 @@ import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.codeNbug.mainserver.domain.event.repository.JpaCommonEventRepository;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.transaction.Transactional;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 @Service
 @Transactional
@@ -20,13 +21,11 @@ public class CommonEventService {
 
 	private final CommonEventRepository commonEventRepository;
 	private final JpaCommonEventRepository jpaCommonEventRepository;
-	private final ObjectMapper objectMapper;
 
 	public CommonEventService(CommonEventRepository commonEventRepository,
 		JpaCommonEventRepository jpaCommonEventRepository, ObjectMapper objectMapper) {
 		this.commonEventRepository = commonEventRepository;
 		this.jpaCommonEventRepository = jpaCommonEventRepository;
-		this.objectMapper = objectMapper;
 	}
 
 	public List<EventListResponse> getEvents(String keyword, EventListFilter filter) {
@@ -60,8 +59,8 @@ public class CommonEventService {
 			.stream().map(event -> new EventListResponse(event)).toList();
 	}
 
-	public EventInfoResponse getEvent(Long id) throws JsonProcessingException {
-		return new EventInfoResponse(objectMapper, jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(id)
+	public EventInfoResponse getEvent(Long id){
+		return new EventInfoResponse(jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(id)
 			.orElseThrow(() -> new IllegalArgumentException("해당 id의 event는 없습니다.")));
 	}
 }
