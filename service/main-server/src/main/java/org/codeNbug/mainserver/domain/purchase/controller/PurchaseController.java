@@ -77,12 +77,10 @@ public class PurchaseController {
 	@PostMapping("/{paymentKey}/cancel")
 	public ResponseEntity<RsData<CancelPaymentResponse>> cancelPayment(
 		@PathVariable String paymentKey,
-		@RequestBody CancelPaymentRequest request,
-		@RequestHeader("entryAuthToken") String entryAuthToken
+		@RequestBody CancelPaymentRequest request
 	) {
 		Long userId = SecurityUtil.getCurrentUserId();
 
-		entryTokenValidator.validate(userId, entryAuthToken);
 		CancelPaymentResponse response = purchaseService.cancelPayment(request, paymentKey, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 취소 완료", response));
 	}
