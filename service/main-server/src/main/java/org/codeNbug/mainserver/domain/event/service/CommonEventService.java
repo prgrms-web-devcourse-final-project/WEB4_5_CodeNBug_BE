@@ -7,13 +7,12 @@ import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.codeNbug.mainserver.domain.event.repository.JpaCommonEventRepository;
+import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 
 import jakarta.transaction.Transactional;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 
 @Service
 @Transactional
@@ -21,11 +20,14 @@ public class CommonEventService {
 
 	private final CommonEventRepository commonEventRepository;
 	private final JpaCommonEventRepository jpaCommonEventRepository;
+	private final RedisTemplate<String, Object> redisTemplate;
 
 	public CommonEventService(CommonEventRepository commonEventRepository,
-		JpaCommonEventRepository jpaCommonEventRepository, ObjectMapper objectMapper) {
+		JpaCommonEventRepository jpaCommonEventRepository, RedisLockService viewCountLockService,
+		RedisTemplate<String, Object> redisTemplate) {
 		this.commonEventRepository = commonEventRepository;
 		this.jpaCommonEventRepository = jpaCommonEventRepository;
+		this.redisTemplate = redisTemplate;
 	}
 
 	public List<EventListResponse> getEvents(String keyword, EventListFilter filter) {
@@ -59,8 +61,12 @@ public class CommonEventService {
 			.stream().map(event -> new EventListResponse(event)).toList();
 	}
 
-	public EventInfoResponse getEvent(Long id){
-		return new EventInfoResponse(jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(id)
-			.orElseThrow(() -> new IllegalArgumentException("해당 id의 event는 없습니다.")));
+	public EventInfoResponse getEvent(Long id) {
+		Integer incrementedViewCount = redisTemplate.opsForValue().increment("viewCount:" + id, 1).intValue();
+
+		EventInfoResponse eventInfoResponse = new EventInfoResponse(
+			jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(id)
+				.orElseThrow(() -> new IllegalArgumentException("해당 id의 event는 없습니다.")), incrementedViewCount);
+		return eventInfoResponse;
 	}
 }

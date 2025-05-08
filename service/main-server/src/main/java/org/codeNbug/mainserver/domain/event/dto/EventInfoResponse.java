@@ -34,7 +34,7 @@ public class EventInfoResponse implements Serializable {
 	Boolean seatSelectable;
 	Boolean isDeleted;
 
-	public EventInfoResponse(Event event) throws JsonProcessingException {
+	public EventInfoResponse(Event event) {
 		this.eventId = event.getEventId();
 		this.typeId = event.getTypeId();
 		this.information = new EventInformationDto(
@@ -52,6 +52,47 @@ public class EventInfoResponse implements Serializable {
 		this.bookingStart = event.getBookingStart();
 		this.bookingEnd = event.getBookingEnd();
 		this.viewCount = event.getViewCount();
+		this.createdAt = event.getCreatedAt();
+		this.modifiedAt = event.getModifiedAt();
+		this.status = event.getStatus();
+		this.seatSelectable = event.getSeatSelectable();
+		this.isDeleted = event.getIsDeleted();
+		this.seatLayout = new SeatLayoutDto(
+			event.getSeatLayout().getId(),
+			Util.fromJson(event.getSeatLayout().getLayout(), new TypeReference<Map<String, Object>>() {
+			}),
+			event.getSeatLayout().getSeats().stream()
+				.map(seat -> new SeatLayoutDto.SeatDto(
+					seat.getId(),
+					seat.getLocation(),
+					seat.isAvailable(),
+					new SeatLayoutDto.SeatDto.SeatGradeDto(
+						seat.getGrade().getId(),
+						seat.getGrade().getGrade(),
+						seat.getGrade().getAmount()
+					)
+				)).toList()
+		);
+	}
+
+	public EventInfoResponse(Event event, Integer viewCount) {
+		this.eventId = event.getEventId();
+		this.typeId = event.getTypeId();
+		this.information = new EventInformationDto(
+			event.getInformation().getTitle(),
+			event.getInformation().getThumbnailUrl(),
+			event.getInformation().getDescription(),
+			event.getInformation().getAgeLimit(),
+			event.getInformation().getRestrictions(),
+			event.getInformation().getLocation(),
+			event.getInformation().getHallName(),
+			event.getInformation().getEventStart(),
+			event.getInformation().getEventEnd(),
+			event.getInformation().getSeatCount()
+		);
+		this.bookingStart = event.getBookingStart();
+		this.bookingEnd = event.getBookingEnd();
+		this.viewCount = viewCount;
 		this.createdAt = event.getCreatedAt();
 		this.modifiedAt = event.getModifiedAt();
 		this.status = event.getStatus();
