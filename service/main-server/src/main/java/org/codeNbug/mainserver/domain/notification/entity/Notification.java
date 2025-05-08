@@ -38,12 +38,17 @@ public class Notification {
     @Column(nullable = false)
     private boolean isRead;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private NotificationStatus status;
+
     @Builder
     public Notification(Long userId, NotificationEnum type, String content) {
         this.userId = userId;
         this.type = type;
         this.content = content;
         this.isRead = false;
+        this.status = NotificationStatus.PENDING;
     }
 
     /**
@@ -51,5 +56,13 @@ public class Notification {
      */
     public void markAsRead() {
         this.isRead = true;
+    }
+
+    /**
+     * 알림 상태 업데이트
+     * @param status 새로운 상태
+     */
+    public void updateStatus(NotificationStatus status) {
+        this.status = status;
     }
 }
