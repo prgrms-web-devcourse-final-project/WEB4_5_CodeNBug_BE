@@ -36,8 +36,7 @@ public class EntryStreamMessageListener implements StreamListener<String, MapRec
 	@Value("${custom.instance-id}")
 	private String instanceId;
 
-	private String groupName = RedisConfig.DISPATCH_QUEUE_CHANNEL_NAME + ":" + instanceId;
-	private String consumerName = instanceId + "-consumer"; // 각 인스턴스마다 고유한 컨슈머 이름
+	// 각 인스턴스마다 고유한 컨슈머 이름
 
 	private StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer;
 
@@ -52,7 +51,8 @@ public class EntryStreamMessageListener implements StreamListener<String, MapRec
 
 	@PostConstruct
 	public void startListening() {
-
+		String groupName = RedisConfig.DISPATCH_QUEUE_CHANNEL_NAME + ":" + instanceId;
+		String consumerName = instanceId + "-consumer";
 		// 컨슈머 그룹 생성 (이미 RedisConfig의 basicRedisTemplate 빈에서 시도함)
 		try {
 			// 스트림이 존재하지 않으면 BUSYGROUP 에러가 발생할 수 있으므로 확인
@@ -96,6 +96,8 @@ public class EntryStreamMessageListener implements StreamListener<String, MapRec
 
 	@Override
 	public void onMessage(MapRecord<String, String, String> message) {
+		String groupName = RedisConfig.DISPATCH_QUEUE_CHANNEL_NAME + ":" + instanceId;
+		String consumerName = instanceId + "-consumer";
 		Map<String, String> body = message.getValue();
 
 		Long userId = Long.parseLong(body.get("userId"));

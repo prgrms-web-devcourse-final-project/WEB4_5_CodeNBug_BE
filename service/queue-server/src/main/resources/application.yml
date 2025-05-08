@@ -61,6 +61,17 @@ sns:
     token:
       url: https://kauth.kakao.com/oauth/token # 고정값
 
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - http://localhost:3001
+    - "*"
+    - https://ticketone.site
+    - https://www.app4.qwas.shop
+    - http://www.app4.qwas.shop
+    - https://login.aleph.kr
+    - http://login.aleph.kr
+
 allowed:
   redirect:
     domains: localhost:3001,localhost:9000,code-bug.vercel.app
