@@ -7,6 +7,7 @@ import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
+import org.codeNbug.mainserver.domain.user.dto.response.ModifyRoleResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
 import org.codeNbug.mainserver.domain.user.service.UserService;
@@ -14,7 +15,9 @@ import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.codenbug.common.util.CookieUtil;
+import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.redis.service.TokenService;
+import org.codenbug.user.security.annotation.RoleRequired;
 import org.codenbug.user.security.exception.AuthenticationFailedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -350,13 +353,13 @@ public class UserController {
     public ResponseEntity<RsData<PurchaseHistoryListResponse>> getPurchaseHistoryList() {
         try {
             log.info(">> 사용자 구매 이력 조회 요청");
-            
+
             Long userId = SecurityUtil.getCurrentUserId();
             PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
-            
-            log.info(">> 구매 이력 조회 성공: userId={}, 조회된 건수={}", 
+
+            log.info(">> 구매 이력 조회 성공: userId={}, 조회된 건수={}",
                     userId, response.getPurchases().size());
-            
+
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
         } catch (AuthenticationFailedException e) {
@@ -394,6 +397,43 @@ public class UserController {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
+        }
+    }
+
+    /**
+     * 관리자 - 이용자의 권한을 변경합니다
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
+     */
+    @RoleRequired(UserRole.ADMIN)
+    @PutMapping("/admin/{userId}/role")
+    public ResponseEntity<RsData<ModifyRoleResponse>> modifyRole(
+            @PathVariable Long userId,
+            @RequestBody String role) {
+        try {
+            log.info(">> 관리자 권한 변경 요청: userId={}, role={}", userId, role);
+
+            ModifyRoleResponse response = userService.modifyRole(userId, role);
+
+            log.info(">> 권한 변경 성공: userId={}, newRole={}",
+                    userId, response.getRole());
+
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "권한 변경 성공", response));
+        } catch (AuthenticationFailedException e) {
+            log.warn(">> 권한 변경 인증 실패: {}", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new RsData<>("401-UNAUTHORIZED", "인증이 필요합니다."));
+        } catch (IllegalArgumentException e) {
+            log.error(">> 권한 변경 오류: {}", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
+        } catch (Exception e) {
+            log.error(">> 권한 변경 중 오류 발생: {}", e.getMessage(), e);
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
     }
 }
