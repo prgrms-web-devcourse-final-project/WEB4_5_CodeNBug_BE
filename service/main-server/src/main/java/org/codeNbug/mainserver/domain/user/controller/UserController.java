@@ -142,7 +142,7 @@ public class UserController {
      * @param response      HTTP 응답 객체 (쿠키 설정용)
      * @return API 응답
      */
-    @PostMapping("/login")
+    @PostMapping("/login2")
     public ResponseEntity<RsData<LoginResponse>> loginWithDomainCookie(
         @RequestParam String domain,
         @Valid @RequestBody LoginRequest request,
