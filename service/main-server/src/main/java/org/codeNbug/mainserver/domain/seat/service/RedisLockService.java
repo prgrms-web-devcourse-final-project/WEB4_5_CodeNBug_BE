@@ -23,7 +23,7 @@ public class RedisLockService {
 	private final RedisTemplate<String, String> redisTemplate;
 	private final RedisKeyScanner redisKeyScanner;
 	private static final String PREFIX = "seat:lock:";
-	public static final String ENTRY_QUEUE_KEY_NAME = "ENTRY";
+	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
 
 	/**
 	 * Redis에 key가 존재하지 않을 경우 value를 설정하며 락 시도
@@ -123,7 +123,7 @@ public class RedisLockService {
 	 * @param userId 사용자 ID
 	 */
 	public void releaseAllEntryQueueLocks(Long userId) {
-		Set<String> keys = redisKeyScanner.scanKeys(PREFIX + ":" + userId + ":*");
+		Set<String> keys = redisKeyScanner.scanKeys(ENTRY_TOKEN_STORAGE_KEY_NAME + ":" + userId + ":*");
 		if (keys != null) {
 			redisTemplate.delete(keys);
 		}
