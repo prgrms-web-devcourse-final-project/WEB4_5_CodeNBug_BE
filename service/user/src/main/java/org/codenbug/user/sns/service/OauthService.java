@@ -138,7 +138,7 @@ public class OauthService {
 			user.setCreatedAt(new Timestamp(System.currentTimeMillis())); // 생성 시간 설정
 			user.setUpdatedAt(new Timestamp(System.currentTimeMillis())); // 수정 시간 설정
 			user.setIsAdditionalInfoCompleted(false); // 추가 정보 미입력 상태로 설정
-			
+
 			try {
 				savedUser = snsUserRepository.save(user);
 				logger.info(">> 신규 사용자 등록 성공: id={}, socialId={}", savedUser.getId(), savedUser.getSocialId());
@@ -215,7 +215,7 @@ public class OauthService {
 			user.setCreatedAt(new Timestamp(System.currentTimeMillis())); // 생성 시간 설정
 			user.setUpdatedAt(new Timestamp(System.currentTimeMillis())); // 수정 시간 설정
 			user.setIsAdditionalInfoCompleted(false); // 추가 정보 미입력 상태로 설정
-			
+
 			try {
 				savedUser = snsUserRepository.save(user);
 				logger.info(">> 신규 사용자 등록 성공: id={}, socialId={}", savedUser.getId(), savedUser.getSocialId());
@@ -358,6 +358,7 @@ public class OauthService {
 		user.setName(name);                     // 사용자의 이름 설정
 		user.setProvider(socialLoginType.name()); // 로그인 제공자 설정
 		user.setEmail(email);                   // 이메일 설정
+		user.setRole("ROLE_USER");              // 기본 역할을 ROLE_USER로 설정
 		return user;
 	}
 
