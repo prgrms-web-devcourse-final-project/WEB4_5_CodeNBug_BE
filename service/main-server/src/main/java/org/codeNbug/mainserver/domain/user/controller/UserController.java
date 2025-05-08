@@ -405,17 +405,25 @@ public class UserController {
      * 일반 사용자와 SNS 사용자 모두 지원합니다.
      */
     @RoleRequired(UserRole.ADMIN)
-    @PutMapping("/admin/{userId}/role")
+    @PutMapping("/admin/{userType}/{userId}/role")
     public ResponseEntity<RsData<ModifyRoleResponse>> modifyRole(
+            @PathVariable String userType,
             @PathVariable Long userId,
             @RequestBody String role) {
         try {
-            log.info(">> 관리자 권한 변경 요청: userId={}, role={}", userId, role);
+            log.info(">> 관리자 권한 변경 요청: userType={}, userId={}, role={}", userType, userId, role);
 
-            ModifyRoleResponse response = userService.modifyRole(userId, role);
+            // userType이 유효한지 검사
+            if (!userType.equals("regular") && !userType.equals("sns")) {
+                log.error(">> 유효하지 않은 사용자 타입: {}", userType);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new RsData<>("400-BAD_REQUEST", "유효하지 않은 사용자 타입입니다. 'regular' 또는 'sns'여야 합니다."));
+            }
 
-            log.info(">> 권한 변경 성공: userId={}, newRole={}",
-                    userId, response.getRole());
+            ModifyRoleResponse response = userService.modifyRole(userType, userId, role);
+
+            log.info(">> 권한 변경 성공: userType={}, userId={}, newRole={}",
+                    userType, userId, response.getRole());
 
             return ResponseEntity.ok(
                     new RsData<>("200-SUCCESS", "권한 변경 성공", response));

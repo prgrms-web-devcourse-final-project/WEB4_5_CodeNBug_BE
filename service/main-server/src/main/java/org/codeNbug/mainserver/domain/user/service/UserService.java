@@ -414,14 +414,15 @@ public class UserService {
      * 사용자의 역할을 변경합니다. (관리자용)
      * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
+     * @param userType 사용자 타입 ("regular" 또는 "sns")
      * @param userId 변경할 사용자의 ID
      * @param role 변경할 역할 문자열 (USER, ADMIN, MANAGER)
      * @return 변경된 역할 정보
      * @throws IllegalArgumentException 사용자를 찾을 수 없거나 역할이 유효하지 않은 경우
      */
     @Transactional
-    public ModifyRoleResponse modifyRole(Long userId, String role) {
-        log.info(">> 사용자 역할 변경 시작: userId={}, newRole={}", userId, role);
+    public ModifyRoleResponse modifyRole(String userType, Long userId, String role) {
+        log.info(">> 사용자 역할 변경 시작: userType={}, userId={}, newRole={}", userType, userId, role);
         
         // 역할 유효성 검사
         try {
@@ -431,9 +432,14 @@ public class UserService {
             throw new IllegalArgumentException("유효하지 않은 역할입니다. USER, ADMIN, MANAGER 중 하나여야 합니다.");
         }
         
-        // 1. 먼저 일반 사용자에서 검색
-        User user = userRepository.findById(userId).orElse(null);
-        if (user != null) {
+        // 일반 사용자인 경우
+        if ("regular".equals(userType)) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        log.error(">> 일반 사용자를 찾을 수 없음: userId={}", userId);
+                        return new IllegalArgumentException("해당 ID의 일반 사용자를 찾을 수 없습니다: " + userId);
+                    });
+            
             log.info(">> 일반 사용자 역할 변경: userId={}, 이전 역할={}, 새 역할={}", 
                    userId, user.getRole(), role);
             
@@ -444,10 +450,14 @@ public class UserService {
             log.info(">> 일반 사용자 역할 변경 완료: userId={}, newRole={}", userId, role);
             return ModifyRoleResponse.of(role);
         }
-        
-        // 2. 일반 사용자에 없으면 SNS 사용자에서 검색
-        SnsUser snsUser = snsUserRepository.findById(userId).orElse(null);
-        if (snsUser != null) {
+        // SNS 사용자인 경우
+        else if ("sns".equals(userType)) {
+            SnsUser snsUser = snsUserRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        log.error(">> SNS 사용자를 찾을 수 없음: userId={}", userId);
+                        return new IllegalArgumentException("해당 ID의 SNS 사용자를 찾을 수 없습니다: " + userId);
+                    });
+            
             log.info(">> SNS 사용자 역할 변경: userId={}, 이전 역할={}, 새 역할={}", 
                    userId, snsUser.getRole(), role);
             
@@ -459,8 +469,8 @@ public class UserService {
             return ModifyRoleResponse.of(role);
         }
         
-        // 사용자를 찾지 못한 경우
-        log.error(">> 사용자를 찾을 수 없음: userId={}", userId);
-        throw new IllegalArgumentException("해당 ID의 사용자를 찾을 수 없습니다: " + userId);
+        // 사용자 타입이 유효하지 않은 경우 (컨트롤러에서 이미 검증하므로 여기까지 오지 않음)
+        log.error(">> 유효하지 않은 사용자 타입: {}", userType);
+        throw new IllegalArgumentException("유효하지 않은 사용자 타입입니다: " + userType);
     }
 }
