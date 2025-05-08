@@ -79,7 +79,8 @@ public class OauthController {
                     userResponse.getName(),
                     userResponse.getAccessToken(),
                     userResponse.getRefreshToken(),
-                    userResponse.getProvider()
+                    userResponse.getProvider(),
+                    userResponse.getSocialId()
             );
             
             return ResponseEntity.ok(
@@ -117,7 +118,8 @@ public class OauthController {
                     updatedUser.getName(),
                     tokenInfo.getAccessToken(),
                     tokenInfo.getRefreshToken(),
-                    updatedUser.getProvider()
+                    updatedUser.getProvider(),
+                    updatedUser.getSocialId()
             );
             
             return ResponseEntity.ok(

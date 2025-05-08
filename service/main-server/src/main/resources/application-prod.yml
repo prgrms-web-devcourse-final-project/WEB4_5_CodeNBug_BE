@@ -27,18 +27,12 @@ cors:
 sns:
   google:
     url: https://accounts.google.com/o/oauth2/v2/auth # 고정값
-    client:
-      id: ON_SECRET
-      secret: ON_SECRET
     callback:
       url: https://code-bug.vercel.app/auth/google/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
       url: https://oauth2.googleapis.com/token # 고정값
   kakao:
     url: https://kauth.kakao.com/oauth/authorize # 고정값
-    client:
-      id: ON_SECRET
-      secret: ON_SECRET
     callback:
       url: https://code-bug.vercel.app/auth/kakao/callback # 유저 설정에 따라 변경 가능 (Redirect URI)
     token:
