@@ -9,12 +9,15 @@ import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
+import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
+import org.codeNbug.mainserver.global.Redis.entry.TokenExtractor;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/v1/payments")
 public class PurchaseController {
 	private final PurchaseService purchaseService;
+	private final EntryTokenValidator entryTokenValidator;
 
 	/**
 	 * 티켓 구매 전 사전 등록
@@ -36,9 +40,13 @@ public class PurchaseController {
 	 */
 	@PostMapping("/init")
 	public ResponseEntity<RsData<InitiatePaymentResponse>> initiatePayment(
-		@RequestBody InitiatePaymentRequest request
+		@RequestBody InitiatePaymentRequest request,
+		@RequestHeader("Authorization") String authorizationHeader
 	) {
 		Long userId = SecurityUtil.getCurrentUserId();
+		String token = TokenExtractor.extractBearer(authorizationHeader);
+
+		entryTokenValidator.validate(userId, token);
 		InitiatePaymentResponse response = purchaseService.initiatePayment(request, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 준비 완료", response));
 	}
@@ -51,9 +59,13 @@ public class PurchaseController {
 	 */
 	@PostMapping("/confirm")
 	public ResponseEntity<RsData<ConfirmPaymentResponse>> confirmPayment(
-		@RequestBody ConfirmPaymentRequest request
+		@RequestBody ConfirmPaymentRequest request,
+		@RequestHeader("Authorization") String authorizationHeader
 	) throws IOException, InterruptedException {
 		Long userId = SecurityUtil.getCurrentUserId();
+		String token = TokenExtractor.extractBearer(authorizationHeader);
+
+		entryTokenValidator.validate(userId, token);
 		ConfirmPaymentResponse response = purchaseService.confirmPayment(request, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 승인 완료", response));
 	}
@@ -68,9 +80,13 @@ public class PurchaseController {
 	@PostMapping("/{paymentKey}/cancel")
 	public ResponseEntity<RsData<CancelPaymentResponse>> cancelPayment(
 		@PathVariable String paymentKey,
-		@RequestBody CancelPaymentRequest request
+		@RequestBody CancelPaymentRequest request,
+		@RequestHeader("Authorization") String authorizationHeader
 	) {
 		Long userId = SecurityUtil.getCurrentUserId();
+		String token = TokenExtractor.extractBearer(authorizationHeader);
+
+		entryTokenValidator.validate(userId, token);
 		CancelPaymentResponse response = purchaseService.cancelPayment(request, paymentKey, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 취소 완료", response));
 	}
