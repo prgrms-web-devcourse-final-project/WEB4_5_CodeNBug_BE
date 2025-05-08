@@ -8,6 +8,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 좌석 선택 및 예매 시 동시성 제어를 위한 Redis 분산 락 서비스
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
  * <p>
  * Redis 키 형식: seat:lock:{userId}:{eventId}:{seatId}
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RedisLockService {
@@ -118,14 +120,17 @@ public class RedisLockService {
 	}
 
 	/**
-	 * entry Queue 의 모든 Redis 락 해제
+	 * entry Queue 의 대기열 해제
 	 *
 	 * @param userId 사용자 ID
 	 */
 	public void releaseAllEntryQueueLocks(Long userId) {
-		Set<String> keys = redisKeyScanner.scanKeys(ENTRY_TOKEN_STORAGE_KEY_NAME + ":" + userId + ":*");
-		if (keys != null) {
-			redisTemplate.delete(keys);
+		Long deletedCount = redisTemplate.opsForHash().delete(ENTRY_TOKEN_STORAGE_KEY_NAME, userId.toString());
+
+		if (deletedCount > 0) {
+			log.info("ENTRY_TOKEN 해시에서 userId {}의 토큰을 삭제했습니다.", userId);
+		} else {
+			log.warn("ENTRY_TOKEN 해시에서 userId {}에 해당하는 토큰이 존재하지 않습니다.", userId);
 		}
 	}
 }
