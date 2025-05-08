@@ -1,12 +1,16 @@
 package org.codeNbug.mainserver.domain.notification.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.codeNbug.mainserver.domain.notification.entity.NotificationStatus;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.entity.Notification;
 import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
+import org.codeNbug.mainserver.domain.notification.dto.NotificationEventDto;
 import org.codeNbug.mainserver.domain.notification.repository.NotificationRepository;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -15,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 알림 관련 비즈니스 로직을 처리하는 서비스
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
@@ -22,6 +27,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final NotificationEmitterService emitterService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 특정 사용자의 알림 목록을 페이지네이션하여 조회
@@ -65,7 +71,7 @@ public class NotificationService {
     }
     /**
      * 새로운 알림을 생성합니다
-     *
+     * 트랜잭션 동기화를 위해 이벤트 발행 방식 사용
      * @param userId 알림을 받을 사용자 ID
      * @param type 알림 유형
      * @param content 알림 내용
@@ -74,8 +80,11 @@ public class NotificationService {
      */
     @Transactional
     public NotificationDto createNotification(Long userId, NotificationEnum type, String content) {
+        log.debug("알림 생성 시작: userId={}, type={}", userId, type);
+
         // 사용자 존재 여부 검증
         if (!userRepository.existsById(userId)) {
+            log.warn("알림 생성 실패: 사용자가 존재하지 않음 - userId={}", userId);
             throw new BadRequestException("해당 사용자를 찾을 수 없습니다.");
         }
 
@@ -88,14 +97,19 @@ public class NotificationService {
 
         // 저장
         Notification savedNotification = notificationRepository.save(notification);
+        log.debug("알림 저장 완료: notificationId={}", savedNotification.getId());
 
         // DTO로 변환
         NotificationDto notificationDto = NotificationDto.from(savedNotification);
 
-        // SSE로 실시간 알림 전송 (연결된 사용자에게만)
-        if (emitterService.isConnected(userId)) {
-            emitterService.sendNotification(userId, notificationDto);
-        }
+        // 이벤트 발행 (트랜잭션 커밋 후 처리됨)
+        eventPublisher.publishEvent(new NotificationEventDto(
+                savedNotification.getId(),
+                userId,
+                type,
+                content
+        ));
+        log.debug("알림 이벤트 발행 완료: notificationId={}", savedNotification.getId());
 
         return notificationDto;
     }
@@ -127,5 +141,46 @@ public class NotificationService {
     public NotificationDto createSystemNotification(Long userId, NotificationEnum type, String content) {
         // 기존 createNotification 메서드 활용
         return createNotification(userId, type, content);
+    }
+
+    /**
+     * 알림 상태별 카운트 조회
+     *
+     * @param userId 사용자 ID
+     * @return 상태별 알림 개수
+     */
+    @Transactional(readOnly = true)
+    public long getUnreadCount(Long userId) {
+        return notificationRepository.countByUserIdAndIsReadFalse(userId);
+    }
+
+    /**
+     * 실패한 알림 재전송 시도
+     *
+     * @param notificationId 알림 ID
+     * @return 재전송 성공 여부
+     */
+    @Transactional
+    public boolean retryFailedNotification(Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElse(null);
+
+        if (notification == null || notification.getStatus() != NotificationStatus.FAILED) {
+            return false;
+        }
+
+        // 상태를 PENDING으로 변경
+        notification.updateStatus(NotificationStatus.PENDING);
+        notificationRepository.save(notification);
+
+        // 이벤트 재발행
+        eventPublisher.publishEvent(new NotificationEventDto(
+                notification.getId(),
+                notification.getUserId(),
+                notification.getType(),
+                notification.getContent()
+        ));
+
+        return true;
     }
 }
