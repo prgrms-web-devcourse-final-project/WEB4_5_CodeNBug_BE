@@ -6,7 +6,6 @@ import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
 import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
-import org.codeNbug.mainserver.global.Redis.entry.TokenExtractor;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +19,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 좌석 도메인 관련 요청을 처리하는 컨트롤러
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/event")
 @RequiredArgsConstructor
@@ -59,11 +60,10 @@ public class SeatController {
 	public ResponseEntity<RsData<SeatSelectResponse>> selectSeat(
 		@PathVariable("event-id") Long eventId,
 		@RequestBody SeatSelectRequest seatSelectRequest,
-		@RequestHeader("Authorization") String authorizationHeader) {
+		@RequestHeader("entryAuthToken") String entryAuthToken) {
 		Long userId = SecurityUtil.getCurrentUserId();
-		String token = TokenExtractor.extractBearer(authorizationHeader);
 
-		entryTokenValidator.validate(userId, token);
+		entryTokenValidator.validate(userId, entryAuthToken);
 		SeatSelectResponse seatSelectResponse = seatService.selectSeat(eventId, seatSelectRequest, userId);
 		return ResponseEntity.ok(new RsData<>(
 			"200",
@@ -82,11 +82,10 @@ public class SeatController {
 	@DeleteMapping("/{event-id}/seats")
 	public ResponseEntity<RsData<Void>> cancelSeat(@PathVariable("event-id") Long eventId,
 		@RequestBody SeatCancelRequest seatCancelRequest,
-		@RequestHeader("Authorization") String authorizationHeader) {
+		@RequestHeader("entryAuthToken") String entryAuthToken) {
 		Long userId = SecurityUtil.getCurrentUserId();
-		String token = TokenExtractor.extractBearer(authorizationHeader);
 
-		entryTokenValidator.validate(userId, token);
+		entryTokenValidator.validate(userId, entryAuthToken);
 		seatService.cancelSeat(eventId, seatCancelRequest, userId);
 		return ResponseEntity.ok(new RsData<>(
 			"200",
