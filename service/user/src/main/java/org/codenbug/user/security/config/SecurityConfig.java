@@ -128,6 +128,7 @@ public class SecurityConfig {
 			.exceptionHandling(exceptionHandling -> exceptionHandling
 				.authenticationEntryPoint((request, response, authException) -> {
 					authException.printStackTrace();
+					log.info(request.getCookies().toString() + "\n" + request.getHeaderNames().toString() + "\n");
 					response.setStatus(HttpStatus.UNAUTHORIZED.value());
 					response.setContentType("application/json");
 					response.getWriter().write("{\"code\":\"401-UNAUTHORIZED\",\"msg\":\"인증 정보가 필요합니다.\"}");
