@@ -17,6 +17,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 상태 변화 감지 웹훅 서비스
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -118,6 +121,6 @@ public class WebhookService {
 
 		purchase.setPaymentStatus(PaymentStatusEnum.EXPIRED);
 		purchaseRepository.save(purchase);
-		log.info("결제 만료 처리 완료: {}", purchase.getId());
+		log.info("결제 만료 처리 완료: paymentKey = {}", paymentKey);
 	}
 }
