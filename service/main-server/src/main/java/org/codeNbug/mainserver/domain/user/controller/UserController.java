@@ -6,6 +6,7 @@ import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
+import org.codeNbug.mainserver.domain.user.dto.request.RoleUpdateRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.ModifyRoleResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
@@ -409,9 +410,18 @@ public class UserController {
     public ResponseEntity<RsData<ModifyRoleResponse>> modifyRole(
             @PathVariable String userType,
             @PathVariable Long userId,
-            @RequestBody String role) {
+            @Valid @RequestBody RoleUpdateRequest request,
+            BindingResult bindingResult) {
         try {
-            log.info(">> 관리자 권한 변경 요청: userType={}, userId={}, role={}", userType, userId, role);
+            // 입력값 유효성 검사
+            if (bindingResult.hasErrors()) {
+                log.warn(">> 역할 변경 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
+                return ResponseEntity.badRequest()
+                        .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
+            }
+            
+            log.info(">> 관리자 권한 변경 요청: userType={}, userId={}, role={}", 
+                    userType, userId, request.getRole());
 
             // userType이 유효한지 검사
             if (!userType.equals("regular") && !userType.equals("sns")) {
@@ -420,7 +430,7 @@ public class UserController {
                         .body(new RsData<>("400-BAD_REQUEST", "유효하지 않은 사용자 타입입니다. 'regular' 또는 'sns'여야 합니다."));
             }
 
-            ModifyRoleResponse response = userService.modifyRole(userType, userId, role);
+            ModifyRoleResponse response = userService.modifyRole(userType, userId, request.getRole());
 
             log.info(">> 권한 변경 성공: userType={}, userId={}, newRole={}",
                     userType, userId, response.getRole());
