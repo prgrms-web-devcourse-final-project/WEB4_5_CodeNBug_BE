@@ -122,6 +122,7 @@ public class PurchaseService {
 
 		purchase.updatePaymentInfo(
 			info.getPaymentKey(),
+			info.getOrderId(),
 			info.getTotalAmount(),
 			methodEnum,
 			event.getSeatSelectable() ? "지정석 %d매".formatted(seatIds.size()) :

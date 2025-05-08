@@ -68,12 +68,14 @@ public class Purchase {
 
 	public void updatePaymentInfo(
 		String paymentUuid,
+		String orderId,
 		int amount,
 		PaymentMethodEnum paymentMethod,
 		String orderName,
 		LocalDateTime purchaseDate
 	) {
 		this.paymentUuid = paymentUuid;
+		this.orderId = orderId;
 		this.amount = amount;
 		this.paymentMethod = paymentMethod;
 		this.orderName = orderName;
