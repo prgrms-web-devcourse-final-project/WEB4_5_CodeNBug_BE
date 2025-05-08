@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codenbug.user.domain.user.entity.User;
-import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import jakarta.persistence.CascadeType;
@@ -58,7 +57,6 @@ public class Purchase {
 	@Setter
 	private String orderName;
 
-	@CreatedDate
 	private LocalDateTime purchaseDate;
 
 	@ManyToOne
@@ -72,19 +70,13 @@ public class Purchase {
 		String paymentUuid,
 		int amount,
 		PaymentMethodEnum paymentMethod,
-		PaymentStatusEnum paymentStatus,
 		String orderName,
 		LocalDateTime purchaseDate
 	) {
 		this.paymentUuid = paymentUuid;
 		this.amount = amount;
 		this.paymentMethod = paymentMethod;
-		this.paymentStatus = paymentStatus;
 		this.orderName = orderName;
 		this.purchaseDate = purchaseDate;
-	}
-
-	public void updateCancelStatus(PaymentStatusEnum newStatus) {
-		this.paymentStatus = newStatus;
 	}
 }

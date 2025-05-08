@@ -71,7 +71,7 @@ public class PurchaseController {
 		@RequestBody CancelPaymentRequest request
 	) {
 		Long userId = SecurityUtil.getCurrentUserId();
-		CancelPaymentResponse response = purchaseService.cancelPayment(paymentKey, request, userId);
+		CancelPaymentResponse response = purchaseService.cancelPayment(request, paymentKey, userId);
 		return ResponseEntity.ok(new RsData<>("200", "결제 취소 완료", response));
 	}
 }
