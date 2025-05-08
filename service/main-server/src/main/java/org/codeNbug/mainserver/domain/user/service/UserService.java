@@ -24,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.sql.Timestamp;
+
 /**
  * 사용자 관련 서비스
  */
