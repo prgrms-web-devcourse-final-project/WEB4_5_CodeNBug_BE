@@ -26,7 +26,6 @@ public class WaitingQueueController {
 	 * @param eventId
 	 */
 	@RoleRequired({UserRole.USER})
-
 	@GetMapping(value = "/events/{event-id}/tickets/waiting", produces = MediaType.TEXT_EVENT_STREAM_VALUE
 		+ ";charset=UTF-8")
 	public SseEmitter entryWaiting(@PathVariable("event-id") Long eventId) {

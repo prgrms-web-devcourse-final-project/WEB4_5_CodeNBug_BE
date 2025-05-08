@@ -62,6 +62,9 @@ public class SnsUser {
     @Column(name = "location")
     private String location;
 
+    @Column(name = "role", length = 255)
+    private String role;
+
     @Column(name = "is_additional_info_completed")
     private Boolean isAdditionalInfoCompleted;
 

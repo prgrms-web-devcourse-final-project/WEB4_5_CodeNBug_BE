@@ -4,8 +4,7 @@ server:
 spring:
   profiles:
     active: dev
-  config:
-    import: application-secret.yml
+    include: secret
   data:
     redis:
       port: ${redis.port}
