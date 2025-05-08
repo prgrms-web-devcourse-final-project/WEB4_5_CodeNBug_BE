@@ -26,9 +26,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -131,6 +131,59 @@ public class UserController {
             e.printStackTrace();
             return ResponseEntity.internalServerError()
                     .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+        }
+    }
+
+    /**
+     * 쿠키 도메인 설정이 가능한 로그인 API
+     *
+     * @param request       로그인 요청 정보
+     * @param bindingResult 유효성 검사 결과
+     * @param response      HTTP 응답 객체 (쿠키 설정용)
+     * @return API 응답
+     */
+    @PostMapping("/login")
+    public ResponseEntity<RsData<LoginResponse>> loginWithDomainCookie(
+        @RequestParam String domain,
+        @Valid @RequestBody LoginRequest request,
+        BindingResult bindingResult,
+        HttpServletResponse response) {
+
+        // 입력값 유효성 검사
+        if (bindingResult.hasErrors()) {
+            log.warn(">> 로그인 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
+            return ResponseEntity.badRequest()
+                .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
+        }
+
+        try {
+            log.info(">> 로그인 시도: 이메일={}", request.getEmail());
+
+            // 로그인 처리
+            LoginResponse loginResponse = userService.login(request);
+            log.info(">> 로그인 성공: 이메일={}, 토큰 발급 완료", request.getEmail());
+            log.debug(">> 발급된 액세스 토큰: {}", loginResponse.getAccessToken());
+            log.debug(">> 발급된 리프레시 토큰: {}", loginResponse.getRefreshToken());
+
+            // 쿠키에 토큰 설정
+            cookieUtil.setAccessTokenCookieWithDomain(response, loginResponse.getAccessToken(), domain);
+            cookieUtil.setRefreshTokenCookieWithDomain(response, loginResponse.getRefreshToken(), domain);
+            log.info(">> 쿠키에 토큰 설정 완료");
+
+            // 응답 본문에서는 토큰 정보 제외
+            return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "로그인 성공", LoginResponse.ofTokenTypeOnly()));
+
+        } catch (AuthenticationFailedException e) {
+            log.warn(">> 로그인 인증 실패: {}", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
+        } catch (Exception e) {
+            log.error(">> 로그인 처리 중 오류 발생: {}", e.getMessage(), e);
+            e.printStackTrace();
+            return ResponseEntity.internalServerError()
+                .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
         }
     }
 

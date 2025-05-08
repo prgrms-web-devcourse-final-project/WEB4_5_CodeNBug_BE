@@ -71,6 +71,47 @@ public class CookieUtil {
 	}
 
 	/**
+	 * 액세스 토큰 쿠키 설정
+	 */
+	public void setAccessTokenCookieWithDomain(HttpServletResponse response, String token, String domain) {
+		Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE_NAME, token);
+		cookie.setMaxAge((int)(accessTokenExpiration / 1000)); // milliseconds to seconds
+		cookie.setPath(COOKIE_PATH);
+		// cookie.setDomain(cookieDomain);
+		cookie.setHttpOnly(true);
+
+		// 개발 환경 확인 (localhost에서는 secure=false로 설정)
+		boolean isDev = "dev".equals(activeProfile);
+		// SameSite=None인 경우 Secure=true 필수
+		cookie.setSecure(isDev ? false : true);
+
+		// SameSite 속성을 None으로 설정 (크로스 사이트 요청 허용)
+		cookie.setAttribute("SameSite", "None");
+
+		response.addCookie(cookie);
+	}
+
+	/**
+	 * 리프레시 토큰 쿠키 설정
+	 */
+	public void setRefreshTokenCookieWithDomain(HttpServletResponse response, String token, String domain) {
+		Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, token);
+		cookie.setMaxAge((int)(refreshTokenExpiration / 1000)); // milliseconds to seconds
+		cookie.setPath(COOKIE_PATH);
+		// cookie.setDomain(cookieDomain);
+		cookie.setHttpOnly(true);
+
+		// 개발 환경 확인 (localhost에서는 secure=false로 설정)
+		boolean isDev = "dev".equals(activeProfile);
+		cookie.setSecure(isDev ? false : isSecure);
+
+		// SameSite 속성을 None로 변경
+		cookie.setAttribute("SameSite", "None");
+
+		response.addCookie(cookie);
+	}
+
+	/**
 	 * 액세스 토큰 쿠키 삭제
 	 */
 	public void deleteAccessTokenCookie(HttpServletResponse response) {
