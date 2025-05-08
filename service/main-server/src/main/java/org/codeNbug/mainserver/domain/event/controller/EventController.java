@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 @RestController
 @RequestMapping("/api/v1")
 public class EventController {
@@ -37,7 +39,8 @@ public class EventController {
 	}
 
 	@GetMapping("/events/{id}")
-	public ResponseEntity<RsData<EventInfoResponse>> getEvent(@PathVariable(name = "id") Long id) {
+	public ResponseEntity<RsData<EventInfoResponse>> getEvent(@PathVariable(name = "id") Long id) throws
+		JsonProcessingException {
 		EventInfoResponse event = commonEventService.getEvent(id);
 
 		return ResponseEntity.ok(RsData.success("event 단건 조회 성공.", event));

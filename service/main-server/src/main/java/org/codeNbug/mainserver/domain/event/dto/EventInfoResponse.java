@@ -3,10 +3,16 @@ package org.codeNbug.mainserver.domain.event.dto;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGradeEnum;
+import org.codenbug.common.util.Util;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Value;
@@ -16,6 +22,7 @@ import lombok.Value;
  */
 @Value
 public class EventInfoResponse implements Serializable {
+
 	SeatLayoutDto seatLayout;
 	Long eventId;
 	Long typeId;
@@ -29,7 +36,7 @@ public class EventInfoResponse implements Serializable {
 	Boolean seatSelectable;
 	Boolean isDeleted;
 
-	public EventInfoResponse(Event event) {
+	public EventInfoResponse(ObjectMapper objectMapper, Event event) throws JsonProcessingException {
 		this.eventId = event.getEventId();
 		this.typeId = event.getTypeId();
 		this.information = new EventInformationDto(
@@ -54,7 +61,8 @@ public class EventInfoResponse implements Serializable {
 		this.isDeleted = event.getIsDeleted();
 		this.seatLayout = new SeatLayoutDto(
 			event.getSeatLayout().getId(),
-			event.getSeatLayout().getLayout(),
+			Util.fromJson(event.getSeatLayout().getLayout(), new TypeReference<Map<String, Object>>() {
+			}),
 			event.getSeatLayout().getSeats().stream()
 				.map(seat -> new SeatLayoutDto.SeatDto(
 					seat.getId(),
@@ -75,7 +83,7 @@ public class EventInfoResponse implements Serializable {
 	@Value
 	public static class SeatLayoutDto implements Serializable {
 		Long id;
-		String layout;
+		Map<String, Object> layout;
 		List<SeatDto> seats;
 
 		/**
