@@ -4,10 +4,12 @@ import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
+import org.codeNbug.mainserver.domain.user.dto.response.ModifyRoleResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
+import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
@@ -21,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.sql.Timestamp;
 
 /**
  * 사용자 관련 서비스
@@ -404,5 +408,69 @@ public class UserService {
             log.error(">> 프로필 수정 중 오류 발생: {}", e.getMessage(), e);
             throw new AuthenticationFailedException("프로필 수정 중 오류가 발생했습니다: " + e.getMessage());
         }
+    }
+
+    /**
+     * 사용자의 역할을 변경합니다. (관리자용)
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
+     *
+     * @param userType 사용자 타입 ("regular" 또는 "sns")
+     * @param userId 변경할 사용자의 ID
+     * @param role 변경할 역할 문자열 (USER, ADMIN, MANAGER)
+     * @return 변경된 역할 정보
+     * @throws IllegalArgumentException 사용자를 찾을 수 없거나 역할이 유효하지 않은 경우
+     */
+    @Transactional
+    public ModifyRoleResponse modifyRole(String userType, Long userId, String role) {
+        log.info(">> 사용자 역할 변경 시작: userType={}, userId={}, newRole={}", userType, userId, role);
+        
+        // 역할 유효성 검사
+        try {
+            UserRole.valueOf(role);
+        } catch (IllegalArgumentException e) {
+            log.error(">> 유효하지 않은 역할: {}", role);
+            throw new IllegalArgumentException("유효하지 않은 역할입니다. USER, ADMIN, MANAGER 중 하나여야 합니다.");
+        }
+        
+        // 일반 사용자인 경우
+        if ("regular".equals(userType)) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        log.error(">> 일반 사용자를 찾을 수 없음: userId={}", userId);
+                        return new IllegalArgumentException("해당 ID의 일반 사용자를 찾을 수 없습니다: " + userId);
+                    });
+            
+            log.info(">> 일반 사용자 역할 변경: userId={}, 이전 역할={}, 새 역할={}", 
+                   userId, user.getRole(), role);
+            
+            // 역할 변경
+            user.updateRole(role);
+            userRepository.save(user);
+            
+            log.info(">> 일반 사용자 역할 변경 완료: userId={}, newRole={}", userId, role);
+            return ModifyRoleResponse.of(role);
+        }
+        // SNS 사용자인 경우
+        else if ("sns".equals(userType)) {
+            SnsUser snsUser = snsUserRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        log.error(">> SNS 사용자를 찾을 수 없음: userId={}", userId);
+                        return new IllegalArgumentException("해당 ID의 SNS 사용자를 찾을 수 없습니다: " + userId);
+                    });
+            
+            log.info(">> SNS 사용자 역할 변경: userId={}, 이전 역할={}, 새 역할={}", 
+                   userId, snsUser.getRole(), role);
+            
+            // 역할 변경
+            snsUser.setRole(role);
+            snsUserRepository.save(snsUser);
+            
+            log.info(">> SNS 사용자 역할 변경 완료: userId={}, newRole={}", userId, role);
+            return ModifyRoleResponse.of(role);
+        }
+        
+        // 사용자 타입이 유효하지 않은 경우 (컨트롤러에서 이미 검증하므로 여기까지 오지 않음)
+        log.error(">> 유효하지 않은 사용자 타입: {}", userType);
+        throw new IllegalArgumentException("유효하지 않은 사용자 타입입니다: " + userType);
     }
 }
