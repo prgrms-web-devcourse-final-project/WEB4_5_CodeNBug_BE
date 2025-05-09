@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.Cookie;
+import org.codenbug.common.util.JwtConfig;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -50,6 +52,12 @@ class UserControllerTest {
 	@Autowired
 	private CookieUtil cookieUtil;
 
+	@Autowired
+	private JwtConfig jwtConfig;
+
+	@Autowired
+	private RedisTemplate<String, String> redisTemplate;
+
 	private String testToken;
 	private User testUser;
 	private String testEmail = "test@example.com";
@@ -70,6 +78,9 @@ class UserControllerTest {
 			.role("ROLE_USER")
 			.build();
 		userRepository.save(testUser);
+
+		// Redis 블랙리스트 정리
+		clearBlacklist();
 
 		// 테스트용 토큰 생성 - 각 테스트에서 필요할 때 생성하도록 변경
 		tokenInfo = tokenService.generateTokens(testUser.getEmail());
@@ -136,7 +147,10 @@ class UserControllerTest {
 	@Test
 	@DisplayName("로그아웃 성공 테스트")
 	void logout_success() throws Exception {
-		// given - 각 테스트마다 새로운 토큰 생성
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 
@@ -154,7 +168,10 @@ class UserControllerTest {
 	@Test
 	@DisplayName("로그아웃 실패 테스트 - 리프레시 토큰 없음")
 	void logout_fail_no_refresh_token() throws Exception {
-		// given - 각 테스트마다 새로운 토큰 생성
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		
 		// when - 리프레시 토큰을 의도적으로 전달하지 않음
@@ -170,7 +187,10 @@ class UserControllerTest {
 	@Test
 	@DisplayName("회원 탈퇴 성공 테스트")
 	void withdrawal_success() throws Exception {
-		// given - 각 테스트마다 새로운 토큰 생성
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 
@@ -249,7 +269,10 @@ class UserControllerTest {
 	@Test
 	@DisplayName("프로필 조회 성공 테스트")
 	void getProfile_success() throws Exception {
-		// given - 각 테스트마다 새로운 토큰 생성
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거 
+		clearBlacklist();
+		
+		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 
@@ -291,7 +314,10 @@ class UserControllerTest {
 	@Test
 	@DisplayName("프로필 수정 성공 테스트")
 	void updateProfile_success() throws Exception {
-		// given - 각 테스트마다 새로운 토큰 생성
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
@@ -345,7 +371,10 @@ class UserControllerTest {
 	@Test
 	@DisplayName("잘못된 형식의 프로필 수정 요청 테스트")
 	void updateProfile_badRequest() throws Exception {
-		// given - 각 테스트마다 새로운 토큰 생성
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 		// 빈 이름으로 요청 (validation 실패 예상)
@@ -380,5 +409,15 @@ class UserControllerTest {
 		refreshTokenCookie.setPath("/");
 		refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
 		return refreshTokenCookie;
+	}
+
+	/**
+	 * 테스트 사용자의 블랙리스트 토큰을 제거하는 헬퍼 메소드
+	 * 이전 테스트에서 블랙리스트에 추가된 토큰으로 인한 401 에러를 방지
+	 */
+	private void clearBlacklist() {
+		String testToken = jwtConfig.generateAccessToken(testUser.getEmail());
+		String blacklistKey = "blacklist:" + testToken;
+		redisTemplate.delete(blacklistKey);
 	}
 }
