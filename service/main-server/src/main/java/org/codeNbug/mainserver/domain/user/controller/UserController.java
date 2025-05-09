@@ -13,13 +13,11 @@ import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
 import org.codeNbug.mainserver.domain.user.service.UserService;
 import org.codeNbug.mainserver.global.dto.RsData;
-import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.codenbug.common.util.CookieUtil;
 import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.redis.service.TokenService;
 import org.codenbug.user.security.annotation.RoleRequired;
-import org.codenbug.user.security.exception.AuthenticationFailedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -32,7 +30,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -70,20 +67,10 @@ public class UserController {
                     .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
         }
 
-        try {
-            // 회원가입 처리
-            SignupResponse response = userService.signup(request);
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "회원가입 성공", response));
-        } catch (DuplicateEmailException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new RsData<>("409-CONFLICT", e.getMessage()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
-        }
+        // 회원가입 처리
+        SignupResponse response = userService.signup(request);
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "회원가입 성공", response));
     }
 
     /**
@@ -107,35 +94,22 @@ public class UserController {
                     .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
         }
 
-        try {
-            log.info(">> 로그인 시도: 이메일={}", request.getEmail());
-            
-            // 로그인 처리
-            LoginResponse loginResponse = userService.login(request);
-            log.info(">> 로그인 성공: 이메일={}, 토큰 발급 완료", request.getEmail());
-            log.debug(">> 발급된 액세스 토큰: {}", loginResponse.getAccessToken());
-            log.debug(">> 발급된 리프레시 토큰: {}", loginResponse.getRefreshToken());
+        log.info(">> 로그인 시도: 이메일={}", request.getEmail());
+        
+        // 로그인 처리
+        LoginResponse loginResponse = userService.login(request);
+        log.info(">> 로그인 성공: 이메일={}, 토큰 발급 완료", request.getEmail());
+        log.debug(">> 발급된 액세스 토큰: {}", loginResponse.getAccessToken());
+        log.debug(">> 발급된 리프레시 토큰: {}", loginResponse.getRefreshToken());
 
-            // 쿠키에 토큰 설정
-            cookieUtil.setAccessTokenCookie(response, loginResponse.getAccessToken());
-            cookieUtil.setRefreshTokenCookie(response, loginResponse.getRefreshToken());
-            log.info(">> 쿠키에 토큰 설정 완료");
+        // 쿠키에 토큰 설정
+        cookieUtil.setAccessTokenCookie(response, loginResponse.getAccessToken());
+        cookieUtil.setRefreshTokenCookie(response, loginResponse.getRefreshToken());
+        log.info(">> 쿠키에 토큰 설정 완료");
 
-            // 응답 본문에서는 토큰 정보 제외
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "로그인 성공", LoginResponse.ofTokenTypeOnly()));
-
-        } catch (AuthenticationFailedException e) {
-            log.warn(">> 로그인 인증 실패: {}", e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
-        } catch (Exception e) {
-            log.error(">> 로그인 처리 중 오류 발생: {}", e.getMessage(), e);
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
-        }
+        // 응답 본문에서는 토큰 정보 제외
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "로그인 성공", LoginResponse.ofTokenTypeOnly()));
     }
 
     /**
@@ -150,60 +124,49 @@ public class UserController {
     public ResponseEntity<RsData<Void>> logout(
             HttpServletRequest request,
             HttpServletResponse response) {
-        try {
-            // 디버깅 로그 추가
-            log.info(">> 로그아웃 요청 시작");
+        // 디버깅 로그 추가
+        log.info(">> 로그아웃 요청 시작");
+        
+        // 헤더에서 토큰 추출 시도
+        String authHeader = request.getHeader("Authorization");
+        String accessToken = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            accessToken = authHeader.substring(7);
+            log.info(">> 헤더에서 액세스 토큰 추출: {}", accessToken);
+        }
+
+        // 헤더에 토큰이 없으면 쿠키에서 추출 시도
+        if (accessToken == null) {
+            accessToken = cookieUtil.getAccessTokenFromCookie(request);
+            log.info(">> 쿠키에서 액세스 토큰 추출: {}", accessToken);
+        }
+
+        String refreshToken = cookieUtil.getRefreshTokenFromCookie(request);
+        log.info(">> 쿠키에서 리프레시 토큰 추출: {}", refreshToken);
+
+        // 토큰 추출 실패 시 응답 변경 (더 자세한 에러 메시지)
+        if (accessToken == null || refreshToken == null) {
+            log.warn(">> 토큰 추출 실패: accessToken={}, refreshToken={}", 
+                    accessToken != null ? "있음" : "없음", 
+                    refreshToken != null ? "있음" : "없음");
             
-            // 헤더에서 토큰 추출 시도
-            String authHeader = request.getHeader("Authorization");
-            String accessToken = null;
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                accessToken = authHeader.substring(7);
-                log.info(">> 헤더에서 액세스 토큰 추출: {}", accessToken);
-            }
-
-            // 헤더에 토큰이 없으면 쿠키에서 추출 시도
-            if (accessToken == null) {
-                accessToken = cookieUtil.getAccessTokenFromCookie(request);
-                log.info(">> 쿠키에서 액세스 토큰 추출: {}", accessToken);
-            }
-
-            String refreshToken = cookieUtil.getRefreshTokenFromCookie(request);
-            log.info(">> 쿠키에서 리프레시 토큰 추출: {}", refreshToken);
-
-            // 토큰 추출 실패 시 응답 변경 (더 자세한 에러 메시지)
-            if (accessToken == null || refreshToken == null) {
-                log.warn(">> 토큰 추출 실패: accessToken={}, refreshToken={}", 
-                        accessToken != null ? "있음" : "없음", 
-                        refreshToken != null ? "있음" : "없음");
-                
-                // 쿠키 삭제 - 브라우저의 기존 쿠키를 직접 만료 처리
-                cookieUtil.expireAuthCookies(request, response);
-                
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new RsData<>("401-UNAUTHORIZED", "인증 정보가 필요합니다. 다시 로그인해주세요."));
-            }
-
-            try {
-                // 로그아웃 처리 (일반 사용자 및 SNS 사용자 모두 지원)
-                userService.logout(accessToken, refreshToken);
-                log.info(">> 로그아웃 처리 성공");
-            } catch (Exception e) {
-                log.error(">> 로그아웃 처리 중 오류 발생: {}", e.getMessage());
-                // 오류가 발생해도 클라이언트의 쿠키는 삭제
-            }
-
             // 쿠키 삭제 - 브라우저의 기존 쿠키를 직접 만료 처리
             cookieUtil.expireAuthCookies(request, response);
-            log.info(">> 쿠키 삭제 완료");
-
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "로그아웃 성공"));
-        } catch (Exception e) {
-            log.error(">> 로그아웃 처리 중 예외 발생: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+            
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new RsData<>("401-UNAUTHORIZED", "인증 정보가 필요합니다. 다시 로그인해주세요."));
         }
+
+        // 로그아웃 처리 (일반 사용자 및 SNS 사용자 모두 지원)
+        userService.logout(accessToken, refreshToken);
+        log.info(">> 로그아웃 처리 성공");
+
+        // 쿠키 삭제 - 브라우저의 기존 쿠키를 직접 만료 처리
+        cookieUtil.expireAuthCookies(request, response);
+        log.info(">> 쿠키 삭제 완료");
+
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "로그아웃 성공"));
     }
 
     /**
@@ -218,64 +181,47 @@ public class UserController {
     public ResponseEntity<RsData<Void>> withdrawUser(
             HttpServletRequest request,
             HttpServletResponse response) {
-        try {
-            log.info(">> 회원 탈퇴 요청 시작");
-            
-            // 헤더에서 토큰 추출 시도
-            String authHeader = request.getHeader("Authorization");
-            String accessToken = null;
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                accessToken = authHeader.substring(7);
-                log.debug(">> 헤더에서 액세스 토큰 추출 성공");
-            }
-
-            // 헤더에 토큰이 없으면 쿠키에서 추출 시도
-            if (accessToken == null) {
-                accessToken = cookieUtil.getAccessTokenFromCookie(request);
-                log.debug(">> 쿠키에서 액세스 토큰 추출: {}", 
-                        accessToken != null ? "성공" : "실패");
-            }
-
-            String refreshToken = cookieUtil.getRefreshTokenFromCookie(request);
-            log.debug(">> 쿠키에서 리프레시 토큰 추출: {}", 
-                    refreshToken != null ? "성공" : "실패");
-
-            if (accessToken == null || refreshToken == null) {
-                log.warn(">> 회원 탈퇴 실패: 인증 정보 부족");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new RsData<>("401-UNAUTHORIZED", "인증 정보가 필요합니다."));
-            }
-
-            // 토큰에서 식별자(이메일 또는 소셜ID:provider) 추출
-            String identifier = tokenService.getSubjectFromToken(accessToken);
-            log.info(">> 토큰에서 사용자 식별자 추출: {}", identifier);
-
-            // 회원 탈퇴 처리
-            userService.withdrawUser(identifier, accessToken, refreshToken);
-            log.info(">> 회원 탈퇴 처리 완료: identifier={}", identifier);
-
-            // 쿠키 삭제
-            cookieUtil.expireAuthCookies(request, response);
-            log.info(">> 인증 쿠키 삭제 완료");
-
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "회원 탈퇴 성공"));
-        } catch (AuthenticationFailedException e) {
-            log.error(">> 회원 탈퇴 인증 실패: {}", e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
-        } catch (IllegalArgumentException e) {
-            log.error(">> 회원 탈퇴 파라미터 오류: {}", e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new RsData<>("404-NOT_FOUND", e.getMessage()));
-        } catch (Exception e) {
-            log.error(">> 회원 탈퇴 처리 중 오류 발생: {}", e.getMessage(), e);
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+        log.info(">> 회원 탈퇴 요청 시작");
+        
+        // 헤더에서 토큰 추출 시도
+        String authHeader = request.getHeader("Authorization");
+        String accessToken = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            accessToken = authHeader.substring(7);
+            log.debug(">> 헤더에서 액세스 토큰 추출 성공");
         }
+
+        // 헤더에 토큰이 없으면 쿠키에서 추출 시도
+        if (accessToken == null) {
+            accessToken = cookieUtil.getAccessTokenFromCookie(request);
+            log.debug(">> 쿠키에서 액세스 토큰 추출: {}", 
+                    accessToken != null ? "성공" : "실패");
+        }
+
+        String refreshToken = cookieUtil.getRefreshTokenFromCookie(request);
+        log.debug(">> 쿠키에서 리프레시 토큰 추출: {}", 
+                refreshToken != null ? "성공" : "실패");
+
+        if (accessToken == null || refreshToken == null) {
+            log.warn(">> 회원 탈퇴 실패: 인증 정보 부족");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new RsData<>("401-UNAUTHORIZED", "인증 정보가 필요합니다."));
+        }
+
+        // 토큰에서 식별자(이메일 또는 소셜ID:provider) 추출
+        String identifier = tokenService.getSubjectFromToken(accessToken);
+        log.info(">> 토큰에서 사용자 식별자 추출: {}", identifier);
+
+        // 회원 탈퇴 처리
+        userService.withdrawUser(identifier, accessToken, refreshToken);
+        log.info(">> 회원 탈퇴 처리 완료: identifier={}", identifier);
+
+        // 쿠키 삭제
+        cookieUtil.expireAuthCookies(request, response);
+        log.info(">> 인증 쿠키 삭제 완료");
+
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "회원 탈퇴 성공"));
     }
 
     /**
@@ -286,27 +232,15 @@ public class UserController {
      */
     @GetMapping("/me")
     public ResponseEntity<RsData<UserProfileResponse>> getProfile() {
-        try {
-            log.info(">> 사용자 프로필 조회 요청");
-            
-            UserProfileResponse profile = userService.getProfile();
-            
-            log.info(">> 프로필 조회 성공: userId={}, isSnsUser={}", 
-                    profile.getId(), profile.getIsSnsUser());
-            
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "프로필 조회 성공", profile));
-        } catch (AuthenticationFailedException e) {
-            log.warn(">> 프로필 조회 인증 실패: {}", e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new RsData<>("401-UNAUTHORIZED", e.getMessage()));
-        } catch (Exception e) {
-            log.error(">> 프로필 조회 중 오류 발생: {}", e.getMessage(), e);
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
-        }
+        log.info(">> 사용자 프로필 조회 요청");
+        
+        UserProfileResponse profile = userService.getProfile();
+        
+        log.info(">> 프로필 조회 성공: userId={}, isSnsUser={}", 
+                profile.getId(), profile.getIsSnsUser());
+        
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "프로필 조회 성공", profile));
     }
 
     /**
@@ -319,29 +253,17 @@ public class UserController {
     @PutMapping("/me")
     public ResponseEntity<RsData<UserProfileResponse>> updateProfile(
             @Valid @RequestBody UserUpdateRequest request) {
-        try {
-            log.info(">> 사용자 프로필 수정 요청: name={}, phoneNum={}, location={}", 
-                    request.getName(), request.getPhoneNum(), request.getLocation());
-            
-            // 프로필 수정 처리
-            UserProfileResponse response = userService.updateProfile(request);
-            
-            log.info(">> 프로필 수정 성공: userId={}, isSnsUser={}", 
-                    response.getId(), response.getIsSnsUser());
-            
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "프로필 수정 성공", response));
-        } catch (AuthenticationFailedException e) {
-            log.warn(">> 프로필 수정 인증 실패: {}", e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new RsData<>("401-UNAUTHORIZED", "인증이 필요합니다."));
-        } catch (Exception e) {
-            log.error(">> 프로필 수정 중 오류 발생: {}", e.getMessage(), e);
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
-        }
+        log.info(">> 사용자 프로필 수정 요청: name={}, phoneNum={}, location={}", 
+                request.getName(), request.getPhoneNum(), request.getLocation());
+        
+        // 프로필 수정 처리
+        UserProfileResponse response = userService.updateProfile(request);
+        
+        log.info(">> 프로필 수정 성공: userId={}, isSnsUser={}", 
+                response.getId(), response.getIsSnsUser());
+        
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "프로필 수정 성공", response));
     }
 
     /**
@@ -352,28 +274,16 @@ public class UserController {
      */
     @GetMapping("/me/purchases")
     public ResponseEntity<RsData<PurchaseHistoryListResponse>> getPurchaseHistoryList() {
-        try {
-            log.info(">> 사용자 구매 이력 조회 요청");
+        log.info(">> 사용자 구매 이력 조회 요청");
 
-            Long userId = SecurityUtil.getCurrentUserId();
-            PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
+        Long userId = SecurityUtil.getCurrentUserId();
+        PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
 
-            log.info(">> 구매 이력 조회 성공: userId={}, 조회된 건수={}",
-                    userId, response.getPurchases().size());
+        log.info(">> 구매 이력 조회 성공: userId={}, 조회된 건수={}",
+                userId, response.getPurchases().size());
 
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
-        } catch (AuthenticationFailedException e) {
-            log.warn(">> 구매 이력 조회 인증 실패: {}", e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
-        } catch (Exception e) {
-            log.error(">> 구매 이력 조회 중 오류 발생: {}", e.getMessage(), e);
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
-        }
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));
     }
 
     /**
@@ -385,20 +295,10 @@ public class UserController {
     @GetMapping("/me/purchases/{purchaseId}")
     public ResponseEntity<RsData<PurchaseHistoryDetailResponse>> getPurchaseHistoryDetail(
             @PathVariable Long purchaseId) {
-        try {
-            Long userId = SecurityUtil.getCurrentUserId();
-            PurchaseHistoryDetailResponse response = purchaseService.getPurchaseHistoryDetail(userId, purchaseId);
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "구매 이력 상세 조회 성공", response));
-        } catch (AuthenticationFailedException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new RsData<>("401-UNAUTHORIZED", "로그인이 필요합니다."));
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
-        }
+        Long userId = SecurityUtil.getCurrentUserId();
+        PurchaseHistoryDetailResponse response = purchaseService.getPurchaseHistoryDetail(userId, purchaseId);
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "구매 이력 상세 조회 성공", response));
     }
 
     /**
@@ -412,46 +312,29 @@ public class UserController {
             @PathVariable Long userId,
             @Valid @RequestBody RoleUpdateRequest request,
             BindingResult bindingResult) {
-        try {
-            // 입력값 유효성 검사
-            if (bindingResult.hasErrors()) {
-                log.warn(">> 역할 변경 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
-                return ResponseEntity.badRequest()
-                        .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
-            }
-            
-            log.info(">> 관리자 권한 변경 요청: userType={}, userId={}, role={}", 
-                    userType, userId, request.getRole());
-
-            // userType이 유효한지 검사
-            if (!userType.equals("regular") && !userType.equals("sns")) {
-                log.error(">> 유효하지 않은 사용자 타입: {}", userType);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(new RsData<>("400-BAD_REQUEST", "유효하지 않은 사용자 타입입니다. 'regular' 또는 'sns'여야 합니다."));
-            }
-
-            ModifyRoleResponse response = userService.modifyRole(userType, userId, request.getRole());
-
-            log.info(">> 권한 변경 성공: userType={}, userId={}, newRole={}",
-                    userType, userId, response.getRole());
-
-            return ResponseEntity.ok(
-                    new RsData<>("200-SUCCESS", "권한 변경 성공", response));
-        } catch (AuthenticationFailedException e) {
-            log.warn(">> 권한 변경 인증 실패: {}", e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new RsData<>("401-UNAUTHORIZED", "인증이 필요합니다."));
-        } catch (IllegalArgumentException e) {
-            log.error(">> 권한 변경 오류: {}", e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
-        } catch (Exception e) {
-            log.error(">> 권한 변경 중 오류 발생: {}", e.getMessage(), e);
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new RsData<>("500-INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+        // 입력값 유효성 검사
+        if (bindingResult.hasErrors()) {
+            log.warn(">> 역할 변경 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
+            return ResponseEntity.badRequest()
+                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
         }
+        
+        log.info(">> 관리자 권한 변경 요청: userType={}, userId={}, role={}", 
+                userType, userId, request.getRole());
+
+        // userType이 유효한지 검사
+        if (!userType.equals("regular") && !userType.equals("sns")) {
+            log.error(">> 유효하지 않은 사용자 타입: {}", userType);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new RsData<>("400-BAD_REQUEST", "유효하지 않은 사용자 타입입니다. 'regular' 또는 'sns'여야 합니다."));
+        }
+
+        ModifyRoleResponse response = userService.modifyRole(userType, userId, request.getRole());
+
+        log.info(">> 권한 변경 성공: userType={}, userId={}, newRole={}",
+                userType, userId, response.getRole());
+
+        return ResponseEntity.ok(
+                new RsData<>("200-SUCCESS", "권한 변경 성공", response));
     }
 }
