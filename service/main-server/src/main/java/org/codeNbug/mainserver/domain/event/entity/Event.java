@@ -89,6 +89,5 @@ public class Event {
 		this.seatSelectable = seatSelectable;
 		this.isDeleted = isDeleted;
 		this.seatLayout = seatLayout;
-
 	}
 }
