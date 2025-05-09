@@ -79,5 +79,14 @@ public class User {
         this.phoneNum = phoneNum;
         this.location = location;
     }
+
+    /**
+     * 사용자의 역할을 업데이트합니다.
+     * 
+     * @param role 변경할 역할
+     */
+    public void updateRole(String role) {
+        this.role = role;
+    }
 }
 //

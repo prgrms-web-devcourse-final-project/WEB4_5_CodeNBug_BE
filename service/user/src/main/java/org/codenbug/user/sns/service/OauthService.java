@@ -158,7 +158,7 @@ public class OauthService {
 
 		// 7. 토큰 및 사용자 정보를 포함한 응답 반환
 		return new UserResponse(savedUser.getName(), tokenInfo.getAccessToken(),
-			tokenInfo.getRefreshToken(), savedUser.getProvider());
+			tokenInfo.getRefreshToken(), savedUser.getProvider(), savedUser.getSocialId());
 	}
 
 	// 액세스 토큰을 사용하여 사용자 정보를 가져오고, 사용자 정보가 있으면 저장하는 메서드 (커스텀 리다이렉트 URL 사용)
@@ -235,7 +235,7 @@ public class OauthService {
 
 		// 7. 토큰 및 사용자 정보를 포함한 응답 반환
 		return new UserResponse(savedUser.getName(), tokenInfo.getAccessToken(),
-			tokenInfo.getRefreshToken(), savedUser.getProvider());
+			tokenInfo.getRefreshToken(), savedUser.getProvider(), savedUser.getSocialId());
 	}
 
 	// 실제 소셜 로그인 API에서 사용자 정보를 받아오는 메서드 (Google, Kakao)

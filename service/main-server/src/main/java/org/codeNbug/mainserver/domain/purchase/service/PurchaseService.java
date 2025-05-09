@@ -89,8 +89,7 @@ public class PurchaseService {
 	 * @return 결제 UUID, 금액, 결제 수단, 승인 시각 등을 포함한 응답 DTO
 	 */
 	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId) throws
-		IOException,
-		InterruptedException {
+		IOException, InterruptedException {
 		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
 			.orElseThrow(() -> new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
 
@@ -144,6 +143,7 @@ public class PurchaseService {
 		purchaseRepository.save(purchase);
 
 		redisLockService.releaseAllLocks(userId);
+		redisLockService.releaseAllEntryQueueLocks(userId);
 
 		return new ConfirmPaymentResponse(
 			info.getPaymentKey(),

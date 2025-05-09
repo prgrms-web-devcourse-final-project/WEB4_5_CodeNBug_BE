@@ -2,6 +2,8 @@ package org.codenbug.user.sns.Entity;
 
 import java.sql.Timestamp;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 
 import jakarta.persistence.Column;
@@ -40,11 +42,11 @@ public class SnsUser {
     private String name; // 사용자 이름 (옵션)
 
     @Column(name = "created_at")
-    @CreatedDate
+    @CreationTimestamp
     private Timestamp createdAt;
 
     @Column(name = "updated_at")
-    @CreatedDate
+    @UpdateTimestamp
     private Timestamp updatedAt;
 
     @Column(name = "email")
