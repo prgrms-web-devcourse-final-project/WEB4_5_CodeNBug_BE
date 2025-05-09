@@ -18,8 +18,6 @@ public class CancelPaymentResponse {
 	private String status;
 	private String method;
 	private Integer totalAmount;
-	private Integer balanceAmount;
-	private Boolean isPartialCancelable;
 	private String receiptUrl;
 	private List<CancelDetail> cancels;
 
