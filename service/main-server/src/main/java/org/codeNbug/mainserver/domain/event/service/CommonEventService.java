@@ -42,4 +42,9 @@ public class CommonEventService {
 		return commonEventRepository.findAllByFilter(filter)
 			.stream().map(event -> new EventListResponse(event)).toList();
 	}
+
+	public Integer getAvailableSeatCount(Long id) {
+		Integer count = commonEventRepository.countAvailableSeat(id);
+		return count;
+	}
 }
