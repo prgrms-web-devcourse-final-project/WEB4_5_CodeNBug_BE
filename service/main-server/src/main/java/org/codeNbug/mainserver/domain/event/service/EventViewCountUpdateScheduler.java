@@ -53,13 +53,14 @@ public class EventViewCountUpdateScheduler {
 		Map<Long, Event> eventMap = new HashMap<>();
 		repository.findAllById(eventIds).forEach(event -> eventMap.put(event.getEventId(), event));
 
+		// TODO : 이거 하는 동안 viewCount에 락을 걸어야함
 		eventIds.forEach(id -> {
 			String key = "viewCount:" + id;
 			Object value = redisTemplate.opsForValue().get(key);
 			if (value != null && eventMap.containsKey(id)) {
 				Event event = eventMap.get(id);
 				event.setViewCount(event.getViewCount() + Integer.parseInt(value.toString()));
-				redisTemplate.delete(key);
+				redisTemplate.opsForValue().set(key, 0);
 			}
 		});
 
