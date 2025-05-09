@@ -2,7 +2,6 @@ package org.codeNbug.mainserver.domain.purchase.entity;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -37,7 +36,4 @@ public class PurchaseCancel {
 	private LocalDateTime canceledAt;
 
 	private String receiptUrl;
-
-	@Column(nullable = false)
-	private Boolean isPartial; // true = 부분취소, false = 전체취소
 }
