@@ -4,13 +4,12 @@ import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.service.EventEditService;
-import org.codeNbug.mainserver.domain.manager.dto.EventPurchaseResponse;
-import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
-import org.codeNbug.mainserver.domain.manager.dto.ManagerEventListResponse;
+import org.codeNbug.mainserver.domain.manager.dto.*;
 import org.codeNbug.mainserver.domain.manager.service.EventDeleteService;
 import org.codeNbug.mainserver.domain.manager.service.EventRegisterService;
 import org.codeNbug.mainserver.domain.manager.service.ManagerEventSearchService;
 import org.codeNbug.mainserver.domain.manager.service.ManagerPurchasesService;
+import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.codenbug.user.domain.user.constant.UserRole;
@@ -36,6 +35,7 @@ public class ManagerController {
 	private final EventDeleteService eventDeleteService;
 	private final ManagerEventSearchService eventSearchService;
 	private final ManagerPurchasesService managerPurchasesService;
+	private final PurchaseService purchaseService;
 
 	/**
 	 * 이벤트 등록 API
@@ -101,6 +101,20 @@ public class ManagerController {
 			"200",
 			"구매 내역 조회 성공",
 			response
+		));
+	}
+
+	@RoleRequired({UserRole.MANAGER})
+	@PostMapping("/{eventId}/purchases/refund")
+	public ResponseEntity<RsData<List<ManagerRefundResponse>>> managerRefund(
+			@PathVariable Long eventId,
+			@RequestBody ManagerRefundRequest request
+	) {
+		List<ManagerRefundResponse> responses = purchaseService.managerCancelPayment(request, eventId, SecurityUtil.getCurrentUser());
+		return ResponseEntity.ok(new RsData<>(
+				"200",
+				"매니저 환불 성공",
+				responses
 		));
 	}
 
