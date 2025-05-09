@@ -125,8 +125,6 @@ public class SecurityConfig {
 
 				.requestMatchers("/api/v1/email/**").permitAll()
 				.requestMatchers("/api/v1/manager/**").permitAll()
-				.requestMatchers("/api/test/auth/public").permitAll()
-				.requestMatchers("/auth/kakao/**").permitAll()
 				.requestMatchers("/webhook/**").permitAll()
 				// Swagger UI 관련 경로 허용
 				.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
