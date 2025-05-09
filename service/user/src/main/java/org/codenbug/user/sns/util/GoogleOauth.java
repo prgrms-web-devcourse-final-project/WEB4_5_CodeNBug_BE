@@ -49,11 +49,11 @@ public class GoogleOauth implements SocialOauth {
     
     @Override
     public String getOauthRedirectURL(String redirectUrl) {
-        // 리다이렉트 URL이 null이거나 유효하지 않으면 기본값 사용
+        /*// 리다이렉트 URL이 null이거나 유효하지 않으면 기본값 사용
         if (redirectUrl == null || !isValidRedirectUrl(redirectUrl)) {
             log.warn("제공된 리다이렉트 URL이 유효하지 않습니다: {}, 기본값 사용", redirectUrl);
             return getOauthRedirectURL();
-        }
+        }*/
         
         Map<String, Object> params = new HashMap<>();
         params.put("scope", "profile email");
@@ -91,10 +91,10 @@ public class GoogleOauth implements SocialOauth {
     
     @Override
     public String requestAccessToken(String code, String redirectUrl) {
-        if (redirectUrl == null || !isValidRedirectUrl(redirectUrl)) {
+        /*if (redirectUrl == null || !isValidRedirectUrl(redirectUrl)) {
             log.warn("제공된 리다이렉트 URL이 유효하지 않습니다: {}, 기본값 사용", redirectUrl);
             return requestAccessToken(code);
-        }
+        }*/
         
         RestTemplate restTemplate = new RestTemplate();
         
@@ -115,7 +115,7 @@ public class GoogleOauth implements SocialOauth {
         return "구글 로그인 요청 처리 실패";
     }
     
-    // 리다이렉트 URL 유효성 검증 메서드
+    /*// 리다이렉트 URL 유효성 검증 메서드
     private boolean isValidRedirectUrl(String redirectUrl) {
         // null 체크
         if (redirectUrl == null) {
@@ -125,5 +125,5 @@ public class GoogleOauth implements SocialOauth {
         // 허용된 도메인 목록 검증
         return allowedDomains.stream()
                 .anyMatch(redirectUrl::contains);
-    }
+    }*/
 }
