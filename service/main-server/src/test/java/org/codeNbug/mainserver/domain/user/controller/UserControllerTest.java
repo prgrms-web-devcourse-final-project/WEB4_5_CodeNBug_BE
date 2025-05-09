@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
+import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
 import org.codenbug.common.util.CookieUtil;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
@@ -145,7 +146,7 @@ class UserControllerTest {
 		// then
 		result.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
-			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
+			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다. 다시 로그인해주세요."));
 	}
 
 	@Test
@@ -225,6 +226,122 @@ class UserControllerTest {
 		result.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
 			.andExpect(jsonPath("$.msg").value("이메일 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요."));
+	}
+
+	@Test
+	@DisplayName("프로필 조회 성공 테스트")
+	void getProfile_success() throws Exception {
+		// given
+		TokenService.TokenInfo tokenInfo = generateTestTokens();
+
+		// when
+		ResultActions result = mockMvc.perform(
+			get("/api/v1/users/me").header("Authorization", "Bearer " + tokenInfo.getAccessToken()));
+
+		// then
+		result.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+			.andExpect(jsonPath("$.msg").value("프로필 조회 성공"))
+			.andExpect(jsonPath("$.data.email").value("test@example.com"))
+			.andExpect(jsonPath("$.data.name").value("테스트"))
+			.andExpect(jsonPath("$.data.age").value(25))
+			.andExpect(jsonPath("$.data.sex").value("남성"))
+			.andExpect(jsonPath("$.data.phoneNum").value("010-1234-5678"))
+			.andExpect(jsonPath("$.data.location").value("서울시 강남구"));
+	}
+
+	@Test
+	@DisplayName("인증되지 않은 사용자의 프로필 조회 시도 테스트")
+	void getProfile_unauthorized() throws Exception {
+		// given
+		String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" // header
+			+ ".eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ"  // payload
+			+ ".invalid_signature";  // 잘못된 signature
+
+		// when
+		ResultActions result = mockMvc.perform(
+			get("/api/v1/users/me").header("Authorization", "Bearer " + invalidToken));
+
+		// then
+		result.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
+			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
+	}
+
+	@Test
+	@DisplayName("프로필 수정 성공 테스트")
+	void updateProfile_success() throws Exception {
+		// given
+		TokenService.TokenInfo tokenInfo = generateTestTokens();
+		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
+			.name("수정된이름")
+			.phoneNum("010-9999-8888")
+			.location("서울시 송파구")
+			.build();
+
+		// when
+		ResultActions result = mockMvc.perform(
+			put("/api/v1/users/me").header("Authorization", "Bearer " + tokenInfo.getAccessToken())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateRequest)));
+
+		// then
+		result.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+			.andExpect(jsonPath("$.msg").value("프로필 수정 성공"))
+			.andExpect(jsonPath("$.data.name").value("수정된이름"))
+			.andExpect(jsonPath("$.data.phoneNum").value("010-9999-8888"))
+			.andExpect(jsonPath("$.data.location").value("서울시 송파구"));
+	}
+
+	@Test
+	@DisplayName("인증되지 않은 사용자의 프로필 수정 시도 테스트")
+	void updateProfile_unauthorized() throws Exception {
+		// given
+		String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" // header
+			+ ".eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ"  // payload
+			+ ".invalid_signature";  // 잘못된 signature
+
+		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
+			.name("수정된이름")
+			.phoneNum("010-9999-8888")
+			.location("서울시 송파구")
+			.build();
+
+		// when
+		ResultActions result = mockMvc.perform(
+			put("/api/v1/users/me").header("Authorization", "Bearer " + invalidToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateRequest)));
+
+		// then
+		result.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
+			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
+	}
+
+	@Test
+	@DisplayName("잘못된 형식의 프로필 수정 요청 테스트")
+	void updateProfile_badRequest() throws Exception {
+		// given
+		TokenService.TokenInfo tokenInfo = generateTestTokens();
+		// 빈 이름으로 요청 (validation 실패 예상)
+		UserUpdateRequest invalidRequest = UserUpdateRequest.builder()
+			.name("")
+			.phoneNum("010-9999-8888")
+			.location("서울시 송파구")
+			.build();
+
+		// when
+		ResultActions result = mockMvc.perform(
+			put("/api/v1/users/me").header("Authorization", "Bearer " + tokenInfo.getAccessToken())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(invalidRequest)));
+
+		// then
+		result.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+			.andExpect(jsonPath("$.msg").value("데이터 형식이 잘못되었습니다."));
 	}
 
 	/**
