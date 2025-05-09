@@ -22,9 +22,10 @@ public class NotificationHeartbeatScheduler {
      */
     @Scheduled(fixedRate = 30000)
     public void sendHeartbeat() {
-        int connectionCount = emitterService.getActiveConnectionCount();
+        int connectionCount = emitterService.getTotalConnectionCount();
         if (connectionCount > 0) {
-            log.debug("하트비트 전송 중: 활성 연결 수={}", connectionCount);
+            log.debug("하트비트 전송 중: 사용자 수={}, 활성 연결 수={}",
+                    emitterService.getActiveConnectionCount(), connectionCount);
             emitterService.sendHeartbeat();
         }
     }
