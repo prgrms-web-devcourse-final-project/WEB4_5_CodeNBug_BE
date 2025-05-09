@@ -60,4 +60,13 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 		List<Event> data = query.fetch();
 		return data;
 	}
+
+	@Override
+	public Integer countAvailableSeat(Long id) {
+		return jpaQueryFactory
+			.select(QEvent.event.seatLayout.seats.size())
+			.from(QEvent.event)
+			.where(QEvent.event.eventId.eq(id).and(QEvent.event.seatLayout.seats.any().available.isTrue()))
+			.fetchOne();
+	}
 }

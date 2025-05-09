@@ -11,4 +11,5 @@ public interface CommonEventRepository {
 
 	List<Event> findAllByFilterAndKeyword(String keyword, EventListFilter filter);
 
+	Integer countAvailableSeat(Long id);
 }

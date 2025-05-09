@@ -65,18 +65,8 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	}
 
 	/**
-	 * Toss 서버에 부분 결제 취소를 요청하고 결과 정보를 반환
+	 * 공통 Toss 서버 요청 로직
 	 */
-	@Override
-	public CanceledPaymentInfo cancelPartialPayment(String paymentKey, String cancelReason, Integer cancelAmount) {
-		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
-		Map<String, Object> body = Map.of(
-			"cancelReason", cancelReason,
-			"cancelAmount", cancelAmount
-		);
-		return postToToss(url, body, CanceledPaymentInfo.class);
-	}
-
 	private <T> T postToToss(String url, Map<String, Object> body, Class<T> clazz) {
 		try {
 			HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, createAuthHeaders());

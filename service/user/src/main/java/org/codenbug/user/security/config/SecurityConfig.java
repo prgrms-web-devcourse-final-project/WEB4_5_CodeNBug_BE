@@ -117,6 +117,8 @@ public class SecurityConfig {
 				.requestMatchers("/api/auth/**").permitAll()
 				.requestMatchers("/api/public/**").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/v1/events").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/v1/events/categories").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/v1/events/{\\d+}/seats").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/v1/events/{\\d+}").permitAll()
 				.requestMatchers(HttpMethod.PATCH, "/api/v1/events/view").permitAll()
 

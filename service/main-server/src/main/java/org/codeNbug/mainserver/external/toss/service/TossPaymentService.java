@@ -9,7 +9,5 @@ public interface TossPaymentService {
 	ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, Integer amount)
 		throws InterruptedException, IOException;
 
-	CanceledPaymentInfo cancelPayment(String paymentKey, String cancelReason); // 전액취소
-
-	CanceledPaymentInfo cancelPartialPayment(String paymentKey, String cancelReason, Integer cancelAmount); // 부분취소
+	CanceledPaymentInfo cancelPayment(String paymentKey, String cancelReason);
 }
