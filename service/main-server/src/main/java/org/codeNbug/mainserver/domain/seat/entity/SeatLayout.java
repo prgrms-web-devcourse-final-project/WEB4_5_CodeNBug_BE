@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -38,7 +39,8 @@ public class SeatLayout {
 
 	@OneToMany(mappedBy = "layout")
 	private final List<Seat> seats = new ArrayList<>();
-	@OneToOne
+
+	@OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
 	@Setter
 	@JoinColumn(name = "event_id", nullable = false)
 	private Event event;

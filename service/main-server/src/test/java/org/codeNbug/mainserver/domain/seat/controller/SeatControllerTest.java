@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
@@ -45,16 +47,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.annotation.Commit;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.transaction.Transactional;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Transactional
 class SeatControllerTest {
 	@Autowired
 	private MockMvc mockMvc;
@@ -100,10 +104,10 @@ class SeatControllerTest {
 	private static Seat availableSeat;
 
 	@BeforeAll
-	public void setUp() throws JSONException {
+	public void setUpUser() {
 		// 테스트용 사용자 생성
 		testUser = User.builder()
-			.email("tdfs23231dfs12311111@example.com")
+			.email("test" + UUID.randomUUID() + "@example.com")
 			.password(passwordEncoder.encode("Test1234!"))
 			.name("테스트")
 			.age(25)
@@ -122,7 +126,10 @@ class SeatControllerTest {
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 
 		testToken = tokenInfo.getAccessToken();
+	}
 
+	@BeforeAll
+	public void setUpEvent() throws JSONException {
 		// 테스트용 행사 생성
 		EventInformation info = EventInformation.builder()
 			.title("테스트 공연")
@@ -235,19 +242,16 @@ class SeatControllerTest {
 
 	@AfterAll
 	void tearDown() {
-		userRepository.deleteAll();
 		seatRepository.deleteAll();
-		seatLayoutRepository.deleteAll();
 		seatGradeRepository.deleteAll();
+		seatLayoutRepository.deleteAll();
 		eventRepository.deleteAll();
-		redisTemplate.opsForHash().delete(
-			ENTRY_TOKEN_STORAGE_KEY_NAME,
-			String.valueOf(testUser.getUserId())
-		);
+		userRepository.deleteAll();
+
+		Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().flushAll();
 	}
 
 	@Test
-	@Commit
 	@DisplayName("좌석 조회 성공")
 	void testGetSeatLayout() throws Exception {
 		mockMvc.perform(get("/api/v1/event/{eventId}/seats", testEvent.getEventId())
