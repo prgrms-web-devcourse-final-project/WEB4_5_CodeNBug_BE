@@ -196,4 +196,108 @@ class ManagerControllerTest {
                 .andExpect(jsonPath("$.data.eventId").value(eventId));
     }
 
+    @Test
+    @DisplayName("이벤트 삭제 성공")
+    void 이벤트_삭제_성공() throws Exception {
+        // Step 1: 이벤트 등록
+        LayoutDto layoutDto = LayoutDto.builder()
+                .layout(List.of(List.of("A1", "A2"), List.of("B1", "B2")))
+                .seat(Map.of(
+                        "A1", new SeatInfoDto("S"),
+                        "A2", new SeatInfoDto("S"),
+                        "B1", new SeatInfoDto("A"),
+                        "B2", new SeatInfoDto("A")
+                ))
+                .build();
+
+        EventRegisterRequest request = EventRegisterRequest.builder()
+                .title("삭제할 이벤트")
+                .type("CONCERT")
+                .description("설명")
+                .restriction("없음")
+                .thumbnailUrl("https://example.com/image.jpg")
+                .startDate(LocalDateTime.now().plusDays(1))
+                .endDate(LocalDateTime.now().plusDays(3))
+                .location("서울시 강남구")
+                .hallName("1관")
+                .seatCount(4)
+                .layout(layoutDto)
+                .price(List.of(
+                        new PriceDto("S", 100000),
+                        new PriceDto("A", 80000)
+                ))
+                .bookingStart(LocalDateTime.now())
+                .bookingEnd(LocalDateTime.now().plusDays(1))
+                .agelimit(12)
+                .build();
+
+        MvcResult result = mockMvc.perform(post("/api/v1/manager/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseBody = result.getResponse().getContentAsString();
+        JsonNode jsonNode = objectMapper.readTree(responseBody);
+        Long eventId = jsonNode.path("data").path("eventId").asLong();
+
+        // Step 2: 삭제 요청
+        mockMvc.perform(patch("/api/v1/manager/events/{eventId}", eventId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("200"))
+                .andExpect(jsonPath("$.msg").value("이벤트 삭제 성공"))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("매니저 이벤트 목록 조회 성공")
+    void 매니저_이벤트_목록_조회() throws Exception {
+        // Step 1: 이벤트 하나 등록
+        LayoutDto layoutDto = LayoutDto.builder()
+                .layout(List.of(List.of("A1", "A2"), List.of("B1", "B2")))
+                .seat(Map.of(
+                        "A1", new SeatInfoDto("S"),
+                        "A2", new SeatInfoDto("S"),
+                        "B1", new SeatInfoDto("A"),
+                        "B2", new SeatInfoDto("A")
+                ))
+                .build();
+
+        EventRegisterRequest request = EventRegisterRequest.builder()
+                .title("목록 조회용 이벤트")
+                .type("CONCERT")
+                .description("설명")
+                .restriction("없음")
+                .thumbnailUrl("https://example.com/image.jpg")
+                .startDate(LocalDateTime.now().plusDays(1))
+                .endDate(LocalDateTime.now().plusDays(3))
+                .location("서울시 강남구")
+                .hallName("1관")
+                .seatCount(4)
+                .layout(layoutDto)
+                .price(List.of(
+                        new PriceDto("S", 100000),
+                        new PriceDto("A", 80000)
+                ))
+                .bookingStart(LocalDateTime.now())
+                .bookingEnd(LocalDateTime.now().plusDays(1))
+                .agelimit(12)
+                .build();
+
+        mockMvc.perform(post("/api/v1/manager/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Step 2: 목록 조회 요청
+        mockMvc.perform(get("/api/v1/manager/events/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("200"))
+                .andExpect(jsonPath("$.msg").value("매니저 이벤트 목록 조회 성공"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].title").value("목록 조회용 이벤트"));
+    }
+
+
 }
