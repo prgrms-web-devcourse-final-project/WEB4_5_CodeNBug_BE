@@ -126,6 +126,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             
             filterChain.doFilter(request, response);
         } catch (Exception e) {
+            e.printStackTrace();
             // 예외 발생 시 인증 컨텍스트를 클리어하고 다음 필터로 진행
             log.error(">> 인증 필터 처리 중 예외 발생: {}", e.getMessage(), e);
             SecurityContextHolder.clearContext();
