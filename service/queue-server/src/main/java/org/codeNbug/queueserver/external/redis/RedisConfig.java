@@ -87,6 +87,7 @@ public class RedisConfig {
 			redisTemplate.opsForValue()
 				.set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
 		}
+		redisTemplate.opsForValue().set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
 		return redisTemplate;
 	}
 }
