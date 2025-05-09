@@ -145,7 +145,7 @@ class UserControllerTest {
 		// then
 		result.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
-			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
+			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다. 다시 로그인해주세요."));
 	}
 
 	@Test
