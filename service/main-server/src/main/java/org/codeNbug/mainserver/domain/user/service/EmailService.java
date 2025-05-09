@@ -3,6 +3,7 @@ package org.codeNbug.mainserver.domain.user.service;
 import java.security.SecureRandom;
 
 import org.codenbug.user.redis.repository.RedisRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -19,6 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
+
+    @Value("${spring.mail.properties.auth-code-expiration-millis}")
+    private Long authCodeExpirationMillis; // 인증코드 만료 시간 (밀리초 단위)
 
     private final JavaMailSender javaMailSender;
     private final RedisRepository redisRepository;
@@ -66,7 +70,8 @@ public class EmailService {
         message.setText(setContext(authCode), "utf-8", "html");
 
         // Redis 에 해당 인증코드 인증 시간 설정
-        redisRepository.setDataExpire(email, authCode, 60 * 30L);
+        // 밀리초를 초 단위로 변환 (1000으로 나눔)
+        redisRepository.setDataExpire(email, authCode, authCodeExpirationMillis / 1000);
 
         return message;
     }
@@ -83,12 +88,21 @@ public class EmailService {
     }
 
     // 코드 검증
-    public Boolean verifyEmailCode(String email, String code) {
+    public enum VerificationResult {
+        SUCCESS,
+        EXPIRED,
+        INVALID
+    }
+
+    // 코드 검증
+    public VerificationResult verifyEmailCode(String email, String code) {
         String codeFoundByEmail = redisRepository.getData(email);
         log.info("Verifying code for email: {}, Input code: {}, Stored code: {}", email, code, codeFoundByEmail);
+        
         if (codeFoundByEmail == null) {
-            return false;
+            return VerificationResult.EXPIRED;
         }
-        return codeFoundByEmail.equals(code);
+        
+        return codeFoundByEmail.equals(code) ? VerificationResult.SUCCESS : VerificationResult.INVALID;
     }
 }

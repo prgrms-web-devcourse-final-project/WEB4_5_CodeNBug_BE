@@ -38,14 +38,21 @@ public class EmailController {
     @PostMapping("/verify")
     public ResponseEntity<RsData<Void>> verify(@RequestBody EmailDto.VerifyRequest request) {
         log.info("EmailController.verify()");
-        boolean isVerify = emailService.verifyEmailCode(request.getMail(), request.getVerifyCode());
+        EmailService.VerificationResult result = emailService.verifyEmailCode(request.getMail(), request.getVerifyCode());
         
-        if (!isVerify) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new RsData<>("400-BAD_REQUEST", "인증에 실패했습니다."));
+        switch (result) {
+            case SUCCESS:
+                return ResponseEntity.ok(
+                        new RsData<>("200-SUCCESS", "인증이 완료되었습니다."));
+            case EXPIRED:
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new RsData<>("400-EXPIRED", "인증 코드가 만료되었습니다. 새로운 인증 코드를 요청해주세요."));
+            case INVALID:
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new RsData<>("400-INVALID", "잘못된 인증 코드입니다. 다시 확인해주세요."));
+            default:
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(new RsData<>("500-ERROR", "인증 과정에서 오류가 발생했습니다."));
         }
-        
-        return ResponseEntity.ok(
-                new RsData<>("200-SUCCESS", "인증이 완료되었습니다."));
     }
 }
