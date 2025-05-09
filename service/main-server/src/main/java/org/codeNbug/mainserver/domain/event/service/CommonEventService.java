@@ -56,4 +56,9 @@ public class CommonEventService {
 		// Directly fetch all EventType objects
 		return eventTypeRepository.findAll();
 	}
+
+	public Integer getAvailableSeatCount(Long id) {
+		Integer count = commonEventRepository.countAvailableSeat(id);
+		return count;
+	}
 }
