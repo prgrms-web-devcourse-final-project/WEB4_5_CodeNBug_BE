@@ -350,7 +350,6 @@ public class PurchaseService {
 						.cancelReason(cancelDetail.getCancelReason())
 						.canceledAt(OffsetDateTime.parse(cancelDetail.getCanceledAt()).toLocalDateTime())
 						.receiptUrl(canceledPaymentInfo.getReceipt() != null ? canceledPaymentInfo.getReceipt().getUrl() : null)
-						.isPartial(false)
 						.build();
 
 				purchaseCancelRepository.save(purchaseCancel);
