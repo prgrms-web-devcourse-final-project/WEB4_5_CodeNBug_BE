@@ -10,6 +10,7 @@ import org.codenbug.common.util.CookieUtil;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,13 +52,16 @@ class UserControllerTest {
 
 	private String testToken;
 	private User testUser;
+	private String testEmail = "test@example.com";
+	private String testPassword = "Test1234!";
+	private TokenService.TokenInfo tokenInfo;
 
 	@BeforeEach
 	void setUp() {
 		// 테스트용 사용자 생성
 		testUser = User.builder()
-			.email("test@example.com")
-			.password(passwordEncoder.encode("Test1234!"))
+			.email(testEmail)
+			.password(passwordEncoder.encode(testPassword))
 			.name("테스트")
 			.age(25)
 			.sex("남성")
@@ -67,9 +71,20 @@ class UserControllerTest {
 			.build();
 		userRepository.save(testUser);
 
-		// 테스트용 토큰 생성
-		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
+		// 테스트용 토큰 생성 - 각 테스트에서 필요할 때 생성하도록 변경
+		tokenInfo = tokenService.generateTokens(testUser.getEmail());
 		testToken = tokenInfo.getAccessToken();
+	}
+
+	@AfterEach
+	void tearDown() {
+		// 토큰 정보 정리
+		if (tokenInfo != null && tokenInfo.getAccessToken() != null) {
+			tokenService.deleteRefreshToken(testUser.getEmail());
+		}
+		
+		// 테스트 사용자 삭제 - @Transactional로 롤백되지만 추가 보장
+		userRepository.deleteAll();
 	}
 
 	@Test
@@ -106,7 +121,7 @@ class UserControllerTest {
 	@DisplayName("로그인 성공 테스트")
 	void login_success() throws Exception {
 		// given
-		LoginRequest loginRequest = LoginRequest.builder().email("test@example.com").password("Test1234!").build();
+		LoginRequest loginRequest = LoginRequest.builder().email(testEmail).password(testPassword).build();
 
 		// when
 		ResultActions result = mockMvc.perform(post("/api/v1/users/login").contentType(MediaType.APPLICATION_JSON)
@@ -121,13 +136,13 @@ class UserControllerTest {
 	@Test
 	@DisplayName("로그아웃 성공 테스트")
 	void logout_success() throws Exception {
-		// given
-		TokenService.TokenInfo tokenInfo = generateTestTokens();
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
+		// given - 각 테스트마다 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			post("/api/v1/users/logout").header("Authorization", "Bearer " + tokenInfo.getAccessToken())
+			post("/api/v1/users/logout").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie));
 
 		// then
@@ -139,9 +154,12 @@ class UserControllerTest {
 	@Test
 	@DisplayName("로그아웃 실패 테스트 - 리프레시 토큰 없음")
 	void logout_fail_no_refresh_token() throws Exception {
-		// when
+		// given - 각 테스트마다 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		
+		// when - 리프레시 토큰을 의도적으로 전달하지 않음
 		ResultActions result = mockMvc.perform(
-			post("/api/v1/users/logout").header("Authorization", "Bearer " + testToken));
+			post("/api/v1/users/logout").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken()));
 
 		// then
 		result.andExpect(status().isUnauthorized())
@@ -152,13 +170,13 @@ class UserControllerTest {
 	@Test
 	@DisplayName("회원 탈퇴 성공 테스트")
 	void withdrawal_success() throws Exception {
-		// given
-		TokenService.TokenInfo tokenInfo = generateTestTokens();
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
+		// given - 각 테스트마다 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			delete("/api/v1/users/me").header("Authorization", "Bearer " + tokenInfo.getAccessToken())
+			delete("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie));
 
 		// then
@@ -190,7 +208,7 @@ class UserControllerTest {
 	void signup_duplicate_email() throws Exception {
 		// given
 		SignupRequest signupRequest = SignupRequest.builder()
-			.email("test@example.com")  // 이미 존재하는 이메일
+			.email(testEmail)  // 이미 존재하는 이메일
 			.password("Test1234!")
 			.name("중복사용자")
 			.age(25)
@@ -214,7 +232,7 @@ class UserControllerTest {
 	void login_wrong_password() throws Exception {
 		// given
 		LoginRequest loginRequest = LoginRequest.builder()
-			.email("test@example.com")
+			.email(testEmail)
 			.password("WrongPassword123!")
 			.build();
 
@@ -231,18 +249,20 @@ class UserControllerTest {
 	@Test
 	@DisplayName("프로필 조회 성공 테스트")
 	void getProfile_success() throws Exception {
-		// given
-		TokenService.TokenInfo tokenInfo = generateTestTokens();
+		// given - 각 테스트마다 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			get("/api/v1/users/me").header("Authorization", "Bearer " + tokenInfo.getAccessToken()));
+			get("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+				.cookie(refreshTokenCookie));
 
 		// then
 		result.andExpect(status().isOk())
 			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
 			.andExpect(jsonPath("$.msg").value("프로필 조회 성공"))
-			.andExpect(jsonPath("$.data.email").value("test@example.com"))
+			.andExpect(jsonPath("$.data.email").value(testEmail))
 			.andExpect(jsonPath("$.data.name").value("테스트"))
 			.andExpect(jsonPath("$.data.age").value(25))
 			.andExpect(jsonPath("$.data.sex").value("남성"))
@@ -271,8 +291,9 @@ class UserControllerTest {
 	@Test
 	@DisplayName("프로필 수정 성공 테스트")
 	void updateProfile_success() throws Exception {
-		// given
-		TokenService.TokenInfo tokenInfo = generateTestTokens();
+		// given - 각 테스트마다 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
 			.name("수정된이름")
 			.phoneNum("010-9999-8888")
@@ -281,7 +302,8 @@ class UserControllerTest {
 
 		// when
 		ResultActions result = mockMvc.perform(
-			put("/api/v1/users/me").header("Authorization", "Bearer " + tokenInfo.getAccessToken())
+			put("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+				.cookie(refreshTokenCookie)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(updateRequest)));
 
@@ -323,8 +345,9 @@ class UserControllerTest {
 	@Test
 	@DisplayName("잘못된 형식의 프로필 수정 요청 테스트")
 	void updateProfile_badRequest() throws Exception {
-		// given
-		TokenService.TokenInfo tokenInfo = generateTestTokens();
+		// given - 각 테스트마다 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 		// 빈 이름으로 요청 (validation 실패 예상)
 		UserUpdateRequest invalidRequest = UserUpdateRequest.builder()
 			.name("")
@@ -334,7 +357,8 @@ class UserControllerTest {
 
 		// when
 		ResultActions result = mockMvc.perform(
-			put("/api/v1/users/me").header("Authorization", "Bearer " + tokenInfo.getAccessToken())
+			put("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+				.cookie(refreshTokenCookie)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(invalidRequest)));
 
@@ -342,14 +366,6 @@ class UserControllerTest {
 		result.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
 			.andExpect(jsonPath("$.msg").value("데이터 형식이 잘못되었습니다."));
-	}
-
-	/**
-	 * 테스트용 토큰 생성 헬퍼 메서드
-	 * @return TokenInfo 객체
-	 */
-	private TokenService.TokenInfo generateTestTokens() {
-		return tokenService.generateTokens(testUser.getEmail());
 	}
 
 	/**
