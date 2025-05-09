@@ -9,4 +9,5 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ComponentScan(basePackages = {"org.codeNbug.mainserver", "org.codenbug.user",
 	"org.codenbug.common"})
 public class AppConfig {
+
 }

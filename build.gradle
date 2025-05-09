@@ -41,7 +41,7 @@ subprojects {
         // java.lang.NoClassDefFoundError (javax.annotation.Generated) 발생 대응
         implementation "org.springframework.boot:spring-boot-starter-data-jpa"
 
-
+        implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2' // 버전은 프로젝트에 맞게 조정
         implementation 'org.springframework.boot:spring-boot-starter'
         implementation 'org.springframework.boot:spring-boot-starter-actuator'
         implementation 'org.springframework.boot:spring-boot-starter-data-redis'
@@ -52,7 +52,7 @@ subprojects {
         annotationProcessor 'org.projectlombok:lombok'
         testCompileOnly 'org.projectlombok:lombok'
         testAnnotationProcessor 'org.projectlombok:lombok'
-        
+
         // Test Dependencies
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testImplementation 'org.junit.jupiter:junit-jupiter-api'
@@ -64,7 +64,7 @@ subprojects {
         testImplementation 'org.testcontainers:junit-jupiter'
         testImplementation 'org.testcontainers:mysql'      // MySQL 통합 테스트용
         testImplementation 'io.rest-assured:rest-assured'  // REST API 테스트용
-        
+
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
         testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
     }
