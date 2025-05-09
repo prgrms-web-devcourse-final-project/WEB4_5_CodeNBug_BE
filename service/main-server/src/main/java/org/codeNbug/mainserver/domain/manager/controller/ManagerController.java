@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/manager")
+@RequestMapping("/api/v1/manager/events")
 public class ManagerController {
 	private final EventRegisterService eventRegisterService;
 	private final EventEditService eventEditService;
@@ -54,7 +54,7 @@ public class ManagerController {
 	}
 
 	@RoleRequired({UserRole.MANAGER, UserRole.ADMIN})
-	@PutMapping("/events/{eventId}")
+	@PutMapping("/{eventId}")
 	public ResponseEntity<RsData<EventRegisterResponse>> updateEvent(
 		@PathVariable Long eventId,
 		@RequestBody EventRegisterRequest request
@@ -69,7 +69,7 @@ public class ManagerController {
 	}
 
 	@RoleRequired({UserRole.MANAGER, UserRole.ADMIN})
-	@PatchMapping("/events/{eventId}")
+	@PatchMapping("/{eventId}")
 	public ResponseEntity<RsData<Void>> deleteEvent(@PathVariable Long eventId) {
 		eventDeleteService.deleteEvent(eventId, SecurityUtil.getCurrentUserId());
 		return ResponseEntity.ok(new RsData<>(
@@ -80,7 +80,7 @@ public class ManagerController {
 	}
 
 	@RoleRequired({UserRole.MANAGER})
-	@GetMapping("/events/me")
+	@GetMapping("/me")
 	public ResponseEntity<RsData<List<ManagerEventListResponse>>> searchManagerEventList() {
 		List<ManagerEventListResponse> response = eventSearchService.searchEventList(SecurityUtil.getCurrentUser());
 		return ResponseEntity.ok(new RsData<>(
@@ -91,7 +91,7 @@ public class ManagerController {
 	}
 
 	@RoleRequired({UserRole.MANAGER})
-	@GetMapping("/events/{eventId}/purchases")
+	@GetMapping("/{eventId}/purchases")
 	public ResponseEntity<RsData<List<EventPurchaseResponse>>> eventPurchaseList(
 		@PathVariable Long eventId
 	) {
@@ -105,7 +105,7 @@ public class ManagerController {
 	}
 
 	@RoleRequired({UserRole.MANAGER})
-	@PostMapping("/purchases/{eventId}/refund")
+	@PostMapping("/{eventId}/purchases/refund")
 	public ResponseEntity<RsData<List<ManagerRefundResponse>>> managerRefund(
 			@PathVariable Long eventId,
 			@RequestBody ManagerRefundRequest request
