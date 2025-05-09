@@ -12,4 +12,6 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
 		List<PaymentStatusEnum> statuses);
 
 	Optional<Purchase> findByPaymentUuid(String paymentKey);
+
+	List<Purchase> findAllByEventId(Long eventId);
 }
