@@ -18,9 +18,9 @@ public class NotificationHeartbeatScheduler {
     private final NotificationEmitterService emitterService;
 
     /**
-     * 30초마다 모든 연결에 하트비트 메시지 전송
+     * 5초마다 모든 연결에 하트비트 메시지 전송
      */
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedRate = 5000)
     public void sendHeartbeat() {
         int connectionCount = emitterService.getTotalConnectionCount();
         if (connectionCount > 0) {
