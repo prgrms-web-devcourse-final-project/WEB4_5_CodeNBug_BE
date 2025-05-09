@@ -121,6 +121,7 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/v1/events/{\\d+}/seats").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/v1/events/{\\d+}").permitAll()
 				.requestMatchers(HttpMethod.PATCH, "/api/v1/events/view").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/v1/events/{\\d+}/tickets/waiting").permitAll()
 
 				.requestMatchers("/api/v1/email/**").permitAll()
 				.requestMatchers("/api/v1/manager/**").permitAll()
