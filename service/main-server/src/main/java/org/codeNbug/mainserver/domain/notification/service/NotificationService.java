@@ -16,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * 알림 관련 비즈니스 로직을 처리하는 서비스
  */
@@ -182,5 +184,64 @@ public class NotificationService {
         ));
 
         return true;
+    }
+
+    /**
+     * 단일 알림을 삭제합니다
+     *
+     * @param notificationId 삭제할 알림 ID
+     * @param userId 현재 인증된 사용자 ID
+     * @throws BadRequestException 알림이 존재하지 않거나 권한이 없는 경우
+     */
+    @Transactional
+    public void deleteNotification(Long notificationId, Long userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new BadRequestException("해당 알림을 찾을 수 없습니다."));
+
+        // 권한 확인 (본인의 알림인지)
+        if (!notification.getUserId().equals(userId)) {
+            throw new BadRequestException("해당 알림에 접근할 권한이 없습니다.");
+        }
+
+        notificationRepository.delete(notification);
+        log.debug("알림 삭제 완료: notificationId={}, userId={}", notificationId, userId);
+    }
+
+    /**
+     * 여러 알림을 삭제합니다
+     *
+     * @param notificationIds 삭제할 알림 ID 목록
+     * @param userId 현재 인증된 사용자 ID
+     * @throws BadRequestException 일부 알림에 접근 권한이 없는 경우
+     */
+    @Transactional
+    public void deleteNotifications(List<Long> notificationIds, Long userId) {
+        // 모든 알림이 해당 사용자의 것인지 확인
+        List<Notification> notifications = notificationRepository.findAllById(notificationIds);
+
+        // 요청한 모든 ID의 알림이 있는지 확인
+        if (notifications.size() != notificationIds.size()) {
+            throw new BadRequestException("일부 알림을 찾을 수 없습니다.");
+        }
+
+        // 권한 확인
+        if (notifications.stream().anyMatch(notification -> !notification.getUserId().equals(userId))) {
+            throw new BadRequestException("일부 알림에 접근할 권한이 없습니다.");
+        }
+
+        notificationRepository.deleteAll(notifications);
+        log.debug("다건 알림 삭제 완료: count={}, userId={}", notifications.size(), userId);
+    }
+
+    /**
+     * 사용자의 모든 알림을 삭제합니다
+     *
+     * @param userId 현재 인증된, 사용자 ID
+     */
+    @Transactional
+    public void deleteAllNotifications(Long userId) {
+        List<Notification> notifications = notificationRepository.findByUserIdOrderBySentAtDesc(userId);
+        notificationRepository.deleteAll(notifications);
+        log.debug("모든 알림 삭제 완료: count={}, userId={}", notifications.size(), userId);
     }
 }
