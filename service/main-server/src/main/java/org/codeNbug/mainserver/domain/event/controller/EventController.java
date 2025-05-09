@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
+import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.event.service.CommonEventService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,12 @@ public class EventController {
 		List<EventListResponse> eventList = commonEventService.getEvents(keyword, filter);
 
 		return ResponseEntity.ok(RsData.success("event list 조회 성공.", eventList));
+	}
+
+	@GetMapping("/events/categories")
+	public ResponseEntity<RsData<List<EventType>>> getEventCategories() {
+		List<EventType> eventTypes = commonEventService.getEventCategories();
+		return ResponseEntity.ok(RsData.success("Event categories retrieved successfully", eventTypes));
 	}
 
 	@GetMapping("/events/{id}/seats")
