@@ -208,27 +208,23 @@ public class NotificationService {
     }
 
     /**
-     * 여러 알림을 삭제합니다
+     * 여러 알림을 삭제합니다(멱등성 보장)
      *
      * @param notificationIds 삭제할 알림 ID 목록
      * @param userId 현재 인증된 사용자 ID
-     * @throws BadRequestException 일부 알림에 접근 권한이 없는 경우
      */
     @Transactional
     public void deleteNotifications(List<Long> notificationIds, Long userId) {
-        // 모든 알림이 해당 사용자의 것인지 확인
-        List<Notification> notifications = notificationRepository.findAllById(notificationIds);
+        // 사용자의 알림 중 요청된 ID 목록에 해당하는 알림만 조회
+        List<Notification> notifications = notificationRepository.findAllByUserIdAndIdIn(userId, notificationIds);
 
-        // 요청한 모든 ID의 알림이 있는지 확인
-        if (notifications.size() != notificationIds.size()) {
-            throw new BadRequestException("일부 알림을 찾을 수 없습니다.");
+        // 찾은 알림 개수와 요청 개수의 차이 로깅
+        if (notifications.size() < notificationIds.size()) {
+            log.info("요청된 알림 중 일부가 이미 삭제됨: 요청={}, 실제 삭제={}",
+                    notificationIds.size(), notifications.size());
         }
 
-        // 권한 확인
-        if (notifications.stream().anyMatch(notification -> !notification.getUserId().equals(userId))) {
-            throw new BadRequestException("일부 알림에 접근할 권한이 없습니다.");
-        }
-
+        // 존재하는 알림만 삭제
         notificationRepository.deleteAll(notifications);
         log.debug("다건 알림 삭제 완료: count={}, userId={}", notifications.size(), userId);
     }
