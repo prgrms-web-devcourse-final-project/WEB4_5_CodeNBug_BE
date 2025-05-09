@@ -129,12 +129,12 @@ public class SecurityConfig {
 			.exceptionHandling(exceptionHandling -> exceptionHandling
 				.authenticationEntryPoint((request, response, authException) -> {
 					response.setStatus(HttpStatus.UNAUTHORIZED.value());
-					response.setContentType("application/json");
+					response.setContentType("application/json;charset=UTF-8");
 					response.getWriter().write("{\"code\":\"401-UNAUTHORIZED\",\"msg\":\"인증 정보가 필요합니다.\"}");
 				})
 				.accessDeniedHandler((request, response, accessDeniedException) -> {
 					response.setStatus(HttpStatus.FORBIDDEN.value());
-					response.setContentType("application/json");
+					response.setContentType("application/json;charset=UTF-8");
 					response.getWriter().write("{\"code\":\"403-FORBIDDEN\",\"msg\":\"접근 권한이 없습니다.\"}");
 				}))
 			.authenticationProvider(authenticationProvider())
