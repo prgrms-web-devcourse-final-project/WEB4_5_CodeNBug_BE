@@ -9,5 +9,4 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CancelPaymentRequest {
 	private String cancelReason;
-	private Integer cancelAmount;
 }

@@ -230,7 +230,7 @@ public class PurchaseService {
 	 * - 결제 취소 결과 정보를 반환
 	 *
 	 * @param paymentKey 결제 uuid 키
-	 * @param request 결제 취소 정보가 포함된 요청 DTO (사유, 부분 취소 금액 등)
+	 * @param request 결제 취소 사유가 포함된 요청 DTO
 	 * @param userId 현재 로그인한 사용자 ID
 	 * @return 결제 UUID 및 취소 상태 정보를 포함한 응답 DTO
 	 */
@@ -241,9 +241,8 @@ public class PurchaseService {
 		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
 			.orElseThrow(() -> new IllegalArgumentException("해당 결제 정보를 찾을 수 없습니다."));
 
-		CanceledPaymentInfo canceledPaymentInfo = request.getCancelAmount() == null
-			? tossPaymentService.cancelPayment(paymentKey, request.getCancelReason())
-			: tossPaymentService.cancelPartialPayment(paymentKey, request.getCancelReason(), request.getCancelAmount());
+		CanceledPaymentInfo canceledPaymentInfo = tossPaymentService.cancelPayment(paymentKey,
+			request.getCancelReason());
 
 		List<Ticket> tickets = ticketRepository.findAllByPurchaseId(purchase.getId());
 		for (Ticket ticket : tickets) {
@@ -258,15 +257,12 @@ public class PurchaseService {
 		}
 
 		for (CanceledPaymentInfo.CancelDetail cancelDetail : canceledPaymentInfo.getCancels()) {
-			boolean isPartial = canceledPaymentInfo.getBalanceAmount() > 0;
-
 			PurchaseCancel purchaseCancel = PurchaseCancel.builder()
 				.purchase(purchase)
 				.cancelAmount(cancelDetail.getCancelAmount())
 				.cancelReason(cancelDetail.getCancelReason())
 				.canceledAt(OffsetDateTime.parse(cancelDetail.getCanceledAt()).toLocalDateTime())
 				.receiptUrl(canceledPaymentInfo.getReceipt() != null ? canceledPaymentInfo.getReceipt().getUrl() : null)
-				.isPartial(isPartial)
 				.build();
 
 			purchaseCancelRepository.save(purchaseCancel);
@@ -278,8 +274,6 @@ public class PurchaseService {
 			.status(canceledPaymentInfo.getStatus())
 			.method(canceledPaymentInfo.getMethod())
 			.totalAmount(canceledPaymentInfo.getTotalAmount())
-			.balanceAmount(canceledPaymentInfo.getBalanceAmount())
-			.isPartialCancelable(canceledPaymentInfo.getIsPartialCancelable())
 			.receiptUrl(canceledPaymentInfo.getReceipt() != null ? canceledPaymentInfo.getReceipt().getUrl() : null)
 			.cancels(canceledPaymentInfo.getCancels().stream()
 				.map(c -> CancelPaymentResponse.CancelDetail.builder()
