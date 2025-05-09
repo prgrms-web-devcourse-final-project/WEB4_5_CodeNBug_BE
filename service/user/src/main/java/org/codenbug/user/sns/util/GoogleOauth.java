@@ -79,7 +79,7 @@ public class GoogleOauth implements SocialOauth {
         params.put("client_secret", GOOGLE_SNS_CLIENT_SECRET);
         params.put("redirect_uri", GOOGLE_SNS_CALLBACK_URL);
         params.put("grant_type", "authorization_code");
-
+        log.info("Access token request params: {}", params);
         ResponseEntity<String> responseEntity =
                 restTemplate.postForEntity(GOOGLE_SNS_TOKEN_BASE_URL, params, String.class);
 
@@ -104,10 +104,11 @@ public class GoogleOauth implements SocialOauth {
         params.put("client_secret", GOOGLE_SNS_CLIENT_SECRET);
         params.put("redirect_uri", redirectUrl);
         params.put("grant_type", "authorization_code");
-        
+
+        log.info("Access token request params: {}", params);
         log.info("커스텀 리다이렉트 URL로 액세스 토큰 요청: {}", redirectUrl);
         ResponseEntity<String> responseEntity =
-                restTemplate.postForEntity(GOOGLE_SNS_TOKEN_BASE_URL, params, String.class);
+            restTemplate.postForEntity(GOOGLE_SNS_TOKEN_BASE_URL, params, String.class);
                 
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
             return responseEntity.getBody();
