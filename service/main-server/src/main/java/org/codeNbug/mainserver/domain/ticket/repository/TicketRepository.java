@@ -10,16 +10,17 @@ import org.springframework.data.repository.query.Param;
 
 public interface TicketRepository extends JpaRepository<Ticket, Long> {
 	@Query("""
-		    SELECT TicketDto(
-		        p.id, u.id, u.name, u.email, u.phoneNum,
-		        p.paymentStatus, p.purchaseDate, p.amount, t.id
-		    )
-		    FROM Ticket t
-		    JOIN t.purchase p
-		    JOIN p.user u
-		    WHERE t.event.eventId = :eventId
-		""")
+    SELECT new org.codeNbug.mainserver.domain.manager.dto.TicketDto(
+        p.id, u.userId, u.name, u.email, u.phoneNum,
+        p.paymentStatus, p.purchaseDate, p.amount, t.id
+    )
+    FROM Ticket t
+    JOIN t.purchase p
+    JOIN p.user u
+    WHERE t.event.eventId = :eventId
+""")
 	List<TicketDto> findTicketPurchasesByEventId(@Param("eventId") Long eventId);
+
 
 	List<Ticket> findAllByPurchaseId(Long purchaseId);
 }
