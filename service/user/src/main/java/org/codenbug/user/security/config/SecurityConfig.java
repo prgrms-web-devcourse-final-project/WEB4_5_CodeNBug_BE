@@ -118,9 +118,10 @@ public class SecurityConfig {
 				.requestMatchers("/api/public/**").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/v1/events").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/v1/events/categories").permitAll()
-				.requestMatchers(HttpMethod.GET, "/api/v1/events/{\\d+}/seats").permitAll()
-				.requestMatchers(HttpMethod.GET, "/api/v1/events/{\\d+}").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/v1/events/{id}/seats").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/v1/events/{id}").permitAll()
 				.requestMatchers(HttpMethod.PATCH, "/api/v1/events/view").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/v1/events/{id}/tickets/waiting").permitAll()
 
 				.requestMatchers("/api/v1/email/**").permitAll()
 				.requestMatchers("/api/v1/manager/**").permitAll()
@@ -133,6 +134,8 @@ public class SecurityConfig {
 				.anyRequest().authenticated())
 			.exceptionHandling(exceptionHandling -> exceptionHandling
 				.authenticationEntryPoint((request, response, authException) -> {
+					// authException.printStackTrace();
+					// log.info(request.getCookies().toString() + "\n" + request.getHeaderNames().toString() + "\n");
 					response.setStatus(HttpStatus.UNAUTHORIZED.value());
 					response.setContentType("application/json;charset=UTF-8");
 					response.getWriter().write("{\"code\":\"401-UNAUTHORIZED\",\"msg\":\"인증 정보가 필요합니다.\"}");

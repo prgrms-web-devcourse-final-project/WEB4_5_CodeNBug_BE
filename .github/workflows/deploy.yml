@@ -15,6 +15,9 @@ on:
       - "service/message-dispatcher/src/**"
       - "service/message-dispatcher/build.gradle"
       - "service/message-dispatcher/Dockerfile"
+      - "service/user/**"
+      - "service/common/**"
+      -
     branches:
       - develop
       - main
