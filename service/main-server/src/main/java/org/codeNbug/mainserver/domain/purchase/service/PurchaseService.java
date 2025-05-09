@@ -4,12 +4,13 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.manager.dto.ManagerRefundRequest;
+import org.codeNbug.mainserver.domain.manager.dto.ManagerRefundResponse;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
@@ -38,6 +39,7 @@ import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -51,6 +53,7 @@ public class PurchaseService {
 	private final SeatRepository seatRepository;
 	private final TicketRepository ticketRepository;
 	private final RedisLockService redisLockService;
+	private final ManagerEventRepository managerEventRepository;
 
 	/**
 	 * 결제 사전 등록 처리
@@ -284,4 +287,95 @@ public class PurchaseService {
 				.toList())
 			.build();
 	}
+
+	@Transactional
+	public List<ManagerRefundResponse> managerCancelPayment(ManagerRefundRequest request, Long eventId, User manager) {
+		List<Event> eventsByManager = managerEventRepository.findEventsByManager(manager);
+
+		boolean hasPermission = eventsByManager.stream()
+				.anyMatch(event -> event.getEventId().equals(eventId));
+
+		if (!hasPermission) {
+			throw new IllegalArgumentException("요청 매니저는 해당 이벤트에 대한 권한이 없습니다.");
+		}
+
+		// 환불할 purchaseId 목록 결정
+		List<Purchase> purchasesToRefund;
+		if (request.isTotalRefund()) {
+			purchasesToRefund = purchaseRepository.findAllByEventId(eventId);
+		} else {
+			purchasesToRefund = request.getPurchasesIds().stream()
+					.map(id -> purchaseRepository.findById(id)
+							.orElseThrow(() -> new IllegalArgumentException("해당 구매 이력이 존재하지 않습니다. ID: " + id)))
+					.filter(p -> {
+						Long ticketEventId = p.getTickets().getFirst().getEvent().getEventId();
+						if (!ticketEventId.equals(eventId)) {
+							throw new IllegalArgumentException("요청한 매니저의 이벤트와 결제 티켓의 이벤트가 일치하지 않습니다.");
+						}
+						return true;
+					})
+					.toList();
+		}
+
+		List<ManagerRefundResponse> responseList = new ArrayList<>();
+
+		for (Purchase purchase : purchasesToRefund) {
+			// Toss 결제 취소
+			CanceledPaymentInfo canceledPaymentInfo = tossPaymentService.cancelPayment(
+					purchase.getPaymentUuid(),
+					request.getReason()
+			);
+
+			// 좌석 초기화 및 티켓 삭제
+			List<Ticket> tickets = ticketRepository.findAllByPurchaseId(purchase.getId());
+			List<Long> ticketIds = new ArrayList<>();
+
+			for (Ticket ticket : tickets) {
+				ticketIds.add(ticket.getId());
+
+				List<Seat> seats = seatRepository.findByTicketId(ticket.getId());
+				for (Seat seat : seats) {
+					seat.setTicket(null);
+					seat.setAvailable(true);
+					seatRepository.save(seat);
+				}
+				ticketRepository.delete(ticket);
+			}
+
+			// PurchaseCancel 저장
+			for (CanceledPaymentInfo.CancelDetail cancelDetail : canceledPaymentInfo.getCancels()) {
+				PurchaseCancel purchaseCancel = PurchaseCancel.builder()
+						.purchase(purchase)
+						.cancelAmount(cancelDetail.getCancelAmount())
+						.cancelReason(cancelDetail.getCancelReason())
+						.canceledAt(OffsetDateTime.parse(cancelDetail.getCanceledAt()).toLocalDateTime())
+						.receiptUrl(canceledPaymentInfo.getReceipt() != null ? canceledPaymentInfo.getReceipt().getUrl() : null)
+						.build();
+
+				purchaseCancelRepository.save(purchaseCancel);
+			}
+
+			// 응답 DTO 생성
+			ManagerRefundResponse response = ManagerRefundResponse.builder()
+					.purchaseId(purchase.getId())
+					.userId(purchase.getUser().getUserId())
+					.paymentStatus(purchase.getPaymentStatus())
+					.ticketId(ticketIds)
+					.refundAmount(canceledPaymentInfo.getCancels().stream()
+							.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+							.sum())
+					.refundDate(OffsetDateTime.parse(
+							canceledPaymentInfo.getCancels().getLast().getCanceledAt()
+					).toLocalDateTime())
+					.build();
+
+			responseList.add(response);
+		}
+
+		return responseList;
+	}
+
+
+
+
 }
