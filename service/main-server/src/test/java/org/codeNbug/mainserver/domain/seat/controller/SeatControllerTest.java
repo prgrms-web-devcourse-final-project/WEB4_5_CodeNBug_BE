@@ -13,6 +13,7 @@ import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
@@ -28,6 +29,7 @@ import org.codenbug.user.redis.service.TokenService;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -95,12 +97,13 @@ class SeatControllerTest {
 	private static String testToken;
 	private static User testUser;
 	private static Event testEvent;
+	private static Seat availableSeat;
 
 	@BeforeAll
 	public void setUp() throws JSONException {
 		// 테스트용 사용자 생성
 		testUser = User.builder()
-			.email("test341qqweew@example.com")
+			.email("tdfs23231dfs12311111@example.com")
 			.password(passwordEncoder.encode("Test1234!"))
 			.name("테스트")
 			.age(25)
@@ -230,18 +233,18 @@ class SeatControllerTest {
 		);
 	}
 
-	// @AfterAll
-	// void tearDown() {
-	// 	userRepository.deleteAll();
-	// 	seatLayoutRepository.deleteAll();
-	// 	seatRepository.deleteAll();
-	// 	seatGradeRepository.deleteAll();
-	// 	eventRepository.deleteAll();
-	// 	redisTemplate.opsForHash().delete(
-	// 		ENTRY_TOKEN_STORAGE_KEY_NAME,
-	// 		String.valueOf(testUser.getUserId())
-	// 	);
-	// }
+	@AfterAll
+	void tearDown() {
+		userRepository.deleteAll();
+		seatRepository.deleteAll();
+		seatLayoutRepository.deleteAll();
+		seatGradeRepository.deleteAll();
+		eventRepository.deleteAll();
+		redisTemplate.opsForHash().delete(
+			ENTRY_TOKEN_STORAGE_KEY_NAME,
+			String.valueOf(testUser.getUserId())
+		);
+	}
 
 	@Test
 	@Commit
@@ -262,10 +265,10 @@ class SeatControllerTest {
 	@DisplayName("지정석 좌석 선택 - Redis 락 획득 확인")
 	void selectSeat_withRedisLock() throws Exception {
 		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(testEvent.getEventId());
-		Seat seat = availableSeats.get(0);
+		availableSeat = availableSeats.get(0);
 
 		SeatSelectRequest request = new SeatSelectRequest();
-		request.setSeatList(List.of(seat.getId()));
+		request.setSeatList(List.of(availableSeat.getId()));
 		request.setTicketCount(1);
 
 		String json = objectMapper.writeValueAsString(request);
@@ -282,20 +285,27 @@ class SeatControllerTest {
 		String lockValue = redisLockService.getLockValue(redisKey);
 		assertThat(lockValue).isNotNull();
 	}
-	//
-	// @Test
-	// @DisplayName("좌석 취소 성공")
-	// void testCancelSeat() throws Exception {
-	// 	SeatCancelRequest request = new SeatCancelRequest();
-	// 	request.setSeatIds(List.of(101L)); // 선택한 적 있는 좌석으로 설정
-	//
-	// 	mockMvc.perform(delete("/api/v1/event/{eventId}/seats", 1)
-	// 			.header("entryAuthToken", "entry_token_example")
-	// 			.contentType(MediaType.APPLICATION_JSON)
-	// 			.content(objectMapper.writeValueAsString(request))
-	// 			.header("Authorization", "Bearer " + testToken))
-	// 		.andExpect(status().isOk())
-	// 		.andExpect(jsonPath("$.code").value("200"))
-	// 		.andExpect(jsonPath("$.message").value("좌석 취소 성공"));
-	// }
+
+	@Test
+	@DisplayName("좌석 취소 성공 - Redis 락 해제 확인")
+	void testCancelSeat() throws Exception {
+		SeatCancelRequest request = new SeatCancelRequest();
+		request.setSeatList(List.of(availableSeat.getId()));
+
+		String json = objectMapper.writeValueAsString(request);
+
+		mockMvc.perform(delete("/api/v1/event/{eventId}/seats", testEvent.getEventId())
+				.header("Authorization", "Bearer " + testToken)
+				.header("entryAuthToken", testToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(json))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.msg").value("좌석 취소 성공"));
+
+		String redisKey =
+			"seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + request.getSeatList().getFirst();
+		String lockValue = redisLockService.getLockValue(redisKey);
+		assertThat(lockValue).isNull();
+	}
 }
