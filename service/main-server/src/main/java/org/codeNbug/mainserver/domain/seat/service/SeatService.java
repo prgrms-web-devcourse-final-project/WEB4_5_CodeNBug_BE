@@ -53,7 +53,7 @@ public class SeatService {
 		log.info("SeatLayout ID: {}", seatLayout.getId());
 
 		List<Seat> seatList = seatRepository.findAllByLayoutIdWithGrade(seatLayout.getId());
-		return new SeatLayoutResponse(seatList);
+		return new SeatLayoutResponse(seatList, seatLayout);
 	}
 
 	/**
