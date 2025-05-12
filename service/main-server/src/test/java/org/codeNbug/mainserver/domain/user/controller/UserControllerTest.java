@@ -6,20 +6,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
+import org.codeNbug.mainserver.util.TestUtil;
 import org.codenbug.common.util.CookieUtil;
+import org.codenbug.common.util.JwtConfig;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,11 +33,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.Cookie;
-import org.codenbug.common.util.JwtConfig;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ActiveProfiles("test")
 class UserControllerTest {
 
 	@Autowired
@@ -57,6 +64,9 @@ class UserControllerTest {
 
 	@Autowired
 	private RedisTemplate<String, String> redisTemplate;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private String testToken;
 	private User testUser;
@@ -96,6 +106,11 @@ class UserControllerTest {
 		
 		// 테스트 사용자 삭제 - @Transactional로 롤백되지만 추가 보장
 		userRepository.deleteAll();
+	}
+
+	@AfterAll
+	void afterAll() {
+		TestUtil.truncateAllTables(jdbcTemplate);
 	}
 
 	@Test

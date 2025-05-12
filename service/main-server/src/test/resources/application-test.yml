@@ -1,0 +1,21 @@
+redis:
+  port: 6379
+  host: localhost
+db:
+  url: jdbc:mysql://localhost:3306/ticketoneTest
+  username: root
+
+# Cookie Configuration for Production
+cookie:
+  domain: localhost  # 실제 프로덕션 도메인
+  secure: true  # HTTPS 필수
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

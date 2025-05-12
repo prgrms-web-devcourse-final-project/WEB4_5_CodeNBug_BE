@@ -252,7 +252,7 @@ public class TestUtil {
 
 	private static List<String> getTables(JdbcTemplate jdbcTemplate) {
 		return jdbcTemplate.queryForList(
-			"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'ticketone'",
+			"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'ticketoneTest'",
 			String.class
 		);
 	}
