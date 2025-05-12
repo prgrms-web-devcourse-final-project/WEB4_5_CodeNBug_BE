@@ -8,7 +8,6 @@ import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.repository.JpaCommonEventRepository;
-import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -21,14 +20,12 @@ public class CommonEventService {
 
 	private final CommonEventRepository commonEventRepository;
 	private final JpaCommonEventRepository jpaCommonEventRepository;
-	private final EventTypeRepository eventTypeRepository;
 	private final RedisTemplate<String, Object> redisTemplate;
 
 	public CommonEventService(CommonEventRepository commonEventRepository,
 							  JpaCommonEventRepository jpaCommonEventRepository,
 							  RedisTemplate<String, Object> redisTemplate) {
 		this.commonEventRepository = commonEventRepository;
-		this.eventTypeRepository = eventTypeRepository;
 		this.jpaCommonEventRepository = jpaCommonEventRepository;
 		this.redisTemplate = redisTemplate;
 	}

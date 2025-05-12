@@ -2,13 +2,10 @@ package org.codeNbug.mainserver.domain.event.dto.request;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.codeNbug.mainserver.domain.event.entity.*;
-
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
-
 import lombok.Getter;
 
 @Getter
