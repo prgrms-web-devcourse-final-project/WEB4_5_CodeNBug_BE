@@ -17,15 +17,18 @@ on:
       - "service/message-dispatcher/Dockerfile"
       - "service/user/**"
       - "service/common/**"
-      -
     branches:
       - develop
       - main
       - hotfix
       - feat/사용자-도메인분리
       - Chore/대기열-배포
+  pull_request:
+    paths:
+      - "service/**"
 jobs:
   test:
+    
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
