@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
@@ -116,6 +117,9 @@ class PurchaseControllerTest {
 	private ManagerEventRepository managerEventRepository;
 
 	@Autowired
+	private NotificationService notificationService;
+
+	@Autowired
 	private PurchaseService purchaseService;
 
 	@Autowired
@@ -155,7 +159,8 @@ class PurchaseControllerTest {
 			seatRepository,
 			ticketRepository,
 			redisLockService,
-			managerEventRepository
+			managerEventRepository,
+			notificationService
 		);
 	}
 
