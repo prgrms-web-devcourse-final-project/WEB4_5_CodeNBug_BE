@@ -6,6 +6,9 @@ import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.QEvent;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.querydsl.core.types.dsl.Expressions;
@@ -21,7 +24,7 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 	}
 
 	@Override
-	public List<Event> findAllByFilter(EventListFilter filter) {
+	public Page<Event> findAllByFilter(EventListFilter filter, Pageable pageable) {
 		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
 			.where(
 				Expressions.allOf(
@@ -33,21 +36,27 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 				)
 			)
 			.orderBy(QEvent.event.createdAt.desc());
-		List<Event> data = query.fetch();
-		return data;
+		long count = query.fetchCount();
+		List<Event> data = query.offset(pageable.getOffset())
+			.limit(pageable.getPageSize()).fetch();
+
+		return new PageImpl<>(data, pageable, count);
 	}
 
 	@Override
-	public List<Event> findAllByKeyword(String keyword) {
+	public Page<Event> findAllByKeyword(String keyword, Pageable pageable) {
 		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
 			.where(QEvent.event.information.title.like("%" + keyword + "%"))
 			.orderBy(QEvent.event.createdAt.desc());
-		List<Event> data = query.fetch();
-		return data;
+		long count = query.fetchCount();
+		List<Event> data = query.offset(pageable.getOffset())
+			.limit(pageable.getPageSize()).fetch();
+		return new PageImpl<>(data, pageable, count);
+
 	}
 
 	@Override
-	public List<Event> findAllByFilterAndKeyword(String keyword, EventListFilter filter) {
+	public Page<Event> findAllByFilterAndKeyword(String keyword, EventListFilter filter, Pageable pageable) {
 		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
 			.where(
 				filter.getCostRangeQuery()
@@ -57,8 +66,10 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 					.and(filter.getBetweenDateQuery())
 					.and(QEvent.event.information.title.like("%" + keyword + "%"))
 			);
-		List<Event> data = query.fetch();
-		return data;
+		long count = query.fetchCount();
+		List<Event> data = query.offset(pageable.getOffset())
+			.limit(pageable.getPageSize()).fetch();
+		return new PageImpl<>(data, pageable, count);
 	}
 
 	@Override
