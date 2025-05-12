@@ -254,9 +254,13 @@ public class AdminService {
     public ModifyRoleResponse modifyRole(String userType, Long userId, String role) {
         log.info(">> 사용자 역할 변경 시작: userType={}, userId={}, newRole={}", userType, userId, role);
         
+        // 프론트에서 USER, ADMIN, MANAGER로 오면 ROLE_ 접두사 붙이기
+        if (!role.startsWith("ROLE_")) {
+            role = "ROLE_" + role;
+        }
         // 역할 유효성 검사
         try {
-            org.codenbug.user.domain.user.constant.UserRole.valueOf(role);
+            org.codenbug.user.domain.user.constant.UserRole.valueOf(role.replace("ROLE_", ""));
         } catch (IllegalArgumentException e) {
             log.error(">> 유효하지 않은 역할: {}", role);
             throw new IllegalArgumentException("유효하지 않은 역할입니다. USER, ADMIN, MANAGER 중 하나여야 합니다.");

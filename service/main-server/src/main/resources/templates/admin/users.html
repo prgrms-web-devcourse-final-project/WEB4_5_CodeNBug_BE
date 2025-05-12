@@ -42,22 +42,26 @@
                                     등록된 일반 사용자가 없습니다.
                                 </td>
                             </tr>
-                            <tr th:each="user : ${regularUsers}">
+                            <tr th:each="user, iterStat : ${regularUsers}">
                                 <td th:text="${user.userId}">1</td>
                                 <td th:text="${user.email}">user@example.com</td>
                                 <td th:text="${user.name}">홍길동</td>
                                 <td th:text="${#temporals.format(user.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 12:00</td>
                                 <td>
-                                    <select class="form-select" th:attr="data-original-role=${user.role}" 
-                                            onchange="changeUserRole('regular', [[${user.userId}]], this)">
+                                    <select class="form-select role-select" th:attr="data-original-role=${user.role}" 
+                                            th:id="'role-regular-' + ${user.userId}"
+                                            disabled>
                                         <option th:each="role : ${roles}" 
                                                 th:value="${role}" 
                                                 th:text="${role}"
-                                                th:selected="${user.role == role}">USER</option>
+                                                th:selected="${'ROLE_' + role == user.role}">USER</option>
                                     </select>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary">상세</button>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn" type="button"
+                                            th:id="'edit-btn-regular-' + ${user.userId}">수정</button>
+                                    <button class="btn btn-sm btn-success confirm-btn d-none" type="button"
+                                            th:id="'confirm-btn-regular-' + ${user.userId}">확인</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -92,7 +96,7 @@
                                     등록된 SNS 사용자가 없습니다.
                                 </td>
                             </tr>
-                            <tr th:each="user : ${snsUsers}">
+                            <tr th:each="user, iterStat : ${snsUsers}">
                                 <td th:text="${user.id}">1</td>
                                 <td th:text="${user.socialId}">social_id</td>
                                 <td th:text="${user.provider}">KAKAO</td>
@@ -100,16 +104,20 @@
                                 <td th:text="${user.name}">홍길동</td>
                                 <td th:text="${#dates.format(user.createdAt, 'yyyy-MM-dd HH:mm')}">2023-01-01 12:00</td>
                                 <td>
-                                    <select class="form-select" th:attr="data-original-role=${user.role}" 
-                                            onchange="changeUserRole('sns', [[${user.id}]], this)">
+                                    <select class="form-select role-select" th:attr="data-original-role=${user.role}" 
+                                            th:id="'role-sns-' + ${user.id}"
+                                            disabled>
                                         <option th:each="role : ${roles}" 
                                                 th:value="${role}" 
                                                 th:text="${role}"
-                                                th:selected="${user.role == role}">USER</option>
+                                                th:selected="${'ROLE_' + role == user.role}">USER</option>
                                     </select>
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary">상세</button>
+                                    <button class="btn btn-sm btn-outline-primary edit-btn" type="button"
+                                            th:id="'edit-btn-sns-' + ${user.id}">수정</button>
+                                    <button class="btn btn-sm btn-success confirm-btn d-none" type="button"
+                                            th:id="'confirm-btn-sns-' + ${user.id}">확인</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -120,5 +128,51 @@
     </div>
 
     <div th:replace="admin/fragments/layout :: scripts"></div>
+    <script>
+    $(document).ready(function() {
+        // 수정 버튼 클릭 시
+        $(document).on('click', '.edit-btn', function() {
+            const $row = $(this).closest('tr');
+            $row.find('.role-select').prop('disabled', false);
+            $row.find('.edit-btn').addClass('d-none');
+            $row.find('.confirm-btn').removeClass('d-none');
+        });
+
+        // 확인 버튼 클릭 시
+        $(document).on('click', '.confirm-btn', function() {
+            const $row = $(this).closest('tr');
+            let userType, userId;
+            const id = $(this).attr('id');
+            if (id.includes('regular')) {
+                userType = 'regular';
+                userId = id.replace('confirm-btn-regular-', '');
+            } else {
+                userType = 'sns';
+                userId = id.replace('confirm-btn-sns-', '');
+            }
+            const $select = $row.find('.role-select');
+            const role = $select.val();
+
+            $.ajax({
+                url: `/admin/api/users/${userType}/${userId}/role`,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ role: role }),
+                success: function(response) {
+                    alert('역할이 성공적으로 변경되었습니다.');
+                    $select.attr('data-original-role', role);
+                    $select.prop('disabled', true);
+                    $row.find('.edit-btn').removeClass('d-none');
+                    $row.find('.confirm-btn').addClass('d-none');
+                },
+                error: function(xhr) {
+                    const originalRole = $select.attr('data-original-role');
+                    $select.val(originalRole);
+                    alert('역할 변경에 실패했습니다.');
+                }
+            });
+        });
+    });
+    </script>
 </body>
 </html> 
