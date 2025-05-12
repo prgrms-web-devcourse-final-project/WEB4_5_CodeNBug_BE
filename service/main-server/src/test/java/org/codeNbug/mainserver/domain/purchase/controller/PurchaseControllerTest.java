@@ -1,20 +1,30 @@
 package org.codeNbug.mainserver.domain.purchase.controller;
 
 import static org.assertj.core.api.AssertionsForClassTypes.*;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
+import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
+import org.codeNbug.mainserver.domain.purchase.repository.PurchaseCancelRepository;
+import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
@@ -25,6 +35,9 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
+import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
+import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
+import org.codeNbug.mainserver.external.toss.service.TossPaymentServiceImpl;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
@@ -34,30 +47,45 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.annotation.Commit;
 import org.springframework.test.context.TestConstructor;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Transactional
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class PurchaseControllerTest {
 	@Autowired
 	private MockMvc mockMvc;
@@ -67,9 +95,6 @@ class PurchaseControllerTest {
 
 	@Autowired
 	private UserRepository userRepository;
-
-	@Autowired
-	private PurchaseService purchaseService;
 
 	@Autowired
 	private EventRepository eventRepository;
@@ -84,29 +109,87 @@ class PurchaseControllerTest {
 	private SeatGradeRepository seatGradeRepository;
 
 	@Autowired
-	private RedisLockService redisLockService;
-
-	@Autowired
 	private TokenService tokenService;
 
 	@Autowired
-	UserDetailsService userDetailsService;
+	private UserDetailsService userDetailsService;
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
 	@Autowired
-	private StringRedisTemplate redisTemplate;
+	private TossPaymentService tossPaymentService;
+
+	@Autowired
+	private PurchaseRepository purchaseRepository;
+
+	@Autowired
+	private PurchaseCancelRepository purchaseCancelRepository;
+
+	@Autowired
+	private TicketRepository ticketRepository;
+
+	@Autowired
+	private RedisLockService redisLockService;
+
+	@Autowired
+	private ManagerEventRepository managerEventRepository;
+
+	@Autowired
+	private PurchaseService purchaseService;
+
+	@Autowired
+	private StringRedisTemplate stringRedisTemplate;
+
+	@Autowired
+	private RestTemplate restTemplate;
+
+	@InjectMocks
+	private TossPaymentServiceImpl tossPaymentServiceImpl;
+
+	private MockRestServiceServer mockRestServiceServer;
 
 	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
 
 	private static String testToken;
 	private static User testUser;
 	private static Event testEvent;
-	private static Seat availableSeat;
+	private static Long purchaseId;
+
+	@BeforeEach
+	void setUp() {
+		MockitoAnnotations.initMocks(this);
+		mockRestServiceServer = MockRestServiceServer.createServer(restTemplate);
+
+		tossPaymentServiceImpl = new TossPaymentServiceImpl(
+			restTemplate,
+			"test_sk_xxx",
+			"https://api.tosspayments.com/v1/payments"
+		);
+
+		// PurchaseService 생성자 주입
+		purchaseService = new PurchaseService(
+			tossPaymentService,
+			purchaseRepository,
+			purchaseCancelRepository,
+			userRepository,
+			eventRepository,
+			seatRepository,
+			ticketRepository,
+			redisLockService,
+			managerEventRepository
+		);
+	}
 
 	@BeforeAll
-	public void setUpUser() {
+	public void setUpAll() throws JSONException {
+		mockRestServiceServer = MockRestServiceServer.createServer(restTemplate);
+		setUpUser();
+		setUpEvent();
+		setUpRedis();
+	}
+
+	private void setUpUser() {
 		// 테스트용 사용자 생성
 		testUser = User.builder()
 			.email("test" + UUID.randomUUID() + "@example.com")
@@ -130,8 +213,7 @@ class PurchaseControllerTest {
 		testToken = tokenInfo.getAccessToken();
 	}
 
-	@BeforeAll
-	public void setUpEvent() throws JSONException {
+	private void setUpEvent() throws JSONException {
 		// 테스트용 행사 생성
 		EventInformation info = EventInformation.builder()
 			.title("테스트 공연")
@@ -147,7 +229,7 @@ class PurchaseControllerTest {
 			.build();
 
 		testEvent = new Event(
-			1L,
+			EventCategoryEnum.CONCERT,
 			info,
 			LocalDateTime.now().plusDays(1),
 			LocalDateTime.now().plusDays(2),
@@ -165,13 +247,32 @@ class PurchaseControllerTest {
 		String layoutJson = """
 			{
 			  "layout": [
-				["A1", "A2"],
+			    ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10"],
+			    ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10"]
 			  ],
 			  "seat": {
-			  	"A1": { "grade": "VIP" }, 
-			  	"A2": { "grade": "R" }
-			  	}
-			 }
+			    "A1": { "grade": "VIP" },
+			    "A2": { "grade": "VIP" },
+			    "A3": { "grade": "VIP" },
+			    "A4": { "grade": "VIP" },
+			    "A5": { "grade": "VIP" },
+			    "A6": { "grade": "VIP" },
+			    "A7": { "grade": "VIP" },
+			    "A8": { "grade": "VIP" },
+			    "A9": { "grade": "VIP" },
+			    "A10": { "grade": "VIP" },
+			    "B1": { "grade": "R" },
+			    "B2": { "grade": "R" },
+			    "B3": { "grade": "R" },
+			    "B4": { "grade": "R" },
+			    "B5": { "grade": "R" },
+			    "B6": { "grade": "R" },
+			    "B7": { "grade": "R" },
+			    "B8": { "grade": "R" },
+			    "B9": { "grade": "R" },
+			    "B10": { "grade": "R" }
+			  }
+			}
 			""";
 
 		SeatLayout seatLayout = SeatLayout.builder()
@@ -183,30 +284,27 @@ class PurchaseControllerTest {
 		testEvent.setSeatLayout(seatLayout);
 		eventRepository.save(testEvent);
 
-		// 테스트용 좌석 등급 생성
-		JSONArray rows = new JSONObject(layoutJson).getJSONArray("layout");
-		JSONObject seatDetails = new JSONObject(layoutJson).getJSONObject("seat");
+		// 좌석 등급 및 좌석 생성
+		createSeatGradesAndSeats(layoutJson);
+	}
+
+	private void createSeatGradesAndSeats(String layoutJson) throws JSONException {
+		JSONObject fullJson = new JSONObject(layoutJson);
+		JSONArray rows = fullJson.getJSONArray("layout");
+		JSONObject seatDetails = fullJson.getJSONObject("seat");
 
 		Map<SeatGradeEnum, SeatGrade> gradeMap = new HashMap<>();
-
 		for (SeatGradeEnum gradeEnum : SeatGradeEnum.values()) {
 			SeatGrade seatGrade = SeatGrade.builder()
 				.grade(gradeEnum)
-				.amount(switch (gradeEnum) {
-					case VIP -> 100000;
-					case R -> 80000;
-					case S -> 60000;
-					case A -> 50000;
-					default -> 40000;
-				})
+				.amount(getSeatGradeAmount(gradeEnum))
 				.event(testEvent)
 				.build();
-
 			seatGradeRepository.save(seatGrade);
 			gradeMap.put(gradeEnum, seatGrade);
 		}
 
-		// 테스트용 좌석 생성
+		// 좌석 생성
 		for (int i = 0; i < rows.length(); i++) {
 			JSONArray row = rows.optJSONArray(i);
 			if (row == null)
@@ -222,7 +320,7 @@ class PurchaseControllerTest {
 				Seat testSeat = Seat.builder()
 					.location(seatName)
 					.grade(seatGrade)
-					.layout(seatLayout)
+					.layout(testEvent.getSeatLayout())
 					.event(testEvent)
 					.available(true)
 					.build();
@@ -232,10 +330,19 @@ class PurchaseControllerTest {
 		}
 	}
 
-	@BeforeEach
-	void setUpRedis() {
+	private int getSeatGradeAmount(SeatGradeEnum gradeEnum) {
+		return switch (gradeEnum) {
+			case VIP -> 100000;
+			case R -> 80000;
+			case S -> 60000;
+			case A -> 50000;
+			default -> 40000;
+		};
+	}
+
+	private void setUpRedis() {
 		// 테스트용 entry token 저장
-		redisTemplate.opsForHash().put(
+		stringRedisTemplate.opsForHash().put(
 			ENTRY_TOKEN_STORAGE_KEY_NAME,
 			String.valueOf(testUser.getUserId()),
 			"\"" + testToken + "\""
@@ -243,6 +350,9 @@ class PurchaseControllerTest {
 	}
 
 	@Test
+	@Order(1)
+	@Commit
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	@DisplayName("결제 사전 등록 성공")
 	void testInitiatePayment() throws Exception {
 		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(testEvent.getEventId());
@@ -263,19 +373,75 @@ class PurchaseControllerTest {
 
 		String redisKey = "seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + seatToLock.getId();
 
-		String redisValue = redisTemplate.opsForValue().get(redisKey);
+		String redisValue = stringRedisTemplate.opsForValue().get(redisKey);
 		assertThat(redisValue).isNotNull();
 
 		InitiatePaymentRequest paymentRequest = new InitiatePaymentRequest(testEvent.getEventId(), 1000);
 		String paymentJson = objectMapper.writeValueAsString(paymentRequest);
 
-		mockMvc.perform(post("/api/v1/payments/init")
+		MvcResult result = mockMvc.perform(post("/api/v1/payments/init")
 				.header("Authorization", "Bearer " + testToken)
 				.header("entryAuthToken", testToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(paymentJson))
 			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
 			.andExpect(jsonPath("$.data.purchaseId").isNumber())
-			.andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
+			.andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
+			.andReturn();
+
+		String responseBody = result.getResponse().getContentAsString();
+		JsonNode jsonNode = objectMapper.readTree(responseBody);
+		purchaseId = jsonNode.path("data").path("purchaseId").asLong();
+	}
+
+	@Test
+	@Order(2)
+	@DisplayName("등록된 결제 정보 확인")
+	void testCheckPersistedPurchase() {
+		Optional<Purchase> optionalPurchase = purchaseRepository.findById(purchaseId);
+		assertThat(optionalPurchase).isPresent();
+	}
+
+	@Test
+	@Order(3)
+	@Commit
+	@DisplayName("결제 승인 성공")
+	void testConfirmPayment() throws Exception {
+		ConfirmPaymentRequest paymentRequest = new ConfirmPaymentRequest(purchaseId, "paymentKey", "orderId", 1000);
+		String tossResponseJson = """
+			{
+			    "paymentKey": "paymentKey",
+			    "orderId": "orderId",
+			    "orderName": "지정석 1매",
+			    "totalAmount": 1000,
+			    "status": "DONE",
+			    "method": "카드",
+			    "approvedAt": "2025-05-12T15:39:53Z",
+			    "receipt": {
+			        "url": "https://dashboard.tosspayments.com/receipt/redirection?transactionId=paymentKey&ref=PX"
+			    }
+			}
+			""";
+
+		mockRestServiceServer.expect(
+				MockRestRequestMatchers.requestTo("https://api.tosspayments.com/v1/payments/confirm"))
+			.andExpect(method(HttpMethod.POST))
+			.andRespond(withSuccess(tossResponseJson, MediaType.APPLICATION_JSON));
+
+		String paymentJson = objectMapper.writeValueAsString(paymentRequest);
+
+		mockMvc.perform(post("/api/v1/payments/confirm")
+				.header("Authorization", "Bearer " + testToken)
+				.header("entryAuthToken", testToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(paymentJson))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.data.orderId").value("orderId"))
+			.andExpect(jsonPath("$.data.paymentKey").value("paymentKey"))
+			.andExpect(jsonPath("$.data.status").value("DONE"));
+
+		mockRestServiceServer.verify();
 	}
 }

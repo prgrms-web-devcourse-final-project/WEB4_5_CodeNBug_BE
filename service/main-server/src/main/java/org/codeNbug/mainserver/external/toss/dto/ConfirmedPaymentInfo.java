@@ -1,7 +1,5 @@
 package org.codeNbug.mainserver.external.toss.dto;
 
-import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.AllArgsConstructor;
@@ -30,7 +28,7 @@ public class ConfirmedPaymentInfo {
 	@NoArgsConstructor
 	@AllArgsConstructor
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	public static class Receipt extends ConfirmPaymentResponse.Receipt {
+	public static class Receipt {
 		private String url;
 	}
 }
