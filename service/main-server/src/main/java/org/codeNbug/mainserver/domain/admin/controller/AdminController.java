@@ -339,6 +339,26 @@ public class AdminController {
         }
     }
     
+    /**
+     * 티켓 관리 페이지
+     */
+    @RoleRequired(UserRole.ADMIN)
+    @GetMapping("/tickets")
+    public String ticketManagement(Model model) {
+        // TODO: 티켓 목록 조회 및 model.addAttribute("tickets", ...);
+        return "admin/tickets";
+    }
+
+    /**
+     * 이벤트 관리 페이지
+     */
+    @RoleRequired(UserRole.ADMIN)
+    @GetMapping("/events")
+    public String eventManagement(Model model) {
+        // TODO: 이벤트 목록 조회 및 model.addAttribute("events", ...);
+        return "admin/events";
+    }
+    
     @ExceptionHandler(Exception.class)
     public String handleException(Exception e, RedirectAttributes redirectAttributes) {
         log.error(">> 예외 발생: {}", e.getMessage(), e);

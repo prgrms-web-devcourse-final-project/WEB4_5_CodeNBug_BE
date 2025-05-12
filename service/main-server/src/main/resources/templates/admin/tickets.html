@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="admin/fragments/layout :: head('티켓 관리')">
+</head>
+<body>
+    <!-- 사이드바 -->
+    <div th:replace="admin/fragments/layout :: sidebar" th:with="currentPage='tickets'"></div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="content">
+        <div class="dashboard-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">티켓 관리</h4>
+        </div>
+
+        <!-- 오류 메시지 표시 -->
+        <div th:if="${errorMessage}" class="alert alert-danger mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+
+        <!-- 티켓 목록 -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">티켓 목록</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>티켓 ID</th>
+                                <th>이벤트</th>
+                                <th>구매자</th>
+                                <th>좌석 정보</th>
+                                <th>구매일</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${tickets == null || tickets.isEmpty()}">
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    등록된 티켓이 없습니다.
+                                </td>
+                            </tr>
+                            <tr th:each="ticket : ${tickets}">
+                                <td th:text="${ticket.id}">1</td>
+                                <td th:text="${ticket.event.information.title}">이벤트 제목</td>
+                                <td th:text="${ticket.purchase.user.name}">구매자</td>
+                                <td th:text="${ticket.seatInfo}">좌석 정보</td>
+                                <td th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">구매일</td>
+                                <td th:text="${ticket.purchase.paymentStatus}">상태</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a th:href="@{/admin/tickets/{id}(id=${ticket.id})}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger" 
+                                                th:onclick="'refundTicket(' + ${ticket.id} + ')'">
+                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="admin/fragments/layout :: scripts"></div>
+    <script>
+        function refundTicket(ticketId) {
+            if (confirm('정말로 이 티켓을 환불하시겠습니까?')) {
+                fetch(`/admin/tickets/${ticketId}/refund`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('티켓 환불에 실패했습니다.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('티켓 환불 중 오류가 발생했습니다.');
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

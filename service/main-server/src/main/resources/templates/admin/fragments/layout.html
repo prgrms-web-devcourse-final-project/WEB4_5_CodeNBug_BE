@@ -98,12 +98,12 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" th:classappend="${currentPage == 'tickets' ? 'active' : ''}" href="#">
+            <a class="nav-link" th:classappend="${currentPage == 'tickets' ? 'active' : ''}" th:href="@{/admin/tickets}">
                 <i class="bi bi-ticket-perforated"></i> 티켓 관리
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" th:classappend="${currentPage == 'events' ? 'active' : ''}" href="#">
+            <a class="nav-link" th:classappend="${currentPage == 'events' ? 'active' : ''}" th:href="@{/admin/events}">
                 <i class="bi bi-calendar-event"></i> 이벤트 관리
             </a>
         </li>

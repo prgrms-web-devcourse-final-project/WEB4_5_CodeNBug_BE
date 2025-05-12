@@ -16,37 +16,43 @@
         <div class="row">
             <!-- 통계 카드 -->
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-people"></i>
+                <a href="/admin/users" class="text-decoration-none">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="card-icon mx-auto">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <h5 class="card-title">총 사용자</h5>
+                            <h2 class="mb-0" th:text="${stats != null ? stats.totalUsers : 0}">0</h2>
                         </div>
-                        <h5 class="card-title">총 사용자</h5>
-                        <h2 class="mb-0" th:text="${stats != null ? stats.totalUsers : 0}">0</h2>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-ticket-perforated"></i>
+                <a href="/admin/tickets" class="text-decoration-none">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="card-icon mx-auto">
+                                <i class="bi bi-ticket-perforated"></i>
+                            </div>
+                            <h5 class="card-title">총 티켓</h5>
+                            <h2 class="mb-0" th:text="${stats != null ? stats.soldTickets : 0}">0</h2>
                         </div>
-                        <h5 class="card-title">총 티켓</h5>
-                        <h2 class="mb-0" th:text="${stats != null ? stats.totalTickets : 0}">0</h2>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="col-md-4">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-calendar-event"></i>
+                <a href="/admin/events" class="text-decoration-none">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="card-icon mx-auto">
+                                <i class="bi bi-calendar-event"></i>
+                            </div>
+                            <h5 class="card-title">총 이벤트</h5>
+                            <h2 class="mb-0" th:text="${stats != null ? stats.totalEvents : 0}">0</h2>
                         </div>
-                        <h5 class="card-title">총 이벤트</h5>
-                        <h2 class="mb-0" th:text="${stats != null ? stats.totalEvents : 0}">0</h2>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
 

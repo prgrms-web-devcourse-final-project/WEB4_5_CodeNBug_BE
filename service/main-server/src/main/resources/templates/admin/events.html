@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="admin/fragments/layout :: head('이벤트 관리')">
+</head>
+<body>
+    <!-- 사이드바 -->
+    <div th:replace="admin/fragments/layout :: sidebar" th:with="currentPage='events'"></div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="content">
+        <div class="dashboard-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">이벤트 관리</h4>
+        </div>
+
+        <!-- 오류 메시지 표시 -->
+        <div th:if="${errorMessage}" class="alert alert-danger mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+
+        <!-- 이벤트 목록 -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">이벤트 목록</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>제목</th>
+                                <th>카테고리</th>
+                                <th>시작일</th>
+                                <th>종료일</th>
+                                <th>총 티켓</th>
+                                <th>판매된 티켓</th>
+                                <th>남은 티켓</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${events == null || events.isEmpty()}">
+                                <td colspan="10" class="text-center py-4 text-muted">
+                                    등록된 이벤트가 없습니다.
+                                </td>
+                            </tr>
+                            <tr th:each="event : ${events}">
+                                <td th:text="${event.eventId}">1</td>
+                                <td th:text="${event.information.title}">이벤트 제목</td>
+                                <td th:text="${event.category}">카테고리</td>
+                                <td th:text="${#temporals.format(event.information.eventStart, 'yyyy-MM-dd HH:mm')}">시작일</td>
+                                <td th:text="${#temporals.format(event.information.eventEnd, 'yyyy-MM-dd HH:mm')}">종료일</td>
+                                <td th:text="${event.information.seatCount}">총 티켓</td>
+                                <td th:text="${event.soldTickets}">판매된 티켓</td>
+                                <td th:text="${event.information.seatCount - event.soldTickets}">남은 티켓</td>
+                                <td th:text="${event.status}">상태</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a th:href="@{/admin/events/{id}(id=${event.eventId})}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a th:href="@{/admin/events/{id}/edit(id=${event.eventId})}" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger" 
+                                                th:onclick="'deleteEvent(' + ${event.eventId} + ')'">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="admin/fragments/layout :: scripts"></div>
+    <script>
+        function deleteEvent(eventId) {
+            if (confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+                fetch(`/admin/events/${eventId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('이벤트 삭제에 실패했습니다.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('이벤트 삭제 중 오류가 발생했습니다.');
+                });
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -28,4 +28,9 @@ public class DashboardStatsResponse {
      * 총 티켓 수 (현재는 사용하지 않음)
      */
     private long totalTickets;
+
+    /**
+     * 판매된 티켓 수
+     */
+    private long soldTickets;
 } 

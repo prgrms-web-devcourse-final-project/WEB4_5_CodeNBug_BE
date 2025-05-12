@@ -8,6 +8,7 @@ import org.codeNbug.mainserver.domain.admin.dto.response.DashboardStatsResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.ModifyRoleResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
@@ -37,6 +38,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final SnsUserRepository snsUserRepository;
     private final EventRepository eventRepository;
+    private final TicketRepository ticketRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
@@ -188,15 +190,20 @@ public class AdminService {
             // 이벤트 수 조회
             long eventCount = eventRepository.count();
             log.debug(">> 이벤트 수: {}", eventCount);
+
+            // 판매된 티켓 수 조회
+            long soldTicketsCount = ticketRepository.count();
+            log.debug(">> 판매된 티켓 수: {}", soldTicketsCount);
             
             // 응답 생성
             DashboardStatsResponse response = DashboardStatsResponse.builder()
                     .totalUsers(totalUserCount)
                     .totalEvents(eventCount)
+                    .soldTickets(soldTicketsCount)
                     .build();
             
-            log.info(">> 대시보드 통계 정보 조회 완료: 사용자={}, 이벤트={}", 
-                    totalUserCount, eventCount);
+            log.info(">> 대시보드 통계 정보 조회 완료: 사용자={}, 이벤트={}, 판매된 티켓={}", 
+                    totalUserCount, eventCount, soldTicketsCount);
             
             return response;
         } catch (Exception e) {
