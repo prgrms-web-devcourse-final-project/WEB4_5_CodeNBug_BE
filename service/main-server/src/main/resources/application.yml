@@ -23,7 +23,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -99,9 +99,3 @@ allowed:
   redirect:
     domains: localhost:3001,localhost:9000,code-bug.vercel.app
 
-cloud:
-  aws:
-    s3:
-      bucket: ${aws.s3.bucket}
-    region:
-      static: ${aws.region.static}
