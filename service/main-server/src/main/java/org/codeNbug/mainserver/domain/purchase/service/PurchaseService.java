@@ -5,12 +5,15 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.dto.ManagerRefundRequest;
 import org.codeNbug.mainserver.domain.manager.dto.ManagerRefundResponse;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
+import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
@@ -54,6 +57,7 @@ public class PurchaseService {
 	private final TicketRepository ticketRepository;
 	private final RedisLockService redisLockService;
 	private final ManagerEventRepository managerEventRepository;
+	private final NotificationService notificationService;
 
 	/**
 	 * 결제 사전 등록 처리
@@ -147,6 +151,21 @@ public class PurchaseService {
 
 		redisLockService.releaseAllLocks(userId);
 		redisLockService.releaseAllEntryQueueLocks(userId);
+
+		// 결제 완료 알림 생성
+		try {
+			String notificationContent = String.format(
+					"[%s] 결제가 완료되었습니다. 금액: %d원, 결제수단: %s",
+					purchase.getOrderName(),
+					purchase.getAmount(),
+					methodEnum.name()
+			);
+			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
+		} catch (Exception e) {
+			log.error("결제 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+					userId, purchase.getId(), e.getMessage(), e);
+			// 알림 발송 실패는 결제 성공에 영향을 주지 않도록 예외를 무시함
+		}
 
 		return new ConfirmPaymentResponse(
 			info.getPaymentKey(),
@@ -271,6 +290,22 @@ public class PurchaseService {
 			purchaseCancelRepository.save(purchaseCancel);
 		}
 
+		// 환불 완료 알림 생성
+		try {
+			String notificationContent = String.format(
+					"[%s] 환불 처리가 완료되었습니다. 환불금액: %d원",
+					purchase.getOrderName(),
+					canceledPaymentInfo.getCancels().stream()
+							.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+							.sum()
+			);
+			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
+		} catch (Exception e) {
+			log.error("환불 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+					userId, purchase.getId(), e.getMessage(), e);
+			// 알림 발송 실패는 환불 처리에 영향을 주지 않도록 예외를 무시함
+		}
+
 		return CancelPaymentResponse.builder()
 			.paymentKey(canceledPaymentInfo.getPaymentKey())
 			.orderId(canceledPaymentInfo.getOrderId())
@@ -353,6 +388,29 @@ public class PurchaseService {
 						.build();
 
 				purchaseCancelRepository.save(purchaseCancel);
+			}
+
+			// 각 사용자에게 환불 알림 전송
+			try {
+				String notificationContent = String.format(
+						"[%s] 매니저에 의해 환불 처리되었습니다. 사유: %s, 환불금액: %d원",
+						purchase.getOrderName(),
+						request.getReason(),
+						canceledPaymentInfo.getCancels().stream()
+								.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+								.sum()
+				);
+
+				// 각 구매자에게 개별 알림 전송
+				notificationService.createNotification(
+						purchase.getUser().getUserId(),
+						NotificationEnum.PAYMENT,
+						notificationContent
+				);
+			} catch (Exception e) {
+				log.error("매니저 환불 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+						purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
+				// 알림 발송 실패는 환불 처리에 영향을 주지 않도록 예외를 무시함
 			}
 
 			// 응답 DTO 생성
