@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.entity.CostRange;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
-import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.event.entity.Location;
 import org.codeNbug.mainserver.domain.event.entity.QEvent;
 
@@ -19,7 +18,7 @@ import lombok.Getter;
 public class EventListFilter {
 	private CostRange costRange;
 	private List<Location> locationList;
-	private List<EventType> eventTypeList;
+	private List<Long> eventTypeList;
 	private List<EventStatusEnum> eventStatusList;
 	private LocalDateTime startDate;
 	private LocalDateTime endDate;
@@ -81,8 +80,8 @@ public class EventListFilter {
 			return Expressions.TRUE;
 		}
 		BooleanExpression expression = Expressions.FALSE;
-		for (EventType eventType : eventTypeList) {
-			expression = expression.or(QEvent.event.typeId.eq(eventType.getEventTypeId()));
+		for (Long eventTypeId : eventTypeList) {
+			expression = expression.or(QEvent.event.typeId.eq(eventTypeId));
 		}
 		return expression;
 	}
@@ -102,20 +101,26 @@ public class EventListFilter {
 		return expression;
 	}
 
+	/**
+	 * 필터의 시작일이 예매 종료일보다 이전에 있거나
+	 * 필터의 종료일이 예매 시작일보다 앞에 있는 행사를 조회
+	 */
 	@JsonIgnore
 	public BooleanExpression getBetweenDateQuery() {
 		if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
 			return null;
 		}
 
-		return QEvent.event.information.eventStart.goe(startDate)
-			.and(QEvent.event.information.eventEnd.loe(endDate));
+		return QEvent.event.bookingStart.before(endDate).and(
+			QEvent.event.bookingEnd.after(startDate)
+		);
+
 	}
 
 	public static class Builder {
 		private CostRange costRange;
 		private List<Location> locationList;
-		private List<EventType> eventTypeList;
+		private List<Long> eventTypeList;
 		private List<EventStatusEnum> eventStatusList;
 		private LocalDateTime startDate;
 		private LocalDateTime endDate;
@@ -133,7 +138,7 @@ public class EventListFilter {
 		}
 
 		@JsonIgnore
-		public Builder eventTypeList(List<EventType> eventTypes) {
+		public Builder eventTypeList(List<Long> eventTypes) {
 			this.eventTypeList = eventTypes;
 			return this;
 		}
@@ -159,6 +164,7 @@ public class EventListFilter {
 		public EventListFilter build() {
 			return new EventListFilter(this);
 		}
+
 	}
 
 }

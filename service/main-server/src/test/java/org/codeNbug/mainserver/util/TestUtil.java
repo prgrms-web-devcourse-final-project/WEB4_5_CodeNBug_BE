@@ -91,6 +91,48 @@ public class TestUtil {
 		return objectMapper.convertValue(objectMapper.readTree(perform).get("data"), EventRegisterResponse.class);
 	}
 
+	public static EventRegisterResponse registerEvent(MockMvc mockMvc, LocalDateTime startDate, LocalDateTime endDate,
+		ObjectMapper objectMapper) throws
+		Exception {
+		LayoutDto layoutDto = LayoutDto.builder()
+			.layout(List.of(List.of("A1", "A2"), List.of("B1", "B2")))
+			.seat(Map.of(
+				"A1", new SeatInfoDto("S"),
+				"A2", new SeatInfoDto("S"),
+				"B1", new SeatInfoDto("A"),
+				"B2", new SeatInfoDto("A")
+			))
+			.build();
+
+		EventRegisterRequest request = EventRegisterRequest.builder()
+			.title("title")
+			.type("CONCERT")
+			.description("설명")
+			.restriction("없음")
+			.thumbnailUrl("https://example.com/image.jpg")
+			.startDate(startDate)
+			.endDate(LocalDateTime.now().plusDays(7))
+			.location("서울시 강남구")
+			.hallName("1관")
+			.seatCount(4)
+			.layout(layoutDto)
+			.price(List.of(
+				new PriceDto("S", 100000),
+				new PriceDto("A", 80000)
+			))
+			.bookingStart(LocalDateTime.now().plusDays(1))
+			.bookingEnd(endDate)
+			.agelimit(12)
+			.build();
+
+		String perform = mockMvc.perform(post("/api/v1/manager/events")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andReturn().getResponse().getContentAsString();
+
+		return objectMapper.convertValue(objectMapper.readTree(perform).get("data"), EventRegisterResponse.class);
+	}
+
 	public static EventRegisterResponse registerEvent(MockMvc mockMvc, LayoutDto layoutDto, List<PriceDto> priceDtos,
 		ObjectMapper objectMapper) throws Exception {
 		EventRegisterRequest request = EventRegisterRequest.builder()
@@ -210,7 +252,7 @@ public class TestUtil {
 
 	private static List<String> getTables(JdbcTemplate jdbcTemplate) {
 		return jdbcTemplate.queryForList(
-			"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'",
+			"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'ticketone'",
 			String.class
 		);
 	}
