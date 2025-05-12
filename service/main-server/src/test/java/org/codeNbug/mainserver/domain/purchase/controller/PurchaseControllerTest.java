@@ -56,6 +56,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.Commit;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
@@ -98,16 +100,16 @@ class PurchaseControllerTest {
 
 
 	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
-	// @DynamicPropertySource
-	// static void overrideProps(DynamicPropertyRegistry registry) {
-	//
-	// 	registry.add("spring.datasource.url", mysql::getJdbcUrl);
-	// 	registry.add("spring.datasource.username", mysql::getUsername);
-	// 	registry.add("spring.datasource.password", mysql::getPassword);
-	// 	registry.add("spring.redis.host", () -> redis.getHost());
-	// 	registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
-	// 	registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-	// }
+	@DynamicPropertySource
+	static void overrideProps(DynamicPropertyRegistry registry) {
+
+		registry.add("spring.datasource.url", mysql::getJdbcUrl);
+		registry.add("spring.datasource.username", mysql::getUsername);
+		registry.add("spring.datasource.password", mysql::getPassword);
+		registry.add("spring.redis.host", () -> redis.getHost());
+		registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+		registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+	}
 	@Autowired
 	private BaseTestUtil baseTestUtil;
 
