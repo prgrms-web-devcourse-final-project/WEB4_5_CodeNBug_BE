@@ -59,6 +59,12 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+      - uses: actions/checkout@v4
+      - name: application-secret 추가
+        env:
+          ACTIONS_STEP_DEBUG: true
+          APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
+        run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
       - name: Run Tests
         run: ./gradlew test
 
@@ -106,6 +112,17 @@ jobs:
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
         run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
 
+      - name: application-secret 추가
+        env:
+          ACTIONS_STEP_DEBUG: true
+          APPLICATION_SECRET: ${{ secrets.QUEUE_APPLICATION_SECRET }}
+        run: echo "$APPLICATION_SECRET" > service/queue-server/src/main/resources/application-secret.yml
+
+      - name: application-secret 추가
+        env:
+          ACTIONS_STEP_DEBUG: true
+          APPLICATION_SECRET: ${{ secrets.DISPATCH_APPLICATION_SECRET }}
+        run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
 #      - name: application-prod 추가
 #        env:
 #          ACTIONS_STEP_DEBUG: true
