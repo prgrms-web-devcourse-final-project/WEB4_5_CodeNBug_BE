@@ -1,9 +1,4 @@
-redis:
-  host: localhost
-  port: 6379
-db:
-  url: jdbc:mysql://localhost:3306/ticketoneTest
-  username: root
+
 
 # Cookie Configuration for Production
 cookie:
