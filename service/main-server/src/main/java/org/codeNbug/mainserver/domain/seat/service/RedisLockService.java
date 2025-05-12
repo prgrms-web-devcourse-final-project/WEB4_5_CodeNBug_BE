@@ -73,7 +73,8 @@ public class RedisLockService {
 	 * @throws IllegalStateException 락이 없거나 키 형식이 잘못된 경우
 	 */
 	public Long extractEventIdByUserId(Long userId) {
-		Set<String> keys = redisKeyScanner.scanKeys(PREFIX + userId + ":*");
+		Set<String> keys = redisKeyScanner.scanKeys(PREFIX + userId + ":*:*");
+
 		if (keys == null || keys.isEmpty()) {
 			throw new IllegalStateException("[extractEventIdByUserId] 선택된 좌석 정보가 존재하지 않습니다.");
 		}

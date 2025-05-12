@@ -1,10 +1,12 @@
 package org.codeNbug.mainserver.domain.purchase.controller;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.AssertionsForClassTypes.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -13,8 +15,8 @@ import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
-import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
+import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGradeEnum;
@@ -30,10 +32,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,7 +48,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -231,21 +232,50 @@ class PurchaseControllerTest {
 		}
 	}
 
+	@BeforeEach
+	void setUpRedis() {
+		// 테스트용 entry token 저장
+		redisTemplate.opsForHash().put(
+			ENTRY_TOKEN_STORAGE_KEY_NAME,
+			String.valueOf(testUser.getUserId()),
+			"\"" + testToken + "\""
+		);
+	}
+
 	@Test
 	@DisplayName("결제 사전 등록 성공")
-	void testInitiatePaymentSuccess() throws Exception {
-		InitiatePaymentRequest request = new InitiatePaymentRequest(testEvent.getEventId(), 1000);
-		InitiatePaymentResponse response = new InitiatePaymentResponse(1L, "IN_PROGRESS");
+	void testInitiatePayment() throws Exception {
+		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(testEvent.getEventId());
+		Seat seatToLock = availableSeats.get(0);
 
-		Mockito.when(purchaseService.initiatePayment(any(InitiatePaymentRequest.class), eq(testUser.getUserId())))
-			.thenReturn(response);
+		SeatSelectRequest seatSelectRequest = new SeatSelectRequest();
+		seatSelectRequest.setSeatList(List.of(seatToLock.getId()));
+		seatSelectRequest.setTicketCount(1);
 
-		mockMvc.perform(MockMvcRequestBuilders.post("/api/v1/payments/init")
-				.contentType(MediaType.APPLICATION_JSON)
+		String seatSelectJson = objectMapper.writeValueAsString(seatSelectRequest);
+
+		mockMvc.perform(post("/api/v1/event/{eventId}/seats", testEvent.getEventId())
 				.header("Authorization", "Bearer " + testToken)
-				.content(objectMapper.writeValueAsString(request)))
+				.header("entryAuthToken", testToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(seatSelectJson))
+			.andExpect(status().isOk());
+
+		String redisKey = "seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + seatToLock.getId();
+
+		String redisValue = redisTemplate.opsForValue().get(redisKey);
+		assertThat(redisValue).isNotNull();
+
+		InitiatePaymentRequest paymentRequest = new InitiatePaymentRequest(testEvent.getEventId(), 1000);
+		String paymentJson = objectMapper.writeValueAsString(paymentRequest);
+
+		mockMvc.perform(post("/api/v1/payments/init")
+				.header("Authorization", "Bearer " + testToken)
+				.header("entryAuthToken", testToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(paymentJson))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.purchaseId").value(1L))
-			.andExpect(jsonPath("$.paymentStatus").value("IN_PROGRESS"));
+			.andExpect(jsonPath("$.data.purchaseId").isNumber())
+			.andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
 	}
 }
