@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -23,6 +24,10 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 		this.jpaQueryFactory = jpaQueryFactory;
 	}
 
+	private BooleanExpression filterDeletedFalseExpression() {
+		return QEvent.event.isDeleted.isFalse();
+	}
+
 	@Override
 	public Page<Event> findAllByFilter(EventListFilter filter, Pageable pageable) {
 		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
@@ -33,6 +38,7 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 						.and(filter.getEventCategoryIncludeQuery())
 						.and(filter.getEventStatusIncludeQuery())
 						.and(filter.getBetweenDateQuery())
+						.and(filterDeletedFalseExpression())
 				)
 			)
 			.orderBy(QEvent.event.createdAt.desc());
@@ -46,7 +52,8 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 	@Override
 	public Page<Event> findAllByKeyword(String keyword, Pageable pageable) {
 		JPAQuery<Event> query = jpaQueryFactory.selectFrom(QEvent.event)
-			.where(QEvent.event.information.title.like("%" + keyword + "%"))
+			.where(QEvent.event.information.title.like("%" + keyword + "%")
+				.and(filterDeletedFalseExpression()))
 			.orderBy(QEvent.event.createdAt.desc());
 		long count = query.fetchCount();
 		List<Event> data = query.offset(pageable.getOffset())
@@ -65,6 +72,7 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 					.and(filter.getEventStatusIncludeQuery())
 					.and(filter.getBetweenDateQuery())
 					.and(QEvent.event.information.title.like("%" + keyword + "%"))
+					.and(filterDeletedFalseExpression())
 			);
 		long count = query.fetchCount();
 		List<Event> data = query.offset(pageable.getOffset())
@@ -77,7 +85,9 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 		return jpaQueryFactory
 			.select(QEvent.event.seatLayout.seats.size())
 			.from(QEvent.event)
-			.where(QEvent.event.eventId.eq(id).and(QEvent.event.seatLayout.seats.any().available.isTrue()))
+			.where(QEvent.event.eventId.eq(id)
+				.and(QEvent.event.seatLayout.seats.any().available.isTrue())
+				.and(filterDeletedFalseExpression()))
 			.fetchOne();
 	}
 }
