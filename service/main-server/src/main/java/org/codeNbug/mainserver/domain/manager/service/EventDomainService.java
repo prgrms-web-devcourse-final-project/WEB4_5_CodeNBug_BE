@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
-import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
@@ -35,16 +34,10 @@ public class EventDomainService {
 
 	private final EventRepository eventRepository;
 	private final ManagerEventRepository managerEventRepository;
-	private final EventTypeRepository eventTypeRepository;
 	private final SeatGradeRepository seatGradeRepository;
 	private final SeatRepository seatRepository;
 	private final ObjectMapper objectMapper;
 	private final UserRepository userRepository;
-
-	public EventType findOrCreateEventType(String typeName) {
-		return eventTypeRepository.findByName(typeName)
-			.orElseGet(() -> eventTypeRepository.save(new EventType(null, typeName)));
-	}
 
 	public String serializeLayoutToJson(LayoutDto layoutDto) {
 		try {
@@ -130,7 +123,7 @@ public class EventDomainService {
 		return EventRegisterResponse.builder()
 			.eventId(event.getEventId())
 			.title(event.getInformation().getTitle())
-			.type(request.getType())
+			.type(request.getCategory().getDisplayName())
 			.description(request.getDescription())
 			.restriction(request.getRestriction())
 			.thumbnailUrl(event.getInformation().getThumbnailUrl())
