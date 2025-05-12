@@ -9,6 +9,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  datasource:
+    hikari:
+      max-lifetime: 30000
 
 logging:
   level:
