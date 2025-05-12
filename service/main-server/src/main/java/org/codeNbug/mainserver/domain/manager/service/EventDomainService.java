@@ -11,7 +11,9 @@ import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
+import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
+import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGradeEnum;
@@ -19,6 +21,8 @@ import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codenbug.user.domain.user.entity.User;
+import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,10 +33,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EventDomainService {
 
+	private final EventRepository eventRepository;
+	private final ManagerEventRepository managerEventRepository;
 	private final EventTypeRepository eventTypeRepository;
 	private final SeatGradeRepository seatGradeRepository;
 	private final SeatRepository seatRepository;
 	private final ObjectMapper objectMapper;
+	private final UserRepository userRepository;
 
 	public EventType findOrCreateEventType(String typeName) {
 		return eventTypeRepository.findByName(typeName)
@@ -93,6 +100,29 @@ public class EventDomainService {
 		}
 	}
 
+
+	/**
+	 * 이벤트를 ID로 조회하는 메서드입니다.
+	 * 존재하지 않을 경우 예외를 발생시킵니다.
+	 */
+	public Event getEventOrThrow(Long eventId) {
+		return eventRepository.findById(eventId)
+				.orElseThrow(() -> new BadRequestException("이벤트를 찾을 수 없습니다: id=" + eventId));
+	}
+
+	/**
+	 * 이벤트에 대한 수정 권한을 가진 매니저인지 검증하는 메서드입니다.
+	 * 권한이 없으면 예외를 발생시킵니다.
+	 */
+	public void validateManagerAuthority(Long managerId, Event event) {
+		User manager = userRepository.findById(managerId)
+				.orElseThrow(() -> new BadRequestException("메니저를 찾을 수 없습니다."));
+		boolean hasPermission = managerEventRepository.existsByManagerAndEvent(manager, event);
+		if (!hasPermission) {
+			throw new BadRequestException("해당 이벤트에 대한 수정 권한이 없습니다.");
+		}
+	}
+
 	/**
 	 * 최종 응답 객체 생성
 	 */
@@ -119,5 +149,4 @@ public class EventDomainService {
 			.status(event.getStatus())
 			.build();
 	}
-
 }

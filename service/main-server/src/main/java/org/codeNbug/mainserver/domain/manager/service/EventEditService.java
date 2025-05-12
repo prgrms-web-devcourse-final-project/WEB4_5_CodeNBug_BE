@@ -1,4 +1,4 @@
-package org.codeNbug.mainserver.domain.event.service;
+package org.codeNbug.mainserver.domain.manager.service;
 
 import java.util.List;
 import java.util.Map;
@@ -11,7 +11,6 @@ import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
-import org.codeNbug.mainserver.domain.manager.service.EventDomainService;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
@@ -45,8 +44,8 @@ public class EventEditService {
 	 */
 	@Transactional
 	public EventRegisterResponse editEvent(Long eventId, EventRegisterRequest request, Long managerId) {
-		Event event = getEventOrThrow(eventId);
-		validateManagerAuthority(managerId, event);
+		Event event = eventDomainService.getEventOrThrow(eventId);
+		eventDomainService.validateManagerAuthority(managerId, event);
 		updateEventTypeIfChanged(event, request.getType());
 		updateEventInformation(event, request);
 		updateBookingPeriod(event, request);
@@ -54,28 +53,6 @@ public class EventEditService {
 		updateSeatsAndGrades(event, request);
 
 		return eventDomainService.buildEventRegisterResponse(request, event);
-	}
-
-	/**
-	 * 이벤트를 ID로 조회하는 메서드입니다.
-	 * 존재하지 않을 경우 예외를 발생시킵니다.
-	 */
-	private Event getEventOrThrow(Long eventId) {
-		return eventRepository.findById(eventId)
-			.orElseThrow(() -> new BadRequestException("이벤트를 찾을 수 없습니다: id=" + eventId));
-	}
-
-	/**
-	 * 이벤트에 대한 수정 권한을 가진 매니저인지 검증하는 메서드입니다.
-	 * 권한이 없으면 예외를 발생시킵니다.
-	 */
-	private void validateManagerAuthority(Long managerId, Event event) {
-		User manager = userRepository.findById(managerId)
-			.orElseThrow(() -> new BadRequestException("메니저를 찾을 수 없습니다."));
-		boolean hasPermission = managerEventRepository.existsByManagerAndEvent(manager, event);
-		if (!hasPermission) {
-			throw new BadRequestException("해당 이벤트에 대한 수정 권한이 없습니다.");
-		}
 	}
 
 	/**
@@ -145,6 +122,7 @@ public class EventEditService {
 			seatLayoutRepository.findByEvent_EventId(event.getEventId()).orElseThrow(), request.getLayout(),
 			seatGradeMap);
 	}
+
 }
 
 
