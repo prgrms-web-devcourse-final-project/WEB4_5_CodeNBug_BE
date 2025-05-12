@@ -42,7 +42,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -69,8 +68,7 @@ class ManagerControllerTest {
     @ServiceConnection
     static GenericContainer<?> redis =
         new GenericContainer<>("redis:alpine")
-            .withExposedPorts(6379)
-            .waitingFor(Wait.forListeningPort());
+            .withExposedPorts(6379);
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
