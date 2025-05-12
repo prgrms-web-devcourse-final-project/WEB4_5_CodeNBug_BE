@@ -20,6 +20,8 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:mysql:1.19.0")
+    // https://mvnrepository.com/artifact/com.redis/testcontainers-redis
+    testImplementation("com.redis:testcontainers-redis:2.2.4")
 
 
     implementation platform("software.amazon.awssdk:bom:2.25.24")

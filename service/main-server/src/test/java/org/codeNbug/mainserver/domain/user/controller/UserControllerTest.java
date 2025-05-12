@@ -27,17 +27,16 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redis.testcontainers.RedisContainer;
 
 import jakarta.servlet.http.Cookie;
 
@@ -57,23 +56,24 @@ class UserControllerTest {
 			.withPassword("test");
 	@Container
 	@ServiceConnection
-	static GenericContainer<?> redis =
-		new GenericContainer<>("redis:alpine")
-			.withExposedPorts(6379);
+	static RedisContainer redis =
+		new RedisContainer("redis:alpine")
+			.withExposedPorts(6379)
+			.waitingFor(Wait.forListeningPort());
 
 
 	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
-	@DynamicPropertySource
-	static void overrideProps(DynamicPropertyRegistry registry) {
-
-		registry.add("spring.datasource.url", mysql::getJdbcUrl);
-		registry.add("spring.datasource.username", mysql::getUsername);
-		registry.add("spring.datasource.password", mysql::getPassword);
-		registry.add("spring.redis.host", () -> redis.getHost());
-		registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
-		registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-
-	}
+	// @DynamicPropertySource
+	// static void overrideProps(DynamicPropertyRegistry registry) {
+	//
+	// 	registry.add("spring.datasource.url", mysql::getJdbcUrl);
+	// 	registry.add("spring.datasource.username", mysql::getUsername);
+	// 	registry.add("spring.datasource.password", mysql::getPassword);
+	// 	registry.add("spring.redis.host", () -> redis.getHost());
+	// 	registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+	// 	registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+	//
+	// }
 
 	@Autowired
 	private MockMvc mockMvc;
