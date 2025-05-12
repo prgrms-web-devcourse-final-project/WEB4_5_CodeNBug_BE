@@ -1,7 +1,15 @@
 package org.codeNbug.mainserver.domain.manager.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.assertj.core.api.Assertions;
+import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
@@ -25,12 +33,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -248,6 +252,20 @@ class ManagerControllerTest {
                 .andExpect(jsonPath("$.code").value("200"))
                 .andExpect(jsonPath("$.msg").value("이벤트 삭제 성공"))
                 .andExpect(jsonPath("$.data").doesNotExist());
+
+        // 삭제 후 리스트 조회
+        String contentAsString = mockMvc.perform(post("/api/v1/events"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.code").value("200-SUCCESS"))
+            .andReturn().getResponse().getContentAsString();
+
+        List<EventListResponse> eventList = new ArrayList<>();
+
+        objectMapper.readTree(contentAsString).get("data").forEach(node -> {
+            eventList.add(objectMapper.convertValue(node, EventListResponse.class));
+        });
+
+        Assertions.assertThat(eventList).extracting("eventId").doesNotContain(eventId);
     }
 
     @Test
