@@ -93,7 +93,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" th:classappend="${currentPage == 'users' ? 'active' : ''}" href="#">
+            <a class="nav-link" th:classappend="${currentPage == 'users' ? 'active' : ''}" th:href="@{/admin/users}">
                 <i class="bi bi-people"></i> 사용자 관리
             </a>
         </li>
@@ -126,6 +126,36 @@
 <!-- 스크립트 조각 -->
 <div th:fragment="scripts">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // 역할 변경 함수
+        function changeUserRole(userType, userId, selectElement) {
+            const role = selectElement.value;
+            
+            // AJAX 요청 보내기
+            $.ajax({
+                url: `/admin/api/users/${userType}/${userId}/role`,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ role: role }),
+                success: function(response) {
+                    // 성공 시 알림
+                    alert('역할이 성공적으로 변경되었습니다.');
+                },
+                error: function(xhr) {
+                    // 실패 시 원래 값으로 되돌리기
+                    const originalRole = selectElement.getAttribute('data-original-role');
+                    selectElement.value = originalRole;
+                    
+                    // 에러 메시지 표시
+                    const errorMsg = xhr.responseJSON ? 
+                        xhr.responseJSON.msg || '역할 변경에 실패했습니다.' : 
+                        '역할 변경에 실패했습니다.';
+                    alert(errorMsg);
+                }
+            });
+        }
+    </script>
 </div>
 
 </html> 

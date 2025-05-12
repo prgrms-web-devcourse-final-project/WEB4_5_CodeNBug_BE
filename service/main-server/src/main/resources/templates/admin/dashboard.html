@@ -22,7 +22,7 @@
                             <i class="bi bi-people"></i>
                         </div>
                         <h5 class="card-title">총 사용자</h5>
-                        <h2 class="mb-0">0</h2>
+                        <h2 class="mb-0" th:text="${stats != null ? stats.totalUsers : 0}">0</h2>
                     </div>
                 </div>
             </div>
@@ -33,7 +33,7 @@
                             <i class="bi bi-ticket-perforated"></i>
                         </div>
                         <h5 class="card-title">총 티켓</h5>
-                        <h2 class="mb-0">0</h2>
+                        <h2 class="mb-0" th:text="${stats != null ? stats.totalTickets : 0}">0</h2>
                     </div>
                 </div>
             </div>
@@ -44,7 +44,7 @@
                             <i class="bi bi-calendar-event"></i>
                         </div>
                         <h5 class="card-title">총 이벤트</h5>
-                        <h2 class="mb-0">0</h2>
+                        <h2 class="mb-0" th:text="${stats != null ? stats.totalEvents : 0}">0</h2>
                     </div>
                 </div>
             </div>
@@ -76,6 +76,12 @@
                     </table>
                 </div>
             </div>
+        </div>
+        
+        <!-- 오류 메시지 표시 -->
+        <div th:if="${errorMessage}" class="alert alert-danger mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}">오류 메시지</span>
         </div>
     </div>
 
