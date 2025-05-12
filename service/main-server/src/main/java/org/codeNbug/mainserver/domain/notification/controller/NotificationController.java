@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationCreateRequestDto;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
+import org.codeNbug.mainserver.domain.notification.dto.NotificationDeleteRequestDto;
 import org.codeNbug.mainserver.domain.notification.service.NotificationEmitterService;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codenbug.user.domain.user.constant.UserRole;
@@ -129,6 +130,47 @@ public class NotificationController {
 
         // SSE Emitter 생성 및 반환 (Last-Event-ID 전달)
         return emitterService.createEmitter(userId, lastEventId);
+    }
+
+    /**
+     * 단일 알림 삭제 API
+     * 특정 알림 ID를 받아 해당 알림만 삭제합니다.
+     *
+     * @param id 삭제할 알림 ID
+     * @return 삭제 결과 응답
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<RsData<Void>> deleteNotification(@PathVariable Long id) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        notificationService.deleteNotification(id, userId);
+        return ResponseEntity.ok(new RsData<>("200-SUCCESS", "알림 삭제 성공"));
+    }
+
+    /**
+     * 다건 알림 삭제 API
+     * ID 목록을 받아 해당하는 여러 알림을 동시에 삭제합니다.
+     *
+     * @param request 삭제할 알림 ID 목록이 포함된 요청 객체
+     * @return 삭제 결과 응답
+     */
+    @DeleteMapping
+    public ResponseEntity<RsData<Void>> deleteNotifications(@RequestBody NotificationDeleteRequestDto request) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        notificationService.deleteNotifications(request.getNotificationIds(), userId);
+        return ResponseEntity.ok(new RsData<>("200-SUCCESS", "알림 삭제 성공"));
+    }
+
+    /**
+     * 모든 알림 삭제 API
+     * 현재 사용자의 모든 알림을 삭제합니다.
+     *
+     * @return 삭제 결과 응답
+     */
+    @DeleteMapping("/all")
+    public ResponseEntity<RsData<Void>> deleteAllNotifications() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        notificationService.deleteAllNotifications(userId);
+        return ResponseEntity.ok(new RsData<>("200-SUCCESS", "모든 알림 삭제 성공"));
     }
 
 }

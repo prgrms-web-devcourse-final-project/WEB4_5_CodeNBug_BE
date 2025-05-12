@@ -9,10 +9,11 @@ import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.event.service.CommonEventService;
 import org.codeNbug.mainserver.domain.event.service.EventViewCountUpdateScheduler;
 import org.codeNbug.mainserver.global.dto.RsData;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,9 +36,9 @@ public class EventController {
 	@PostMapping("/events")
 	public ResponseEntity<RsData<List<EventListResponse>>> getEvents(
 		@RequestParam(name = "keyword", required = false) String keyword,
-		@RequestBody(required = false) EventListFilter filter) {
+		@RequestBody(required = false) EventListFilter filter, Pageable pageable) {
 
-		List<EventListResponse> eventList = commonEventService.getEvents(keyword, filter);
+		List<EventListResponse> eventList = commonEventService.getEvents(keyword, filter, pageable);
 
 		return ResponseEntity.ok(RsData.success("event list 조회 성공.", eventList));
 	}
