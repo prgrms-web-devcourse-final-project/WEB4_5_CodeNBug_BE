@@ -10,6 +10,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -35,7 +36,7 @@ import lombok.Setter;
 public class Event {
 
 	@Setter
-	@OneToOne(mappedBy = "event")
+	@OneToOne(mappedBy = "event", cascade = CascadeType.REMOVE, orphanRemoval = true)
 	private SeatLayout seatLayout;
 
 	@Id
