@@ -21,13 +21,12 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,12 +48,14 @@ import jakarta.servlet.http.Cookie;
 @Testcontainers
 class UserControllerTest {
 	@Container
+	@ServiceConnection
 	static MySQLContainer<?> mysql =
 		new MySQLContainer<>("mysql:8.0.34")
 			.withDatabaseName("ticketoneTest")
 			.withUsername("test")
 			.withPassword("test");
 	@Container
+	@ServiceConnection
 	static GenericContainer<?> redis =
 		new GenericContainer<>("redis:alpine")
 			.withExposedPorts(6379)
@@ -62,17 +63,17 @@ class UserControllerTest {
 
 
 	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
-	@DynamicPropertySource
-	static void overrideProps(DynamicPropertyRegistry registry) {
-
-		registry.add("spring.datasource.url", mysql::getJdbcUrl);
-		registry.add("spring.datasource.username", mysql::getUsername);
-		registry.add("spring.datasource.password", mysql::getPassword);
-		registry.add("spring.redis.host", () -> redis.getHost());
-		registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
-		registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-
-	}
+	// @DynamicPropertySource
+	// static void overrideProps(DynamicPropertyRegistry registry) {
+	//
+	// 	registry.add("spring.datasource.url", mysql::getJdbcUrl);
+	// 	registry.add("spring.datasource.username", mysql::getUsername);
+	// 	registry.add("spring.datasource.password", mysql::getPassword);
+	// 	registry.add("spring.redis.host", () -> redis.getHost());
+	// 	registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+	// 	registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+	//
+	// }
 
 	@Autowired
 	private MockMvc mockMvc;
