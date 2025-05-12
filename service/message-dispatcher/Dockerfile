@@ -16,7 +16,7 @@ RUN gradle dependencies --no-daemon
 COPY service/message-dispatcher/src ./service/message-dispatcher/src
 
 # 애플리케이션 빌드
-RUN gradle  :message-dispatcher:bootJar
+RUN gradle :message-dispatcher:test :message-dispatcher:bootJar
 
 # 두 번째 스테이지: 실행 스테이지
 FROM container-registry.oracle.com/graalvm/jdk:21

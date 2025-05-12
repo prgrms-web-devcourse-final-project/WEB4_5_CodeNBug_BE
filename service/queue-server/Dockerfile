@@ -20,7 +20,7 @@ COPY service/common/src/main/java ./service/common/src/main/java
 COPY service/user/src/main/java ./service/user/src/main/java
 
 # 애플리케이션 빌드
-RUN gradle  :queue-server:bootJar
+RUN gradle :queue-server:test :queue-server:bootJar
 
 # 두 번째 스테이지: 실행 스테이지
 FROM container-registry.oracle.com/graalvm/jdk:21
