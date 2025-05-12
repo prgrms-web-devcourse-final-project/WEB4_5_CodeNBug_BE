@@ -31,14 +31,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,7 +58,34 @@ import jakarta.transaction.Transactional;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Testcontainers
 class EventControllerTest {
+
+	@Container
+	static MySQLContainer<?> mysql =
+		new MySQLContainer<>("mysql:8.0.34")
+			.withDatabaseName("ticketoneTest")
+			.withUsername("test")
+			.withPassword("test");
+	@Container
+	static GenericContainer<?> redis =
+		new GenericContainer<>("redis:alpine")
+			.withExposedPorts(6379);
+
+	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
+	@DynamicPropertySource
+	static void overrideProps(DynamicPropertyRegistry registry) {
+		if (!mysql.isRunning())
+			mysql.start();
+		if (!redis.isRunning())
+			redis.start();
+		registry.add("spring.datasource.url", mysql::getJdbcUrl);
+		registry.add("spring.datasource.username", mysql::getUsername);
+		registry.add("spring.datasource.password", mysql::getPassword);
+		registry.add("spring.redis.host", () -> redis.getHost());
+		registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+	}
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -66,7 +100,6 @@ class EventControllerTest {
 	private JpaCommonEventRepository jpaCommonEventRepository;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-
 
 	@Autowired
 	private RedisTemplate<String, Object> redisTemplate;

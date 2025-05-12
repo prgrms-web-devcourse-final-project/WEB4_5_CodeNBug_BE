@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.manager.controller;
 
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -12,25 +13,36 @@ import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
+import org.codeNbug.mainserver.util.TestUtil;
 import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.security.service.CustomUserDetails;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,7 +51,37 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @AutoConfigureMockMvc
 @Transactional
 @ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = NONE)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Testcontainers
 class ManagerControllerTest {
+
+    @Container
+    static MySQLContainer<?> mysql =
+        new MySQLContainer<>("mysql:8.0.34")
+            .withDatabaseName("ticketoneTest")
+            .withUsername("test")
+            .withPassword("test");
+    @Container
+    static GenericContainer<?> redis =
+        new GenericContainer<>("redis:alpine")
+            .withExposedPorts(6379);
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    // 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
+    @DynamicPropertySource
+    static void overrideProps(DynamicPropertyRegistry registry) {
+        if (!mysql.isRunning())
+            mysql.start();
+        if (!redis.isRunning())
+            redis.start();
+        registry.add("spring.datasource.url", mysql::getJdbcUrl);
+        registry.add("spring.datasource.username", mysql::getUsername);
+        registry.add("spring.datasource.password", mysql::getPassword);
+        registry.add("spring.redis.host", () -> redis.getHost());
+        registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -51,6 +93,11 @@ class ManagerControllerTest {
     private UserRepository userRepository;
 
     private Long managerId;
+
+    @AfterAll
+    void tearDown() {
+        TestUtil.truncateAllTables(jdbcTemplate);
+    }
 
     @BeforeEach
     void setupTestManager() {

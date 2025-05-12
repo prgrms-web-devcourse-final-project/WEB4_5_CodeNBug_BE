@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.domain.seat.controller;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -50,20 +52,50 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import jakarta.transaction.Transactional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Transactional
 @ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = NONE)
+@Testcontainers
 class SeatControllerTest {
+
+	@Container
+	static MySQLContainer<?> mysql =
+		new MySQLContainer<>("mysql:8.0.34")
+			.withDatabaseName("ticketoneTest")
+			.withUsername("test")
+			.withPassword("test");
+	@Container
+	static GenericContainer<?> redis =
+		new GenericContainer<>("redis:alpine")
+			.withExposedPorts(6379);
+
+	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
+	@DynamicPropertySource
+	static void overrideProps(DynamicPropertyRegistry registry) {
+		if (!mysql.isRunning())
+			mysql.start();
+		if (!redis.isRunning())
+			redis.start();
+		registry.add("spring.datasource.url", mysql::getJdbcUrl);
+		registry.add("spring.datasource.username", mysql::getUsername);
+		registry.add("spring.datasource.password", mysql::getPassword);
+		registry.add("spring.redis.host", () -> redis.getHost());
+		registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+	}
 	@Autowired
 	private MockMvc mockMvc;
 

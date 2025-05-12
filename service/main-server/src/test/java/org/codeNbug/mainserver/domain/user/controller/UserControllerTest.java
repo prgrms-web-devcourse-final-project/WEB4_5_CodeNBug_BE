@@ -26,9 +26,15 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -39,7 +45,32 @@ import jakarta.servlet.http.Cookie;
 @Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ActiveProfiles("test")
+@Testcontainers
 class UserControllerTest {
+	@Container
+	static MySQLContainer<?> mysql =
+		new MySQLContainer<>("mysql:8.0.34")
+			.withDatabaseName("ticketoneTest")
+			.withUsername("test")
+			.withPassword("test");
+	@Container
+	static GenericContainer<?> redis =
+		new GenericContainer<>("redis:alpine")
+			.withExposedPorts(6379);
+
+	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
+	@DynamicPropertySource
+	static void overrideProps(DynamicPropertyRegistry registry) {
+		if (!mysql.isRunning())
+			mysql.start();
+		if (!redis.isRunning())
+			redis.start();
+		registry.add("spring.datasource.url", mysql::getJdbcUrl);
+		registry.add("spring.datasource.username", mysql::getUsername);
+		registry.add("spring.datasource.password", mysql::getPassword);
+		registry.add("spring.redis.host", () -> redis.getHost());
+		registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+	}
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -103,7 +134,7 @@ class UserControllerTest {
 		if (tokenInfo != null && tokenInfo.getAccessToken() != null) {
 			tokenService.deleteRefreshToken(testUser.getEmail());
 		}
-		
+
 		// 테스트 사용자 삭제 - @Transactional로 롤백되지만 추가 보장
 		userRepository.deleteAll();
 	}
@@ -164,7 +195,7 @@ class UserControllerTest {
 	void logout_success() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
@@ -185,10 +216,10 @@ class UserControllerTest {
 	void logout_fail_no_refresh_token() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
-		
+
 		// when - 리프레시 토큰을 의도적으로 전달하지 않음
 		ResultActions result = mockMvc.perform(
 			post("/api/v1/users/logout").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken()));
@@ -204,7 +235,7 @@ class UserControllerTest {
 	void withdrawal_success() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
@@ -286,7 +317,7 @@ class UserControllerTest {
 	void getProfile_success() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거 
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
@@ -331,7 +362,7 @@ class UserControllerTest {
 	void updateProfile_success() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
@@ -388,7 +419,7 @@ class UserControllerTest {
 	void updateProfile_badRequest() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
