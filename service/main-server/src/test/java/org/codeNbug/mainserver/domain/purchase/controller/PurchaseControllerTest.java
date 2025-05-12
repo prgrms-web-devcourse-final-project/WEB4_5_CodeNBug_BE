@@ -54,7 +54,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.Commit;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -93,8 +92,6 @@ class PurchaseControllerTest {
 	static GenericContainer<?> redis =
 		new GenericContainer<>("redis:alpine")
 			.withExposedPorts(6379);
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
 
 	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
 	@DynamicPropertySource
