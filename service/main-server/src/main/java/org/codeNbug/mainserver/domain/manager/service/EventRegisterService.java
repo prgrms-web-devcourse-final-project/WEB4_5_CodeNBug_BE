@@ -6,9 +6,9 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
-import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
@@ -47,8 +47,7 @@ public class EventRegisterService {
 	 */
 	@Transactional
 	public EventRegisterResponse registerEvent(EventRegisterRequest request, Long managerId) {
-		EventType eventType = eventDomainService.findOrCreateEventType(request.getType());
-		Event event = createAndSaveEvent(request, eventType);
+		Event event = createAndSaveEvent(request);
 		SeatLayout seatLayout = createAndSaveSeatLayout(request, event);
 		Map<String, SeatGrade> seatGradeMap = eventDomainService.createAndSaveSeatGrades(event, request.getPrice());
 		eventDomainService.createAndSaveSeats(event, seatLayout, request.getLayout(), seatGradeMap);
@@ -72,10 +71,10 @@ public class EventRegisterService {
 	/**
 	 * Event 생성 및 저장
 	 */
-	private Event createAndSaveEvent(EventRegisterRequest request, EventType eventType) {
+	private Event createAndSaveEvent(EventRegisterRequest request) {
 
 		Event event = new Event(
-			eventType.getEventTypeId(),
+			request.getCategory(),
 			EventInformation.builder()
 				.title(request.getTitle())
 				.thumbnailUrl(request.getThumbnailUrl())
@@ -131,8 +130,7 @@ public class EventRegisterService {
 		eventDomainService.validateManagerAuthority(currentUserId, event);
 
 		// 3. EventType 조회
-		EventType eventType = eventTypeRepository.findById(event.getTypeId())
-				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이벤트 타입입니다."));
+		EventCategoryEnum category = event.getCategory();
 
 		// 4. EventInformation
 		EventInformation info = event.getInformation();
@@ -179,7 +177,7 @@ public class EventRegisterService {
 		return EventRegisterResponse.builder()
 				.eventId(event.getEventId())
 				.title(info.getTitle())
-				.type(eventType.getName())
+				.type(category.name())
 				.description(info.getDescription())
 				.restriction(info.getRestrictions())
 				.thumbnailUrl(info.getThumbnailUrl())
