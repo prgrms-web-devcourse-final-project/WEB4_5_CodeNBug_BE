@@ -65,8 +65,6 @@ jobs:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
         run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
-      - name: Run Tests
-        run: ./gradlew test --info --stacktrace
 
       - name: queue application-secret 추가
         env:
@@ -79,6 +77,11 @@ jobs:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.DISPATCH_APPLICATION_SECRET }}
         run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
+
+      - name: Run Tests
+        run: ./gradlew test --info
+
+
 
   makeTagAndReleaseServer:
     runs-on: ubuntu-latest
