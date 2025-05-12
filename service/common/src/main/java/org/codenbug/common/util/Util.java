@@ -37,4 +37,13 @@ public class Util {
 			throw new RuntimeException("Failed to convert value to " + type.getSimpleName(), e);
 		}
 	}
+
+	public static <T> T convertValue(Object fromValue, TypeReference<T> typeReference) {
+		try {
+			return objectMapper.convertValue(fromValue, typeReference);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to convert value", e);
+		}
+	}
+
 }

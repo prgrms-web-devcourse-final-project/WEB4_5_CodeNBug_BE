@@ -98,3 +98,4 @@ sns:
 allowed:
   redirect:
     domains: localhost:3001,localhost:9000,code-bug.vercel.app
+

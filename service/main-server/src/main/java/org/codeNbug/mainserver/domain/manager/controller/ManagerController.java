@@ -3,7 +3,7 @@ package org.codeNbug.mainserver.domain.manager.controller;
 import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
-import org.codeNbug.mainserver.domain.event.service.EventEditService;
+import org.codeNbug.mainserver.domain.manager.service.EventEditService;
 import org.codeNbug.mainserver.domain.manager.dto.*;
 import org.codeNbug.mainserver.domain.manager.service.EventDeleteService;
 import org.codeNbug.mainserver.domain.manager.service.EventRegisterService;
@@ -65,6 +65,20 @@ public class ManagerController {
 			"200",
 			"이벤트 수정 성공",
 			response
+		));
+	}
+
+	@RoleRequired({UserRole.MANAGER, UserRole.ADMIN})
+	@GetMapping("/{eventId}")
+	public ResponseEntity<RsData<EventRegisterResponse>> getEvent(
+			@PathVariable Long eventId
+	) {
+
+		EventRegisterResponse response = eventRegisterService.searchEvent(eventId, SecurityUtil.getCurrentUserId());
+		return ResponseEntity.ok(new RsData<>(
+				"200",
+				"이벤트 조회 성공",
+				response
 		));
 	}
 

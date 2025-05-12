@@ -5,7 +5,7 @@ import java.util.List;
 import org.codeNbug.mainserver.domain.event.dto.EventInfoResponse;
 import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
-import org.codeNbug.mainserver.domain.event.entity.EventType;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.service.CommonEventService;
 import org.codeNbug.mainserver.domain.event.service.EventViewCountUpdateScheduler;
 import org.codeNbug.mainserver.global.dto.RsData;
@@ -44,10 +44,11 @@ public class EventController {
 	}
 
 	@GetMapping("/events/categories")
-	public ResponseEntity<RsData<List<EventType>>> getEventCategories() {
-		List<EventType> eventTypes = commonEventService.getEventCategories();
-		return ResponseEntity.ok(RsData.success("Event categories retrieved successfully", eventTypes));
+	public ResponseEntity<RsData<List<EventCategoryEnum>>> getEventCategories() {
+		List<EventCategoryEnum> categories = commonEventService.getEventCategories();
+		return ResponseEntity.ok(RsData.success("Event categories retrieved successfully", categories));
 	}
+
 
 	@GetMapping("/events/{id}/seats")
 	public ResponseEntity<RsData<Integer>> getAvailableSeatCount(

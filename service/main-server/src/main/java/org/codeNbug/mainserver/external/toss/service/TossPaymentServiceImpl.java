@@ -16,26 +16,28 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import lombok.RequiredArgsConstructor;
-
 /**
  * Toss 결제 관련 유틸리티 로직을 담당하는 구현 클래스
  */
 @Component
-@RequiredArgsConstructor
 public class TossPaymentServiceImpl implements TossPaymentService {
 
 	private final RestTemplate restTemplate;
+	private final String secretKey;
+	private final String tossApiUrl;
 
-	@Value("${payment.toss.secret-key}")
-	private String TOSS_SECRET_KEY;
-
-	@Value("${payment.toss.api-url}")
-	private String TOSS_API_URL;
+	public TossPaymentServiceImpl(RestTemplate restTemplate,
+		@Value("${payment.toss.secret-key}") String secretKey,
+		@Value("${payment.toss.api-url}") String tossApiUrl) {
+		this.restTemplate = restTemplate;
+		this.secretKey = secretKey;
+		this.tossApiUrl = tossApiUrl;
+	}
 
 	private HttpHeaders createAuthHeaders() {
 		HttpHeaders headers = new HttpHeaders();
-		headers.setBasicAuth(Base64.getEncoder().encodeToString((TOSS_SECRET_KEY + ":").getBytes()));
+		String encoded = Base64.getEncoder().encodeToString((secretKey + ":").getBytes());
+		headers.set("Authorization", "Basic " + encoded);
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		return headers;
 	}
@@ -45,7 +47,7 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	 */
 	@Override
 	public ConfirmedPaymentInfo confirmPayment(String paymentKey, String orderId, Integer amount) {
-		String url = TOSS_API_URL + "/confirm";
+		String url = tossApiUrl + "/confirm";
 		Map<String, Object> body = Map.of(
 			"paymentKey", paymentKey,
 			"orderId", orderId,
@@ -59,7 +61,7 @@ public class TossPaymentServiceImpl implements TossPaymentService {
 	 */
 	@Override
 	public CanceledPaymentInfo cancelPayment(String paymentKey, String cancelReason) {
-		String url = TOSS_API_URL + "/" + paymentKey + "/cancel";
+		String url = tossApiUrl + "/" + paymentKey + "/cancel";
 		Map<String, Object> body = Map.of("cancelReason", cancelReason);
 		return postToToss(url, body, CanceledPaymentInfo.class);
 	}

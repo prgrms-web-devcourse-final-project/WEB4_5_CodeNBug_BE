@@ -4,13 +4,18 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.dto.ManagerRefundRequest;
 import org.codeNbug.mainserver.domain.manager.dto.ManagerRefundResponse;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
+import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
@@ -36,10 +41,10 @@ import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -54,6 +59,7 @@ public class PurchaseService {
 	private final TicketRepository ticketRepository;
 	private final RedisLockService redisLockService;
 	private final ManagerEventRepository managerEventRepository;
+	private final NotificationService notificationService;
 
 	/**
 	 * 결제 사전 등록 처리
@@ -148,6 +154,21 @@ public class PurchaseService {
 		redisLockService.releaseAllLocks(userId);
 		redisLockService.releaseAllEntryQueueLocks(userId);
 
+		// 결제 완료 알림 생성
+		try {
+			String notificationContent = String.format(
+					"[%s] 결제가 완료되었습니다. 금액: %d원, 결제수단: %s",
+					purchase.getOrderName(),
+					purchase.getAmount(),
+					methodEnum.name()
+			);
+			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
+		} catch (Exception e) {
+			log.error("결제 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+					userId, purchase.getId(), e.getMessage(), e);
+			// 알림 발송 실패는 결제 성공에 영향을 주지 않도록 예외를 무시함
+		}
+
 		return new ConfirmPaymentResponse(
 			info.getPaymentKey(),
 			info.getOrderId(),
@@ -156,7 +177,7 @@ public class PurchaseService {
 			info.getStatus(),
 			methodEnum,
 			localDateTime,
-			info.getReceipt()
+			new ConfirmPaymentResponse.Receipt(info.getReceipt().getUrl())
 		);
 	}
 
@@ -271,6 +292,22 @@ public class PurchaseService {
 			purchaseCancelRepository.save(purchaseCancel);
 		}
 
+		// 환불 완료 알림 생성
+		try {
+			String notificationContent = String.format(
+					"[%s] 환불 처리가 완료되었습니다. 환불금액: %d원",
+					purchase.getOrderName(),
+					canceledPaymentInfo.getCancels().stream()
+							.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+							.sum()
+			);
+			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
+		} catch (Exception e) {
+			log.error("환불 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+					userId, purchase.getId(), e.getMessage(), e);
+			// 알림 발송 실패는 환불 처리에 영향을 주지 않도록 예외를 무시함
+		}
+
 		return CancelPaymentResponse.builder()
 			.paymentKey(canceledPaymentInfo.getPaymentKey())
 			.orderId(canceledPaymentInfo.getOrderId())
@@ -293,7 +330,7 @@ public class PurchaseService {
 		List<Event> eventsByManager = managerEventRepository.findEventsByManager(manager);
 
 		boolean hasPermission = eventsByManager.stream()
-				.anyMatch(event -> event.getEventId().equals(eventId));
+			.anyMatch(event -> event.getEventId().equals(eventId));
 
 		if (!hasPermission) {
 			throw new IllegalArgumentException("요청 매니저는 해당 이벤트에 대한 권한이 없습니다.");
@@ -305,16 +342,16 @@ public class PurchaseService {
 			purchasesToRefund = purchaseRepository.findAllByEventId(eventId);
 		} else {
 			purchasesToRefund = request.getPurchasesIds().stream()
-					.map(id -> purchaseRepository.findById(id)
-							.orElseThrow(() -> new IllegalArgumentException("해당 구매 이력이 존재하지 않습니다. ID: " + id)))
-					.filter(p -> {
-						Long ticketEventId = p.getTickets().getFirst().getEvent().getEventId();
-						if (!ticketEventId.equals(eventId)) {
-							throw new IllegalArgumentException("요청한 매니저의 이벤트와 결제 티켓의 이벤트가 일치하지 않습니다.");
-						}
-						return true;
-					})
-					.toList();
+				.map(id -> purchaseRepository.findById(id)
+					.orElseThrow(() -> new IllegalArgumentException("해당 구매 이력이 존재하지 않습니다. ID: " + id)))
+				.filter(p -> {
+					Long ticketEventId = p.getTickets().getFirst().getEvent().getEventId();
+					if (!ticketEventId.equals(eventId)) {
+						throw new IllegalArgumentException("요청한 매니저의 이벤트와 결제 티켓의 이벤트가 일치하지 않습니다.");
+					}
+					return true;
+				})
+				.toList();
 		}
 
 		List<ManagerRefundResponse> responseList = new ArrayList<>();
@@ -322,8 +359,8 @@ public class PurchaseService {
 		for (Purchase purchase : purchasesToRefund) {
 			// Toss 결제 취소
 			CanceledPaymentInfo canceledPaymentInfo = tossPaymentService.cancelPayment(
-					purchase.getPaymentUuid(),
-					request.getReason()
+				purchase.getPaymentUuid(),
+				request.getReason()
 			);
 
 			// 좌석 초기화 및 티켓 삭제
@@ -345,37 +382,58 @@ public class PurchaseService {
 			// PurchaseCancel 저장
 			for (CanceledPaymentInfo.CancelDetail cancelDetail : canceledPaymentInfo.getCancels()) {
 				PurchaseCancel purchaseCancel = PurchaseCancel.builder()
-						.purchase(purchase)
-						.cancelAmount(cancelDetail.getCancelAmount())
-						.cancelReason(cancelDetail.getCancelReason())
-						.canceledAt(OffsetDateTime.parse(cancelDetail.getCanceledAt()).toLocalDateTime())
-						.receiptUrl(canceledPaymentInfo.getReceipt() != null ? canceledPaymentInfo.getReceipt().getUrl() : null)
-						.build();
+					.purchase(purchase)
+					.cancelAmount(cancelDetail.getCancelAmount())
+					.cancelReason(cancelDetail.getCancelReason())
+					.canceledAt(OffsetDateTime.parse(cancelDetail.getCanceledAt()).toLocalDateTime())
+					.receiptUrl(
+						canceledPaymentInfo.getReceipt() != null ? canceledPaymentInfo.getReceipt().getUrl() : null)
+					.build();
 
 				purchaseCancelRepository.save(purchaseCancel);
 			}
 
+			// 각 사용자에게 환불 알림 전송
+			try {
+				String notificationContent = String.format(
+						"[%s] 매니저에 의해 환불 처리되었습니다. 사유: %s, 환불금액: %d원",
+						purchase.getOrderName(),
+						request.getReason(),
+						canceledPaymentInfo.getCancels().stream()
+								.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+								.sum()
+				);
+
+				// 각 구매자에게 개별 알림 전송
+				notificationService.createNotification(
+						purchase.getUser().getUserId(),
+						NotificationEnum.PAYMENT,
+						notificationContent
+				);
+			} catch (Exception e) {
+				log.error("매니저 환불 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+						purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
+				// 알림 발송 실패는 환불 처리에 영향을 주지 않도록 예외를 무시함
+			}
+
 			// 응답 DTO 생성
 			ManagerRefundResponse response = ManagerRefundResponse.builder()
-					.purchaseId(purchase.getId())
-					.userId(purchase.getUser().getUserId())
-					.paymentStatus(purchase.getPaymentStatus())
-					.ticketId(ticketIds)
-					.refundAmount(canceledPaymentInfo.getCancels().stream()
-							.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
-							.sum())
-					.refundDate(OffsetDateTime.parse(
-							canceledPaymentInfo.getCancels().getLast().getCanceledAt()
-					).toLocalDateTime())
-					.build();
+				.purchaseId(purchase.getId())
+				.userId(purchase.getUser().getUserId())
+				.paymentStatus(purchase.getPaymentStatus())
+				.ticketId(ticketIds)
+				.refundAmount(canceledPaymentInfo.getCancels().stream()
+					.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+					.sum())
+				.refundDate(OffsetDateTime.parse(
+					canceledPaymentInfo.getCancels().getLast().getCanceledAt()
+				).toLocalDateTime())
+				.build();
 
 			responseList.add(response);
 		}
 
 		return responseList;
 	}
-
-
-
 
 }

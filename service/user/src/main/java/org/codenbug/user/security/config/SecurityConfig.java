@@ -125,30 +125,28 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/events/view").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/events/{id}/tickets/waiting").permitAll()
 
-                        .requestMatchers("/api/v1/email/**").permitAll()
-                        .requestMatchers("/api/v1/manager/**").permitAll()
-                        .requestMatchers("/api/test/auth/public").permitAll()
-                        .requestMatchers("/auth/kakao/**").permitAll()
-                        .requestMatchers("/webhook/**").permitAll()
-                        // Swagger UI 관련 경로 허용
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        // 나머지 경로는 인증 필요
-                        .anyRequest().authenticated())
-                .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            // authException.printStackTrace();
-                            // log.info(request.getCookies().toString() + "\n" + request.getHeaderNames().toString() + "\n");
-                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"code\":\"401-UNAUTHORIZED\",\"msg\":\"인증 정보가 필요합니다.\"}");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpStatus.FORBIDDEN.value());
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"code\":\"403-FORBIDDEN\",\"msg\":\"접근 권한이 없습니다.\"}");
-                        }))
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+				.requestMatchers("/api/v1/email/**").permitAll()
+				.requestMatchers("/api/v1/manager/**").permitAll()
+				.requestMatchers("/webhook/**").permitAll()
+				// Swagger UI 관련 경로 허용
+				.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+				// 나머지 경로는 인증 필요
+				.anyRequest().authenticated())
+			.exceptionHandling(exceptionHandling -> exceptionHandling
+				.authenticationEntryPoint((request, response, authException) -> {
+					// authException.printStackTrace();
+					// log.info(request.getCookies().toString() + "\n" + request.getHeaderNames().toString() + "\n");
+					response.setStatus(HttpStatus.UNAUTHORIZED.value());
+					response.setContentType("application/json;charset=UTF-8");
+					response.getWriter().write("{\"code\":\"401-UNAUTHORIZED\",\"msg\":\"인증 정보가 필요합니다.\"}");
+				})
+				.accessDeniedHandler((request, response, accessDeniedException) -> {
+					response.setStatus(HttpStatus.FORBIDDEN.value());
+					response.setContentType("application/json;charset=UTF-8");
+					response.getWriter().write("{\"code\":\"403-FORBIDDEN\",\"msg\":\"접근 권한이 없습니다.\"}");
+				}))
+			.authenticationProvider(authenticationProvider())
+			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

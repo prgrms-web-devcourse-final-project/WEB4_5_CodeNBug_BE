@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.domain.manager.dto;
 
 import java.time.LocalDateTime;
 
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 
 import lombok.AllArgsConstructor;
@@ -16,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class ManagerEventListResponse {
     private Long eventId;
     private String title;
-    private String eventType;
+    private EventCategoryEnum category;
     private String thumbnailUrl;
     private EventStatusEnum status;
     private LocalDateTime startDate;
