@@ -80,6 +80,8 @@ public class CommonEventService {
 
 	public Integer getAvailableSeatCount(Long id) {
 		Integer count = commonEventRepository.countAvailableSeat(id);
+		if (count == null)
+			throw new IllegalArgumentException("해당 id의 event는 없습니다.");
 		return count;
 	}
 

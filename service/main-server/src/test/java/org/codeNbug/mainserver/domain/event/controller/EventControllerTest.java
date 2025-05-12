@@ -439,6 +439,23 @@ class EventControllerTest {
 	}
 
 	@Test
+	@DisplayName("존재하지 않는 이벤트의 좌석 수 조회 테스트")
+	void getAvailableSeatCountNotFound() throws Exception {
+		//given
+		TestUtil.createManagerAndSaveAuthentication(userRepository);
+		Long nonExistentEventId = 999L;
+
+		//when
+		ResultActions result = mockMvc.perform(get("/api/v1/events/%d/seats".formatted(nonExistentEventId))
+			.contentType(MediaType.APPLICATION_JSON));
+
+		//then
+		result.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("해당 id의 event는 없습니다."));
+	}
+
+	@Test
 	@DisplayName("이벤트 상세 조회 테스트")
 	void getEvent() throws Exception {
 		//given
@@ -461,6 +478,23 @@ class EventControllerTest {
 			.andExpect(jsonPath("$.data.eventId").value(event1.getEventId()))
 			.andExpect(jsonPath("$.data.information.title").value(event1.getTitle()))
 			.andExpect(jsonPath("$.data.typeId").value(event.getTypeId()));
+	}
+
+	@Test
+	@DisplayName("존재하지 않는 이벤트 상세 조회 테스트")
+	void getEventNotFound() throws Exception {
+		//given
+		TestUtil.createManagerAndSaveAuthentication(userRepository);
+		Long nonExistentEventId = 999L;
+
+		//when
+		ResultActions result = mockMvc.perform(get("/api/v1/events/%d".formatted(nonExistentEventId))
+			.contentType(MediaType.APPLICATION_JSON));
+
+		//then
+		result.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("해당 id의 event는 없습니다."));
 	}
 
 	@Test
