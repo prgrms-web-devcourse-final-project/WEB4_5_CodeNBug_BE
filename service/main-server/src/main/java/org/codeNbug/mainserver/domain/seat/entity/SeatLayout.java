@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,6 +15,7 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,6 +27,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
+@Builder
 public class SeatLayout {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,7 +39,8 @@ public class SeatLayout {
 
 	@OneToMany(mappedBy = "layout")
 	private final List<Seat> seats = new ArrayList<>();
-	@OneToOne
+
+	@OneToOne(cascade = CascadeType.REMOVE, orphanRemoval = true)
 	@Setter
 	@JoinColumn(name = "event_id", nullable = false)
 	private Event event;

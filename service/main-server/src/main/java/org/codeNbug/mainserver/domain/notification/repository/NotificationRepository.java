@@ -69,4 +69,13 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      * @return ID 이후의 알림 목록
      */
     List<Notification> findByUserIdAndIdGreaterThanOrderByIdAsc(Long userId, Long id, Pageable pageable);
+
+    /**
+     * 특정 사용자의 알림 중 지정된 ID 목록에 해당하는 알림들을 조회
+     *
+     * @param userId 사용자 ID
+     * @param notificationIds 알림 ID 목록
+     * @return 조회된 알림 목록
+     */
+    List<Notification> findAllByUserIdAndIdIn(Long userId, List<Long> notificationIds);
 }
