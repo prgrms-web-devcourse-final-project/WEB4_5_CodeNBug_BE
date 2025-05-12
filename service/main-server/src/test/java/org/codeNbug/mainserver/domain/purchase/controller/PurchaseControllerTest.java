@@ -22,6 +22,7 @@ import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
@@ -360,6 +361,7 @@ class PurchaseControllerTest {
 		seatGradeRepository.deleteAll();
 		ticketRepository.deleteAll();
 		seatLayoutRepository.deleteAll();
+		purchaseCancelRepository.deleteAll();
 		purchaseRepository.deleteAll();
 		eventRepository.deleteAll();
 		userRepository.deleteAll();
@@ -488,5 +490,80 @@ class PurchaseControllerTest {
 
 		Purchase updated = purchaseRepository.findById(purchaseId).orElseThrow();
 		assertEquals(PaymentStatusEnum.DONE, updated.getPaymentStatus());
+	}
+
+	@Test
+	@Order(5)
+	@Commit
+	@DisplayName("사용자 측 결제 취소 성공")
+	void testCancelPayment() throws Exception {
+		String paymentKey = "paymentKey";
+		CancelPaymentRequest cancelRequest = new CancelPaymentRequest("단순변심");
+
+		String tossResponseJson = """
+			{
+			    "paymentKey": "paymentKey",
+			    "orderId": "orderId",
+			    "status": "CANCELED",
+			    "method": "카드",
+			    "totalAmount": 1000,
+			    "receipt": {
+			        "url": "https://dashboard.tosspayments.com/receipt/redirection?transactionId=paymentKey&ref=PX"
+			    },
+			    "cancels": [
+			      {
+			        "cancelAmount": 1000,
+			        "canceledAt": "2025-05-12T15:40:00Z",
+			        "cancelReason": "단순변심"
+			      }
+			    ]
+			}
+			""";
+
+		mockRestServiceServer.expect(
+				MockRestRequestMatchers.requestTo("https://api.tosspayments.com/v1/payments/paymentKey/cancel"))
+			.andExpect(method(HttpMethod.POST))
+			.andRespond(withSuccess(tossResponseJson, MediaType.APPLICATION_JSON));
+
+		String cancelRequestJson = objectMapper.writeValueAsString(cancelRequest);
+
+		mockMvc.perform(post("/api/v1/payments/{paymentKey}/cancel", paymentKey)
+				.header("Authorization", "Bearer " + testToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(cancelRequestJson))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.msg").value("결제 취소 완료"))
+			.andExpect(jsonPath("$.data.paymentKey").value(paymentKey));
+
+		mockRestServiceServer.verify();
+	}
+
+	@Test
+	@Order(6)
+	@Commit
+	@DisplayName("Toss Webhook 수신 - 결제 취소 상태 처리")
+	void testTossWebhookCanceled() throws Exception {
+		Purchase purchase = purchaseRepository.findById(purchaseId)
+			.orElseThrow(() -> new IllegalStateException("테스트용 purchase 없음"));
+
+		assertEquals(PaymentStatusEnum.DONE, purchase.getPaymentStatus());
+
+		String payload = """
+			{
+			  "data": {
+			    "paymentKey": "paymentKey",
+			    "status": "CANCELED"
+			  }
+			}
+			""";
+
+		mockMvc.perform(post("/webhook/toss/status")
+				.content(payload)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk());
+
+		Purchase updated = purchaseRepository.findById(purchaseId).orElseThrow();
+		assertEquals(PaymentStatusEnum.CANCELED, updated.getPaymentStatus());
 	}
 }
