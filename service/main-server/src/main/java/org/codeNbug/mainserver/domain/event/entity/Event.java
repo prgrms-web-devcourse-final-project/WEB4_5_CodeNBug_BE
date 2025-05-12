@@ -42,9 +42,13 @@ public class Event {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long eventId;
 
-	@Column(nullable = false)
+//	@Column(nullable = false)
+//	@Setter
+//	private Long typeId;
+
 	@Setter
-	private Long typeId;
+	@Enumerated(EnumType.STRING)
+	private EventCategoryEnum category;
 
 	@Embedded
 	@Setter
@@ -72,13 +76,14 @@ public class Event {
 	@Column(columnDefinition = "boolean default true")
 	private Boolean seatSelectable;
 	@Setter
-	@Column(name = "is_deleted")
+	@Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
 	private Boolean isDeleted = false;
 
-	public Event(Long typeId, EventInformation information, LocalDateTime bookingStart, LocalDateTime bookingEnd,
+
+	public Event(EventCategoryEnum category, EventInformation information, LocalDateTime bookingStart, LocalDateTime bookingEnd,
 		Integer viewCount, LocalDateTime createdAt, LocalDateTime modifiedAt, EventStatusEnum status,
 		Boolean seatSelectable, Boolean isDeleted, SeatLayout seatLayout) {
-		this.typeId = typeId;
+		this.category = category;
 		this.information = information;
 		this.bookingStart = bookingStart;
 		this.bookingEnd = bookingEnd;

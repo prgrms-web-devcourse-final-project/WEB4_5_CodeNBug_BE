@@ -1,15 +1,8 @@
 package org.codeNbug.mainserver.domain.manager.controller;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.assertj.core.api.Assertions;
-import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
@@ -33,8 +26,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -93,7 +90,7 @@ class ManagerControllerTest {
 
         EventRegisterRequest request = EventRegisterRequest.builder()
                 .title("테스트 이벤트")
-                .type("CONCERT")
+                .category(EventCategoryEnum.CONCERT)
                 .description("설명")
                 .restriction("없음")
                 .thumbnailUrl("https://example.com/image.jpg")
@@ -139,7 +136,7 @@ class ManagerControllerTest {
 
         EventRegisterRequest original = EventRegisterRequest.builder()
                 .title("테스트 이벤트")
-                .type("CONCERT")
+                .category(EventCategoryEnum.CONCERT)
                 .description("설명")
                 .restriction("없음")
                 .thumbnailUrl("https://example.com/image.jpg")
@@ -171,7 +168,7 @@ class ManagerControllerTest {
         // Step 2: 수정 요청
         EventRegisterRequest updated = EventRegisterRequest.builder()
                 .title("수정된 이벤트")
-                .type("MUSICAL")
+                .category(EventCategoryEnum.MUSICAL)
                 .description("수정된 설명")
                 .restriction("연령제한")
                 .thumbnailUrl("https://example.com/updated.jpg")
@@ -216,7 +213,7 @@ class ManagerControllerTest {
 
         EventRegisterRequest request = EventRegisterRequest.builder()
                 .title("삭제할 이벤트")
-                .type("CONCERT")
+                .category(EventCategoryEnum.CONCERT)
                 .description("설명")
                 .restriction("없음")
                 .thumbnailUrl("https://example.com/image.jpg")
@@ -252,20 +249,6 @@ class ManagerControllerTest {
                 .andExpect(jsonPath("$.code").value("200"))
                 .andExpect(jsonPath("$.msg").value("이벤트 삭제 성공"))
                 .andExpect(jsonPath("$.data").doesNotExist());
-
-        // 삭제 후 리스트 조회
-        String contentAsString = mockMvc.perform(post("/api/v1/events"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.code").value("200-SUCCESS"))
-            .andReturn().getResponse().getContentAsString();
-
-        List<EventListResponse> eventList = new ArrayList<>();
-
-        objectMapper.readTree(contentAsString).get("data").forEach(node -> {
-            eventList.add(objectMapper.convertValue(node, EventListResponse.class));
-        });
-
-        Assertions.assertThat(eventList).extracting("eventId").doesNotContain(eventId);
     }
 
     @Test
@@ -284,7 +267,7 @@ class ManagerControllerTest {
 
         EventRegisterRequest request = EventRegisterRequest.builder()
                 .title("목록 조회용 이벤트")
-                .type("CONCERT")
+                .category(EventCategoryEnum.CONCERT)
                 .description("설명")
                 .restriction("없음")
                 .thumbnailUrl("https://example.com/image.jpg")

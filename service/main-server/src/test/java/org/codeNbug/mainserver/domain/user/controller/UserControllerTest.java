@@ -5,16 +5,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
+import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
 import org.codenbug.common.util.CookieUtil;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.Cookie;
+import org.codenbug.common.util.JwtConfig;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -48,15 +52,24 @@ class UserControllerTest {
 	@Autowired
 	private CookieUtil cookieUtil;
 
+	@Autowired
+	private JwtConfig jwtConfig;
+
+	@Autowired
+	private RedisTemplate<String, String> redisTemplate;
+
 	private String testToken;
 	private User testUser;
+	private String testEmail = "test@example.com";
+	private String testPassword = "Test1234!";
+	private TokenService.TokenInfo tokenInfo;
 
 	@BeforeEach
 	void setUp() {
 		// 테스트용 사용자 생성
 		testUser = User.builder()
-			.email("test@example.com")
-			.password(passwordEncoder.encode("Test1234!"))
+			.email(testEmail)
+			.password(passwordEncoder.encode(testPassword))
 			.name("테스트")
 			.age(25)
 			.sex("남성")
@@ -66,9 +79,23 @@ class UserControllerTest {
 			.build();
 		userRepository.save(testUser);
 
-		// 테스트용 토큰 생성
-		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
+		// Redis 블랙리스트 정리
+		clearBlacklist();
+
+		// 테스트용 토큰 생성 - 각 테스트에서 필요할 때 생성하도록 변경
+		tokenInfo = tokenService.generateTokens(testUser.getEmail());
 		testToken = tokenInfo.getAccessToken();
+	}
+
+	@AfterEach
+	void tearDown() {
+		// 토큰 정보 정리
+		if (tokenInfo != null && tokenInfo.getAccessToken() != null) {
+			tokenService.deleteRefreshToken(testUser.getEmail());
+		}
+		
+		// 테스트 사용자 삭제 - @Transactional로 롤백되지만 추가 보장
+		userRepository.deleteAll();
 	}
 
 	@Test
@@ -105,7 +132,7 @@ class UserControllerTest {
 	@DisplayName("로그인 성공 테스트")
 	void login_success() throws Exception {
 		// given
-		LoginRequest loginRequest = LoginRequest.builder().email("test@example.com").password("Test1234!").build();
+		LoginRequest loginRequest = LoginRequest.builder().email(testEmail).password(testPassword).build();
 
 		// when
 		ResultActions result = mockMvc.perform(post("/api/v1/users/login").contentType(MediaType.APPLICATION_JSON)
@@ -120,13 +147,16 @@ class UserControllerTest {
 	@Test
 	@DisplayName("로그아웃 성공 테스트")
 	void logout_success() throws Exception {
-		// given
-		TokenService.TokenInfo tokenInfo = generateTestTokens();
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			post("/api/v1/users/logout").header("Authorization", "Bearer " + tokenInfo.getAccessToken())
+			post("/api/v1/users/logout").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie));
 
 		// then
@@ -138,9 +168,15 @@ class UserControllerTest {
 	@Test
 	@DisplayName("로그아웃 실패 테스트 - 리프레시 토큰 없음")
 	void logout_fail_no_refresh_token() throws Exception {
-		// when
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		
+		// when - 리프레시 토큰을 의도적으로 전달하지 않음
 		ResultActions result = mockMvc.perform(
-			post("/api/v1/users/logout").header("Authorization", "Bearer " + testToken));
+			post("/api/v1/users/logout").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken()));
 
 		// then
 		result.andExpect(status().isUnauthorized())
@@ -151,13 +187,16 @@ class UserControllerTest {
 	@Test
 	@DisplayName("회원 탈퇴 성공 테스트")
 	void withdrawal_success() throws Exception {
-		// given
-		TokenService.TokenInfo tokenInfo = generateTestTokens();
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			delete("/api/v1/users/me").header("Authorization", "Bearer " + tokenInfo.getAccessToken())
+			delete("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie));
 
 		// then
@@ -189,7 +228,7 @@ class UserControllerTest {
 	void signup_duplicate_email() throws Exception {
 		// given
 		SignupRequest signupRequest = SignupRequest.builder()
-			.email("test@example.com")  // 이미 존재하는 이메일
+			.email(testEmail)  // 이미 존재하는 이메일
 			.password("Test1234!")
 			.name("중복사용자")
 			.age(25)
@@ -213,7 +252,7 @@ class UserControllerTest {
 	void login_wrong_password() throws Exception {
 		// given
 		LoginRequest loginRequest = LoginRequest.builder()
-			.email("test@example.com")
+			.email(testEmail)
 			.password("WrongPassword123!")
 			.build();
 
@@ -227,12 +266,135 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.msg").value("이메일 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요."));
 	}
 
-	/**
-	 * 테스트용 토큰 생성 헬퍼 메서드
-	 * @return TokenInfo 객체
-	 */
-	private TokenService.TokenInfo generateTestTokens() {
-		return tokenService.generateTokens(testUser.getEmail());
+	@Test
+	@DisplayName("프로필 조회 성공 테스트")
+	void getProfile_success() throws Exception {
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거 
+		clearBlacklist();
+		
+		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
+
+		// when
+		ResultActions result = mockMvc.perform(
+			get("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+				.cookie(refreshTokenCookie));
+
+		// then
+		result.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+			.andExpect(jsonPath("$.msg").value("프로필 조회 성공"))
+			.andExpect(jsonPath("$.data.email").value(testEmail))
+			.andExpect(jsonPath("$.data.name").value("테스트"))
+			.andExpect(jsonPath("$.data.age").value(25))
+			.andExpect(jsonPath("$.data.sex").value("남성"))
+			.andExpect(jsonPath("$.data.phoneNum").value("010-1234-5678"))
+			.andExpect(jsonPath("$.data.location").value("서울시 강남구"));
+	}
+
+	@Test
+	@DisplayName("인증되지 않은 사용자의 프로필 조회 시도 테스트")
+	void getProfile_unauthorized() throws Exception {
+		// given
+		String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" // header
+			+ ".eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ"  // payload
+			+ ".invalid_signature";  // 잘못된 signature
+
+		// when
+		ResultActions result = mockMvc.perform(
+			get("/api/v1/users/me").header("Authorization", "Bearer " + invalidToken));
+
+		// then
+		result.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
+			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
+	}
+
+	@Test
+	@DisplayName("프로필 수정 성공 테스트")
+	void updateProfile_success() throws Exception {
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
+		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
+			.name("수정된이름")
+			.phoneNum("010-9999-8888")
+			.location("서울시 송파구")
+			.build();
+
+		// when
+		ResultActions result = mockMvc.perform(
+			put("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+				.cookie(refreshTokenCookie)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateRequest)));
+
+		// then
+		result.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+			.andExpect(jsonPath("$.msg").value("프로필 수정 성공"))
+			.andExpect(jsonPath("$.data.name").value("수정된이름"))
+			.andExpect(jsonPath("$.data.phoneNum").value("010-9999-8888"))
+			.andExpect(jsonPath("$.data.location").value("서울시 송파구"));
+	}
+
+	@Test
+	@DisplayName("인증되지 않은 사용자의 프로필 수정 시도 테스트")
+	void updateProfile_unauthorized() throws Exception {
+		// given
+		String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" // header
+			+ ".eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ"  // payload
+			+ ".invalid_signature";  // 잘못된 signature
+
+		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
+			.name("수정된이름")
+			.phoneNum("010-9999-8888")
+			.location("서울시 송파구")
+			.build();
+
+		// when
+		ResultActions result = mockMvc.perform(
+			put("/api/v1/users/me").header("Authorization", "Bearer " + invalidToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(updateRequest)));
+
+		// then
+		result.andExpect(status().isUnauthorized())
+			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
+			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
+	}
+
+	@Test
+	@DisplayName("잘못된 형식의 프로필 수정 요청 테스트")
+	void updateProfile_badRequest() throws Exception {
+		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
+		clearBlacklist();
+		
+		// 새로운 토큰 생성
+		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
+		// 빈 이름으로 요청 (validation 실패 예상)
+		UserUpdateRequest invalidRequest = UserUpdateRequest.builder()
+			.name("")
+			.phoneNum("010-9999-8888")
+			.location("서울시 송파구")
+			.build();
+
+		// when
+		ResultActions result = mockMvc.perform(
+			put("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+				.cookie(refreshTokenCookie)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(invalidRequest)));
+
+		// then
+		result.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+			.andExpect(jsonPath("$.msg").value("데이터 형식이 잘못되었습니다."));
 	}
 
 	/**
@@ -247,5 +409,15 @@ class UserControllerTest {
 		refreshTokenCookie.setPath("/");
 		refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
 		return refreshTokenCookie;
+	}
+
+	/**
+	 * 테스트 사용자의 블랙리스트 토큰을 제거하는 헬퍼 메소드
+	 * 이전 테스트에서 블랙리스트에 추가된 토큰으로 인한 401 에러를 방지
+	 */
+	private void clearBlacklist() {
+		String testToken = jwtConfig.generateAccessToken(testUser.getEmail());
+		String blacklistKey = "blacklist:" + testToken;
+		redisTemplate.delete(blacklistKey);
 	}
 }

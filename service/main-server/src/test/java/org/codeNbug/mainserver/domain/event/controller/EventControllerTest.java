@@ -223,7 +223,7 @@ class EventControllerTest {
 
 		// CONCERT 타입 이벤트 생성
 		EventRegisterResponse event1 = TestUtil.registerEvent(mockMvc, "title1", "CONCERT", objectMapper);
-		// SPORTS 타입 이벤트 생성 
+		// SPORTS 타입 이벤트 생성
 		EventRegisterResponse event2 = TestUtil.registerEvent(mockMvc, "title2", "SPORTS", objectMapper);
 		// MOVIE 타입 이벤트 생성
 		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "MOVIE", objectMapper);
