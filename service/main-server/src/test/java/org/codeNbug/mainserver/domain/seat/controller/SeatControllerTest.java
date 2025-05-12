@@ -12,6 +12,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -145,7 +147,7 @@ class SeatControllerTest {
 			.build();
 
 		testEvent = new Event(
-			1L,
+			EventCategoryEnum.CONCERT,
 			info,
 			LocalDateTime.now().plusDays(1),
 			LocalDateTime.now().plusDays(2),
@@ -163,13 +165,32 @@ class SeatControllerTest {
 		String layoutJson = """
 			{
 			  "layout": [
-				["A1", "A2"],
+			    ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10"],
+			    ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10"]
 			  ],
 			  "seat": {
-			  	"A1": { "grade": "VIP" }, 
-			  	"A2": { "grade": "R" }
-			  	}
-			 }
+			    "A1": { "grade": "VIP" },
+			    "A2": { "grade": "VIP" },
+			    "A3": { "grade": "VIP" },
+			    "A4": { "grade": "VIP" },
+			    "A5": { "grade": "VIP" },
+			    "A6": { "grade": "VIP" },
+			    "A7": { "grade": "VIP" },
+			    "A8": { "grade": "VIP" },
+			    "A9": { "grade": "VIP" },
+			    "A10": { "grade": "VIP" },
+			    "B1": { "grade": "R" },
+			    "B2": { "grade": "R" },
+			    "B3": { "grade": "R" },
+			    "B4": { "grade": "R" },
+			    "B5": { "grade": "R" },
+			    "B6": { "grade": "R" },
+			    "B7": { "grade": "R" },
+			    "B8": { "grade": "R" },
+			    "B9": { "grade": "R" },
+			    "B10": { "grade": "R" }
+			  }
+			}
 			""";
 
 		SeatLayout seatLayout = SeatLayout.builder()
@@ -182,8 +203,9 @@ class SeatControllerTest {
 		eventRepository.save(testEvent);
 
 		// 테스트용 좌석 등급 생성
-		JSONArray rows = new JSONObject(layoutJson).getJSONArray("layout");
-		JSONObject seatDetails = new JSONObject(layoutJson).getJSONObject("seat");
+		JSONObject fullJson = new JSONObject(layoutJson);
+		JSONArray rows = fullJson.getJSONArray("layout");
+		JSONObject seatDetails = fullJson.getJSONObject("seat");
 
 		Map<SeatGradeEnum, SeatGrade> gradeMap = new HashMap<>();
 
@@ -252,6 +274,7 @@ class SeatControllerTest {
 	}
 
 	@Test
+	@Order(1)
 	@DisplayName("좌석 조회 성공")
 	void testGetSeatLayout() throws Exception {
 		mockMvc.perform(get("/api/v1/event/{eventId}/seats", testEvent.getEventId())
@@ -262,10 +285,11 @@ class SeatControllerTest {
 			.andExpect(jsonPath("$.data.seats[0].location").value("A1"))
 			.andExpect(jsonPath("$.data.seats[0].grade").value("VIP"))
 			.andExpect(jsonPath("$.data.seats[1].location").value("A2"))
-			.andExpect(jsonPath("$.data.seats[1].grade").value("R"));
+			.andExpect(jsonPath("$.data.seats[1].grade").value("VIP"));
 	}
 
 	@Test
+	@Order(2)
 	@DisplayName("지정석 좌석 선택 - Redis 락 획득 확인")
 	void selectSeat_withRedisLock() throws Exception {
 		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(testEvent.getEventId());
@@ -291,6 +315,7 @@ class SeatControllerTest {
 	}
 
 	@Test
+	@Order(3)
 	@DisplayName("좌석 취소 성공 - Redis 락 해제 확인")
 	void testCancelSeat() throws Exception {
 		SeatCancelRequest request = new SeatCancelRequest();
