@@ -175,7 +175,7 @@ public class EventRegisterService {
 		return EventRegisterResponse.builder()
 				.eventId(event.getEventId())
 				.title(info.getTitle())
-				.type(category.name())
+				.category(category)
 				.description(info.getDescription())
 				.restriction(info.getRestrictions())
 				.thumbnailUrl(info.getThumbnailUrl())

@@ -122,7 +122,7 @@ public class EventDomainService {
 		return EventRegisterResponse.builder()
 			.eventId(event.getEventId())
 			.title(event.getInformation().getTitle())
-			.type(request.getCategory().getDisplayName())
+			.category(event.getCategory())
 			.description(request.getDescription())
 			.restriction(request.getRestriction())
 			.thumbnailUrl(event.getInformation().getThumbnailUrl())

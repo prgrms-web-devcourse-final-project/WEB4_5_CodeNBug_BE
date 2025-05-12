@@ -3,6 +3,7 @@ package org.codeNbug.mainserver.domain.event.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
@@ -19,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class EventRegisterResponse {
     private Long eventId;
     private String title;
-    private String type;
+    private EventCategoryEnum category;
     private String description;
     private String restriction;
     private String thumbnailUrl;
