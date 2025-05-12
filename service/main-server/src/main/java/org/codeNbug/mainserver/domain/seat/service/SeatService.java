@@ -175,7 +175,8 @@ public class SeatService {
 			String lockKey = SEAT_LOCK_KEY_PREFIX + userId + ":" + eventId + ":" + seatId;
 
 			String lockValue = redisLockService.getLockValue(lockKey);
-			if (lockValue == null || !redisLockService.unlock(lockKey, lockValue)) {
+
+			if (!redisLockService.unlock(lockKey, lockValue)) {
 				throw new IllegalStateException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
 			}
 
