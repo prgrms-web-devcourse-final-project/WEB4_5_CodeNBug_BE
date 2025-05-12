@@ -8,7 +8,7 @@ cookie:
 spring:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create
   datasource:
     hikari:
       max-lifetime: 30000
