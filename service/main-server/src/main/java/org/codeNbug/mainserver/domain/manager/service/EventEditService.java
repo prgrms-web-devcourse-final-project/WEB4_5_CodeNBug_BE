@@ -1,7 +1,10 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
@@ -10,6 +13,11 @@ import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.manager.service.EventDomainService;
+import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
+import org.codeNbug.mainserver.domain.notification.service.NotificationService;
+import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
+import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
