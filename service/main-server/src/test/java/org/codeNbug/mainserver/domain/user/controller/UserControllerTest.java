@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -56,15 +57,14 @@ class UserControllerTest {
 	@Container
 	static GenericContainer<?> redis =
 		new GenericContainer<>("redis:alpine")
-			.withExposedPorts(6379);
+			.withExposedPorts(6379)
+			.waitingFor(Wait.forListeningPort());
+
 
 	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
 	@DynamicPropertySource
 	static void overrideProps(DynamicPropertyRegistry registry) {
-		if (!mysql.isRunning())
-			mysql.start();
-		if (!redis.isRunning())
-			redis.start();
+
 		registry.add("spring.datasource.url", mysql::getJdbcUrl);
 		registry.add("spring.datasource.username", mysql::getUsername);
 		registry.add("spring.datasource.password", mysql::getPassword);
