@@ -15,7 +15,6 @@ import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
 import org.codeNbug.mainserver.domain.manager.entity.ManagerEvent;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
-import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
@@ -39,7 +38,6 @@ public class EventRegisterService {
 	private final SeatLayoutRepository seatLayoutRepository;
 	private final ManagerEventRepository managerEventRepository;
 	private final UserRepository userRepository;
-	private final EventTypeRepository eventTypeRepository;
 	private final SeatGradeRepository seatGradeRepository;
 
 	/**

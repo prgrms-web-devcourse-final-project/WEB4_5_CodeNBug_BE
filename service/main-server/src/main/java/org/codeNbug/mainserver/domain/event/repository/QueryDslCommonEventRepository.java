@@ -30,7 +30,7 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 				Expressions.allOf(
 					filter.getCostRangeQuery()
 						.and(filter.getLocationListIncludeQuery())
-						.and(filter.getEventTypeIncludeQuery())
+						.and(filter.getEventCategoryIncludeQuery())
 						.and(filter.getEventStatusIncludeQuery())
 						.and(filter.getBetweenDateQuery())
 				)
@@ -61,7 +61,7 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 			.where(
 				filter.getCostRangeQuery()
 					.and(filter.getLocationListIncludeQuery())
-					.and(filter.getEventTypeIncludeQuery())
+					.and(filter.getEventCategoryIncludeQuery())
 					.and(filter.getEventStatusIncludeQuery())
 					.and(filter.getBetweenDateQuery())
 					.and(QEvent.event.information.title.like("%" + keyword + "%"))

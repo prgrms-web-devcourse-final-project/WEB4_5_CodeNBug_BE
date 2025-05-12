@@ -9,7 +9,6 @@ import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
-import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
@@ -33,9 +32,6 @@ public class EventEditService {
 	private final SeatGradeRepository seatGradeRepository;
 	private final SeatRepository seatRepository;
 	private final EventDomainService eventDomainService;
-	private final EventTypeRepository eventTypeRepository;
-	private final ManagerEventRepository managerEventRepository;
-	private final UserRepository userRepository;
 
 	/**
 	 * 이벤트 수정 메인 메서드입니다.

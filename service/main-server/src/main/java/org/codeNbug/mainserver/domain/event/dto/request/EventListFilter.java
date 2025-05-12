@@ -3,12 +3,9 @@ package org.codeNbug.mainserver.domain.event.dto.request;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.codeNbug.mainserver.domain.event.entity.CostRange;
-import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
-import org.codeNbug.mainserver.domain.event.entity.Location;
-import org.codeNbug.mainserver.domain.event.entity.QEvent;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.codeNbug.mainserver.domain.event.entity.*;
+
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 
@@ -18,7 +15,7 @@ import lombok.Getter;
 public class EventListFilter {
 	private CostRange costRange;
 	private List<Location> locationList;
-	private List<Long> eventTypeList;
+	private List<EventCategoryEnum> eventCategoryList;
 	private List<EventStatusEnum> eventStatusList;
 	private LocalDateTime startDate;
 	private LocalDateTime endDate;
@@ -26,7 +23,7 @@ public class EventListFilter {
 	private EventListFilter(Builder builder) {
 		this.costRange = builder.costRange;
 		this.locationList = builder.locationList;
-		this.eventTypeList = builder.eventTypeList;
+		this.eventCategoryList = builder.eventCategoryList;
 		this.eventStatusList = builder.eventStatusList;
 		this.startDate = builder.startDate;
 		this.endDate = builder.endDate;
@@ -35,14 +32,13 @@ public class EventListFilter {
 	protected EventListFilter() {
 	}
 
-	@JsonIgnore
 	public boolean canFiltered() {
 		return costRange != null
-			|| (locationList != null && !locationList.isEmpty())
-			|| (eventTypeList != null && !eventTypeList.isEmpty())
-			|| (eventStatusList != null && !eventStatusList.isEmpty())
-			|| startDate != null
-			|| endDate != null;
+				|| (locationList != null && !locationList.isEmpty())
+				|| (eventCategoryList != null && !eventCategoryList.isEmpty()
+				|| (eventStatusList != null && !eventStatusList.isEmpty())
+				|| startDate != null
+				|| endDate != null);
 	}
 
 	@JsonIgnore
@@ -72,16 +68,14 @@ public class EventListFilter {
 		return expression;
 	}
 
-	@JsonIgnore
-	public BooleanExpression getEventTypeIncludeQuery() {
-
-
-		if (eventTypeList == null || eventTypeList.isEmpty()) {
+    @JsonIgnore
+	public BooleanExpression getEventCategoryIncludeQuery() {
+		if (eventCategoryList == null || eventCategoryList.isEmpty()) {
 			return Expressions.TRUE;
 		}
 		BooleanExpression expression = Expressions.FALSE;
-		for (Long eventTypeId : eventTypeList) {
-			expression = expression.or(QEvent.event.typeId.eq(eventTypeId));
+		for (EventCategoryEnum category : eventCategoryList) {
+			expression = expression.or(QEvent.event.category.eq(category));
 		}
 		return expression;
 	}
@@ -120,7 +114,7 @@ public class EventListFilter {
 	public static class Builder {
 		private CostRange costRange;
 		private List<Location> locationList;
-		private List<Long> eventTypeList;
+		private List<EventCategoryEnum> eventCategoryList;
 		private List<EventStatusEnum> eventStatusList;
 		private LocalDateTime startDate;
 		private LocalDateTime endDate;
@@ -138,8 +132,8 @@ public class EventListFilter {
 		}
 
 		@JsonIgnore
-		public Builder eventTypeList(List<Long> eventTypes) {
-			this.eventTypeList = eventTypes;
+		public Builder eventCategoryList(List<EventCategoryEnum> eventCategoryList) {
+			this.eventCategoryList = eventCategoryList;
 			return this;
 		}
 
