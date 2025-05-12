@@ -1,10 +1,8 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
@@ -12,8 +10,6 @@ import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
-import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
-import org.codeNbug.mainserver.domain.manager.service.EventDomainService;
 import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
@@ -25,12 +21,13 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
-import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventEditService {
@@ -40,6 +37,8 @@ public class EventEditService {
 	private final SeatGradeRepository seatGradeRepository;
 	private final SeatRepository seatRepository;
 	private final EventDomainService eventDomainService;
+	private final PurchaseRepository purchaseRepository;
+	private final NotificationService notificationService;
 
 	/**
 	 * 이벤트 수정 메인 메서드입니다.
@@ -49,11 +48,73 @@ public class EventEditService {
 	public EventRegisterResponse editEvent(Long eventId, EventRegisterRequest request, Long managerId) {
 		Event event = eventDomainService.getEventOrThrow(eventId);
 		eventDomainService.validateManagerAuthority(managerId, event);
+
+		// 원래 이벤트 정보를 저장해 변경 여부 확인용으로 사용
+		String originalTitle = event.getInformation().getTitle();
+		String originalLocation = event.getInformation().getLocation();
+		LocalDateTime originalStartDate = event.getInformation().getEventStart();
+		LocalDateTime originalEndDate = event.getInformation().getEventEnd();
+
 		updateEventCategoryIfChanged(event, request.getCategory());
 		updateEventInformation(event, request);
 		updateBookingPeriod(event, request);
 		updateSeatLayout(eventId, request);
 		updateSeatsAndGrades(event, request);
+
+		// 이벤트 수정 알림 처리 추가
+		try {
+			// 해당 이벤트 구매자들 조회
+			List<Purchase> purchases = purchaseRepository.findAllByEventId(eventId);
+
+			// 중요 정보가 변경되었는지 확인
+			boolean titleChanged = !originalTitle.equals(request.getTitle());
+			boolean locationChanged = !originalLocation.equals(request.getLocation());
+			boolean startTimeChanged = !originalStartDate.equals(request.getStartDate());
+			boolean endTimeChanged = !originalEndDate.equals(request.getEndDate());
+
+			// 중요 정보가 변경된 경우만 알림 전송
+			if (titleChanged || locationChanged || startTimeChanged || endTimeChanged) {
+				StringBuilder changes = new StringBuilder();
+				if (titleChanged) {
+					changes.append("공연명 변경 ");
+				}
+				if (locationChanged) {
+					changes.append("장소 변경 ");
+				}
+				if (startTimeChanged) {
+					changes.append("공연 시작 시간 변경 ");
+				}
+				if (endTimeChanged) {
+					changes.append("공연 종료 시간 변경 ");
+				}
+
+				String notificationContent = String.format(
+						"[%s] 행사 정보가 변경되었습니다. (%s)",
+						request.getTitle(),
+						changes.toString().trim());
+
+				for (Purchase purchase : purchases) {
+					try {
+						Long userId = purchase.getUser().getUserId();
+						notificationService.createNotification(
+								userId,
+								NotificationEnum.EVENT,
+								notificationContent
+						);
+					} catch (Exception e) {
+						log.error("행사 정보 변경 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+								purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
+						// 개별 사용자 알림 실패는 이벤트 수정에 영향을 주지 않도록 예외를 무시함
+					}
+				}
+
+				log.info("행사 정보 변경 알림 전송 완료. 이벤트ID: {}, 변경사항: {}, 대상자 수: {}",
+						eventId, changes.toString().trim(), purchases.size());
+			}
+		} catch (Exception e) {
+			log.error("행사 정보 변경 알림 처리 실패. 이벤트ID: {}, 오류: {}", eventId, e.getMessage(), e);
+			// 알림 전체 실패는 이벤트 수정에 영향을 주지 않도록 예외를 무시함
+		}
 
 		return eventDomainService.buildEventRegisterResponse(request, event);
 	}
