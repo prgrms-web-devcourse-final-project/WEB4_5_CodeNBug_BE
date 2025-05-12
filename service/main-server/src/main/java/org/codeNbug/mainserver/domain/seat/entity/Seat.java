@@ -11,7 +11,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,7 +21,6 @@ import lombok.Setter;
  */
 @Entity
 @NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Builder
 public class Seat {
@@ -54,6 +52,18 @@ public class Seat {
 	@ManyToOne
 	@JoinColumn(name = "event_id", nullable = false)
 	private Event event;
+
+	public Seat(Long id, String location, boolean available, SeatGrade grade, SeatLayout layout, Ticket ticket,
+		Event event) {
+		this.id = id;
+		this.location = location;
+		this.available = available;
+		this.grade = grade;
+		this.layout = layout;
+		this.ticket = ticket;
+		this.event = event;
+		layout.getSeats().add(this);
+	}
 
 	public void reserve() {
 		this.available = false;

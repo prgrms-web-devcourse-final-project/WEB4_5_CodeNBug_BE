@@ -7,22 +7,24 @@ import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 
-import lombok.Value;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * DTO for {@link org.codeNbug.mainserver.domain.event.entity.Event}
  */
-@Value
+@NoArgsConstructor
+@Getter
 public class EventListResponse implements Serializable {
-	Long eventId;
-	Long typeId;
-	EventInformationDto information;
-	LocalDateTime bookingStart;
-	LocalDateTime bookingEnd;
-	Integer viewCount;
-	EventStatusEnum status;
-	Boolean seatSelectable;
-	Boolean isDeleted;
+	private Long eventId;
+	private Long typeId;
+	private EventInformationDto information;
+	private LocalDateTime bookingStart;
+	private LocalDateTime bookingEnd;
+	private Integer viewCount;
+	private EventStatusEnum status;
+	private Boolean seatSelectable;
+	private Boolean isDeleted;
 
 	public EventListResponse(Event event) {
 		this.eventId = event.getEventId();
@@ -39,14 +41,15 @@ public class EventListResponse implements Serializable {
 	/**
 	 * DTO for {@link org.codeNbug.mainserver.domain.event.entity.EventInformation}
 	 */
-	@Value
+	@NoArgsConstructor
+	@Getter
 	public static class EventInformationDto implements Serializable {
-		String title;
-		String thumbnailUrl;
-		Integer ageLimit;
-		String hallName;
-		LocalDateTime eventStart;
-		LocalDateTime eventEnd;
+		private String title;
+		private String thumbnailUrl;
+		private Integer ageLimit;
+		private String hallName;
+		private LocalDateTime eventStart;
+		private LocalDateTime eventEnd;
 
 		public EventInformationDto(EventInformation information) {
 			this.title = information.getTitle();

@@ -1,15 +1,15 @@
 package org.codeNbug.mainserver.domain.event.entity;
 
-import java.util.List;
-
 import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface CommonEventRepository {
-	List<Event> findAllByFilter(EventListFilter filter);
+	Page<Event> findAllByFilter(EventListFilter filter, Pageable pageable);
 
-	List<Event> findAllByKeyword(String keyword);
+	Page<Event> findAllByKeyword(String keyword, Pageable pageable);
 
-	List<Event> findAllByFilterAndKeyword(String keyword, EventListFilter filter);
+	Page<Event> findAllByFilterAndKeyword(String keyword, EventListFilter filter, Pageable pageable);
 
 	Integer countAvailableSeat(Long id);
 }
