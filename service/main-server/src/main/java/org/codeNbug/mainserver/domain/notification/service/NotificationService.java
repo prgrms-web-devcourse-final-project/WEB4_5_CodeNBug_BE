@@ -16,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 /**
  * 알림 관련 비즈니스 로직을 처리하는 서비스
  */
@@ -182,5 +184,60 @@ public class NotificationService {
         ));
 
         return true;
+    }
+
+    /**
+     * 단일 알림을 삭제합니다
+     *
+     * @param notificationId 삭제할 알림 ID
+     * @param userId 현재 인증된 사용자 ID
+     * @throws BadRequestException 알림이 존재하지 않거나 권한이 없는 경우
+     */
+    @Transactional
+    public void deleteNotification(Long notificationId, Long userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new BadRequestException("해당 알림을 찾을 수 없습니다."));
+
+        // 권한 확인 (본인의 알림인지)
+        if (!notification.getUserId().equals(userId)) {
+            throw new BadRequestException("해당 알림에 접근할 권한이 없습니다.");
+        }
+
+        notificationRepository.delete(notification);
+        log.debug("알림 삭제 완료: notificationId={}, userId={}", notificationId, userId);
+    }
+
+    /**
+     * 여러 알림을 삭제합니다(멱등성 보장)
+     *
+     * @param notificationIds 삭제할 알림 ID 목록
+     * @param userId 현재 인증된 사용자 ID
+     */
+    @Transactional
+    public void deleteNotifications(List<Long> notificationIds, Long userId) {
+        // 사용자의 알림 중 요청된 ID 목록에 해당하는 알림만 조회
+        List<Notification> notifications = notificationRepository.findAllByUserIdAndIdIn(userId, notificationIds);
+
+        // 찾은 알림 개수와 요청 개수의 차이 로깅
+        if (notifications.size() < notificationIds.size()) {
+            log.info("요청된 알림 중 일부가 이미 삭제됨: 요청={}, 실제 삭제={}",
+                    notificationIds.size(), notifications.size());
+        }
+
+        // 존재하는 알림만 삭제
+        notificationRepository.deleteAll(notifications);
+        log.debug("다건 알림 삭제 완료: count={}, userId={}", notifications.size(), userId);
+    }
+
+    /**
+     * 사용자의 모든 알림을 삭제합니다
+     *
+     * @param userId 현재 인증된, 사용자 ID
+     */
+    @Transactional
+    public void deleteAllNotifications(Long userId) {
+        List<Notification> notifications = notificationRepository.findByUserIdOrderBySentAtDesc(userId);
+        notificationRepository.deleteAll(notifications);
+        log.debug("모든 알림 삭제 완료: count={}, userId={}", notifications.size(), userId);
     }
 }
