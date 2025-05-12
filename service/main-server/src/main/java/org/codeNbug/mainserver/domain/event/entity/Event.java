@@ -46,6 +46,7 @@ public class Event {
 //	@Setter
 //	private Long typeId;
 
+	@Setter
 	@Enumerated(EnumType.STRING)
 	private EventCategoryEnum category;
 

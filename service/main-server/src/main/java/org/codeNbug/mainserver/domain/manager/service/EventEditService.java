@@ -5,8 +5,8 @@ import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
-import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
@@ -18,7 +18,6 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
-import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +45,7 @@ public class EventEditService {
 	public EventRegisterResponse editEvent(Long eventId, EventRegisterRequest request, Long managerId) {
 		Event event = eventDomainService.getEventOrThrow(eventId);
 		eventDomainService.validateManagerAuthority(managerId, event);
-		updateEventTypeIfChanged(event, request.getType());
+		updateEventCategoryIfChanged(event, request.getCategory());
 		updateEventInformation(event, request);
 		updateBookingPeriod(event, request);
 		updateSeatLayout(eventId, request);
@@ -58,16 +57,12 @@ public class EventEditService {
 	/**
 	 * 요청한 타입이 기존과 다르면 EventType을 변경하는 메서드입니다.
 	 */
-	private void updateEventTypeIfChanged(Event event, String newTypeName) {
-		String currentTypeName = eventTypeRepository.findById(event.getTypeId())
-			.orElseThrow(() -> new BadRequestException("이벤트 타입을 찾을 수 없습니다."))
-			.getName();
-
-		if (!currentTypeName.equals(newTypeName)) {
-			EventType eventType = eventDomainService.findOrCreateEventType(newTypeName);
-			event.setTypeId(eventType.getEventTypeId());
+	private void updateEventCategoryIfChanged(Event event, EventCategoryEnum newCategory) {
+		if (!event.getCategory().equals(newCategory)) {
+			event.setCategory(newCategory);
 		}
 	}
+
 
 	/**
 	 * 이벤트 정보를 갱신하는 메서드입니다.
