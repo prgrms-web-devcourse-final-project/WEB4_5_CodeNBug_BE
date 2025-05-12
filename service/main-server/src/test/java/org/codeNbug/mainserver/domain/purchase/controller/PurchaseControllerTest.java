@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.domain.purchase.controller;
 
 import static org.assertj.core.api.AssertionsForClassTypes.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,6 +24,7 @@ import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
+import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseCancelRepository;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
@@ -44,6 +47,7 @@ import org.codenbug.user.redis.service.TokenService;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -81,6 +85,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Transactional
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
@@ -349,6 +354,19 @@ class PurchaseControllerTest {
 		);
 	}
 
+	@AfterAll
+	void tearDown() {
+		seatRepository.deleteAll();
+		seatGradeRepository.deleteAll();
+		ticketRepository.deleteAll();
+		seatLayoutRepository.deleteAll();
+		purchaseRepository.deleteAll();
+		eventRepository.deleteAll();
+		userRepository.deleteAll();
+
+		Objects.requireNonNull(stringRedisTemplate.getConnectionFactory()).getConnection().flushAll();
+	}
+
 	@Test
 	@Order(1)
 	@Commit
@@ -439,9 +457,36 @@ class PurchaseControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.code").value("200"))
 			.andExpect(jsonPath("$.data.orderId").value("orderId"))
-			.andExpect(jsonPath("$.data.paymentKey").value("paymentKey"))
-			.andExpect(jsonPath("$.data.status").value("DONE"));
+			.andExpect(jsonPath("$.data.paymentKey").value("paymentKey"));
 
 		mockRestServiceServer.verify();
+	}
+
+	@Test
+	@Order(4)
+	@Commit
+	@DisplayName("Toss Webhook 수신 - 결제 완료 상태 처리")
+	void testTossWebhookDone() throws Exception {
+		Purchase purchase = purchaseRepository.findById(purchaseId)
+			.orElseThrow(() -> new IllegalStateException("테스트용 purchase 없음"));
+
+		assertEquals(PaymentStatusEnum.IN_PROGRESS, purchase.getPaymentStatus());
+
+		String payload = """
+			{
+			  "data": {
+			    "paymentKey": "paymentKey",
+			    "status": "DONE"
+			  }
+			}
+			""";
+
+		mockMvc.perform(post("/webhook/toss/status")
+				.content(payload)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk());
+
+		Purchase updated = purchaseRepository.findById(purchaseId).orElseThrow();
+		assertEquals(PaymentStatusEnum.DONE, updated.getPaymentStatus());
 	}
 }
