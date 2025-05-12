@@ -28,7 +28,6 @@ on:
       - "service/**"
 jobs:
   test:
-    
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +41,7 @@ jobs:
 
   makeTagAndReleaseServer:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     outputs:
       tag_name: ${{ steps.create_tag.outputs.new_tag }}
     steps:
@@ -68,7 +68,8 @@ jobs:
       contents: read
       packages: write
     name: 도커 이미지 빌드와 푸시
-    needs: makeTagAndReleaseServer
+    needs: [ test, makeTagAndReleaseServer ]
+    if: github.event_name == 'push'
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
       image_name: ${{ steps.export_image.outputs.image_name }}
@@ -157,7 +158,8 @@ jobs:
 
   buildImageAndPushQueueServer:
     name: 큐 서버 도커 이미지 빌드와 푸시
-    needs: makeTagAndReleaseServer
+    needs: [ test, makeTagAndReleaseServer ]
+    if: github.event_name == 'push'
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
       image_name: ${{ steps.export_image.outputs.image_name }}
@@ -247,7 +249,8 @@ jobs:
 
   buildImageAndPushDispatchServer:
     name: 디스패치 서버 도커 이미지 빌드와 푸시
-    needs: makeTagAndReleaseServer
+    needs: [ test, makeTagAndReleaseServer ]
+    if: github.event_name == 'push'
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
       image_name: ${{ steps.export_image.outputs.image_name }}
