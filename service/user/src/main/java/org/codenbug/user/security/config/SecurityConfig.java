@@ -113,6 +113,7 @@ public class SecurityConfig {
 				// 인증 없이 접근 가능한 경로 설정
 				.requestMatchers("/api/v1/users/signup", "/api/v1/users/login").permitAll()
 				.requestMatchers("/api/v1/auth/refresh").permitAll()
+				.requestMatchers("/api/v1/sns/additional-info").permitAll()
 				.requestMatchers("/auth/**").permitAll()
 				.requestMatchers("/api/auth/**").permitAll()
 				.requestMatchers("/api/public/**").permitAll()
