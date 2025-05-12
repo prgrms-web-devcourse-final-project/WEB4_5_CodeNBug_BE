@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.Location;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
@@ -64,7 +65,7 @@ public class TestUtil {
 
 		EventRegisterRequest request = EventRegisterRequest.builder()
 			.title(title)
-			.type("CONCERT")
+			.category(EventCategoryEnum.CONCERT)
 			.description("설명")
 			.restriction("없음")
 			.thumbnailUrl("https://example.com/image.jpg")
@@ -106,7 +107,7 @@ public class TestUtil {
 
 		EventRegisterRequest request = EventRegisterRequest.builder()
 			.title("title")
-			.type("CONCERT")
+			.category(EventCategoryEnum.CONCERT)
 			.description("설명")
 			.restriction("없음")
 			.thumbnailUrl("https://example.com/image.jpg")
@@ -137,7 +138,7 @@ public class TestUtil {
 		ObjectMapper objectMapper) throws Exception {
 		EventRegisterRequest request = EventRegisterRequest.builder()
 			.title("title")
-			.type("CONCERT")
+			.category(EventCategoryEnum.CONCERT)
 			.description("설명")
 			.restriction("없음")
 			.thumbnailUrl("https://example.com/image.jpg")
@@ -174,7 +175,7 @@ public class TestUtil {
 			.build();
 		EventRegisterRequest request = EventRegisterRequest.builder()
 			.title("title")
-			.type("CONCERT")
+			.category(EventCategoryEnum.CONCERT)
 			.description("설명")
 			.restriction("없음")
 			.thumbnailUrl("https://example.com/image.jpg")
@@ -216,7 +217,7 @@ public class TestUtil {
 
 		EventRegisterRequest request = EventRegisterRequest.builder()
 			.title(title)
-			.type(eventType)
+			.category(EventCategoryEnum.valueOf(eventType))
 			.description("설명")
 			.restriction("없음")
 			.thumbnailUrl("https://example.com/image.jpg")

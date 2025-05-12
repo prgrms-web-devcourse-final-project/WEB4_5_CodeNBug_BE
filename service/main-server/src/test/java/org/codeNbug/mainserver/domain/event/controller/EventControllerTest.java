@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +16,7 @@ import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.event.entity.CostRange;
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.event.entity.Location;
 import org.codeNbug.mainserver.domain.event.repository.JpaCommonEventRepository;
@@ -65,8 +67,7 @@ class EventControllerTest {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
-	@Autowired
-	private EventTypeRepository eventTypeRepository;
+
 	@Autowired
 	private RedisTemplate<String, Object> redisTemplate;
 
@@ -226,18 +227,17 @@ class EventControllerTest {
 		// SPORTS 타입 이벤트 생성
 		EventRegisterResponse event2 = TestUtil.registerEvent(mockMvc, "title2", "SPORTS", objectMapper);
 		// MOVIE 타입 이벤트 생성
-		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "MOVIE", objectMapper);
+		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "ETC", objectMapper);
 
-		List<Long> eventTypeIdToFilterList = eventTypeRepository.findAll()
+		List<EventCategoryEnum> eventTypeIdToFilterList = Arrays.asList(EventCategoryEnum.values())
 			.stream()
-			.filter(type -> type.getName().equals("CONCERT")
-				|| type.getName().equals("SPORTS")
+			.filter(type -> type.name().equals("CONCERT")
+				|| type.name().equals("SPORTS")
 			)
-			.map(type -> type.getEventTypeId())
 			.toList();
 
 		// CONCERT, SPORTS 타입 조회하는 필터
-		EventListFilter filter = new EventListFilter.Builder().eventTypeList(
+		EventListFilter filter = new EventListFilter.Builder().eventCategoryList(
 			eventTypeIdToFilterList
 		).build();
 
@@ -389,7 +389,7 @@ class EventControllerTest {
 
 		EventRegisterResponse event1 = TestUtil.registerEvent(mockMvc, "title1", "CONCERT", objectMapper);
 		EventRegisterResponse event2 = TestUtil.registerEvent(mockMvc, "title2", "SPORTS", objectMapper);
-		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "MOVIE", objectMapper);
+		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "ETC", objectMapper);
 
 		// when
 		ResultActions result = mockMvc.perform(get("/api/v1/events/categories")
@@ -400,14 +400,14 @@ class EventControllerTest {
 			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
 			.andExpect(jsonPath("$.msg").value("Event categories retrieved successfully"))
 			.andExpect(jsonPath("$.data").isArray())
-			.andExpect(jsonPath("$.data.length()").value(3))
+			.andExpect(jsonPath("$.data.length()").value(EventCategoryEnum.values().length))
 			.andReturn().getResponse().getContentAsString();
 
-		List<EventType> contents = objectMapper.convertValue(
+		List<EventCategoryEnum> contents = objectMapper.convertValue(
 			objectMapper.readTree(eventCategoriesRetrievedSuccessfully).get("data"),
-			new TypeReference<List<EventType>>() {
+			new TypeReference<List<EventCategoryEnum>>() {
 			});
-		Assertions.assertThat(contents).extracting("name").contains("CONCERT", "SPORTS", "MOVIE");
+		Assertions.assertThat(contents).contains(EventCategoryEnum.CONCERT, EventCategoryEnum.SPORTS);
 
 	}
 
@@ -477,7 +477,7 @@ class EventControllerTest {
 			.andExpect(jsonPath("$.data").exists())
 			.andExpect(jsonPath("$.data.eventId").value(event1.getEventId()))
 			.andExpect(jsonPath("$.data.information.title").value(event1.getTitle()))
-			.andExpect(jsonPath("$.data.typeId").value(event.getTypeId()));
+			.andExpect(jsonPath("$.data.category").value(event.getCategory().name()));
 	}
 
 	@Test

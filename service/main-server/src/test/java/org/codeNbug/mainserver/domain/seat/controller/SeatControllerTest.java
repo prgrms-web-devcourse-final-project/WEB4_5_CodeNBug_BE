@@ -8,10 +8,10 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
@@ -25,6 +25,7 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
+import org.codeNbug.mainserver.util.TestUtil;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
@@ -42,6 +43,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -104,6 +106,8 @@ class SeatControllerTest {
 	private static User testUser;
 	private static Event testEvent;
 	private static Seat availableSeat;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	@BeforeAll
 	public void setUpUser() {
@@ -147,7 +151,7 @@ class SeatControllerTest {
 			.build();
 
 		testEvent = new Event(
-			1L,
+			EventCategoryEnum.CONCERT,
 			info,
 			LocalDateTime.now().plusDays(1),
 			LocalDateTime.now().plusDays(2),
@@ -165,7 +169,7 @@ class SeatControllerTest {
 		String layoutJson = """
 			{
 			  "layout": [
-				["A1", "A2"],
+				["A1", "A2"]
 			  ],
 			  "seat": {
 			  	"A1": { "grade": "VIP" }, 
@@ -244,13 +248,7 @@ class SeatControllerTest {
 
 	@AfterAll
 	void tearDown() {
-		seatRepository.deleteAll();
-		seatGradeRepository.deleteAll();
-		seatLayoutRepository.deleteAll();
-		eventRepository.deleteAll();
-		userRepository.deleteAll();
-
-		Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().flushAll();
+		TestUtil.truncateAllTables(jdbcTemplate);
 	}
 
 	@Test

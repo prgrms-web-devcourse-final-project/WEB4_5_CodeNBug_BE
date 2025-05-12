@@ -19,6 +19,7 @@ dependencies {
     implementation 'com.amazonaws:aws-java-sdk-s3:1.12.653'
 
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:mysql:1.19.0")
 
 
     implementation project(':user')
