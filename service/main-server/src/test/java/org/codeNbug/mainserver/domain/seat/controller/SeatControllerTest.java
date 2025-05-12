@@ -6,14 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.Objects;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
-import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
-import org.codeNbug.mainserver.domain.event.entity.EventInformation;
-import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
@@ -40,11 +34,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -94,6 +83,8 @@ class SeatControllerTest {
 		registry.add("spring.datasource.password", mysql::getPassword);
 		registry.add("spring.redis.host", () -> redis.getHost());
 		registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+		registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+
 	}
 	@Autowired
 	private MockMvc mockMvc;

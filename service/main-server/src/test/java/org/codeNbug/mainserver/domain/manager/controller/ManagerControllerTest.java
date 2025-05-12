@@ -81,6 +81,8 @@ class ManagerControllerTest {
         registry.add("spring.datasource.password", mysql::getPassword);
         registry.add("spring.redis.host", () -> redis.getHost());
         registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+
     }
 
     @Autowired
