@@ -1,17 +1,15 @@
-package org.codeNbug.mainserver.domain.event.service;
+package org.codeNbug.mainserver.domain.manager.service;
 
 import java.util.List;
 import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
-import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
-import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
-import org.codeNbug.mainserver.domain.manager.service.EventDomainService;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
@@ -19,7 +17,6 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
-import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +32,6 @@ public class EventEditService {
 	private final SeatGradeRepository seatGradeRepository;
 	private final SeatRepository seatRepository;
 	private final EventDomainService eventDomainService;
-	private final EventTypeRepository eventTypeRepository;
-	private final ManagerEventRepository managerEventRepository;
-	private final UserRepository userRepository;
 
 	/**
 	 * 이벤트 수정 메인 메서드입니다.
@@ -45,9 +39,9 @@ public class EventEditService {
 	 */
 	@Transactional
 	public EventRegisterResponse editEvent(Long eventId, EventRegisterRequest request, Long managerId) {
-		Event event = getEventOrThrow(eventId);
-		validateManagerAuthority(managerId, event);
-		updateEventTypeIfChanged(event, request.getType());
+		Event event = eventDomainService.getEventOrThrow(eventId);
+		eventDomainService.validateManagerAuthority(managerId, event);
+		updateEventCategoryIfChanged(event, request.getCategory());
 		updateEventInformation(event, request);
 		updateBookingPeriod(event, request);
 		updateSeatLayout(eventId, request);
@@ -57,40 +51,14 @@ public class EventEditService {
 	}
 
 	/**
-	 * 이벤트를 ID로 조회하는 메서드입니다.
-	 * 존재하지 않을 경우 예외를 발생시킵니다.
-	 */
-	private Event getEventOrThrow(Long eventId) {
-		return eventRepository.findById(eventId)
-			.orElseThrow(() -> new BadRequestException("이벤트를 찾을 수 없습니다: id=" + eventId));
-	}
-
-	/**
-	 * 이벤트에 대한 수정 권한을 가진 매니저인지 검증하는 메서드입니다.
-	 * 권한이 없으면 예외를 발생시킵니다.
-	 */
-	private void validateManagerAuthority(Long managerId, Event event) {
-		User manager = userRepository.findById(managerId)
-			.orElseThrow(() -> new BadRequestException("메니저를 찾을 수 없습니다."));
-		boolean hasPermission = managerEventRepository.existsByManagerAndEvent(manager, event);
-		if (!hasPermission) {
-			throw new BadRequestException("해당 이벤트에 대한 수정 권한이 없습니다.");
-		}
-	}
-
-	/**
 	 * 요청한 타입이 기존과 다르면 EventType을 변경하는 메서드입니다.
 	 */
-	private void updateEventTypeIfChanged(Event event, String newTypeName) {
-		String currentTypeName = eventTypeRepository.findById(event.getTypeId())
-			.orElseThrow(() -> new BadRequestException("이벤트 타입을 찾을 수 없습니다."))
-			.getName();
-
-		if (!currentTypeName.equals(newTypeName)) {
-			EventType eventType = eventDomainService.findOrCreateEventType(newTypeName);
-			event.setTypeId(eventType.getEventTypeId());
+	private void updateEventCategoryIfChanged(Event event, EventCategoryEnum newCategory) {
+		if (!event.getCategory().equals(newCategory)) {
+			event.setCategory(newCategory);
 		}
 	}
+
 
 	/**
 	 * 이벤트 정보를 갱신하는 메서드입니다.
@@ -145,6 +113,7 @@ public class EventEditService {
 			seatLayoutRepository.findByEvent_EventId(event.getEventId()).orElseThrow(), request.getLayout(),
 			seatGradeMap);
 	}
+
 }
 
 

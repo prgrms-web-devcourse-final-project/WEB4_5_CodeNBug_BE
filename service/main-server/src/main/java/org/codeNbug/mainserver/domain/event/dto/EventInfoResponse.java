@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGradeEnum;
 import org.codenbug.common.util.Util;
@@ -23,7 +24,7 @@ public class EventInfoResponse implements Serializable {
 
 	SeatLayoutDto seatLayout;
 	Long eventId;
-	Long typeId;
+	EventCategoryEnum category;
 	EventInformationDto information;
 	LocalDateTime bookingStart;
 	LocalDateTime bookingEnd;
@@ -36,7 +37,7 @@ public class EventInfoResponse implements Serializable {
 
 	public EventInfoResponse(Event event) {
 		this.eventId = event.getEventId();
-		this.typeId = event.getTypeId();
+		this.category = event.getCategory();
 		this.information = new EventInformationDto(
 			event.getInformation().getTitle(),
 			event.getInformation().getThumbnailUrl(),
@@ -77,7 +78,7 @@ public class EventInfoResponse implements Serializable {
 
 	public EventInfoResponse(Event event, Integer viewCount) {
 		this.eventId = event.getEventId();
-		this.typeId = event.getTypeId();
+		this.category = event.getCategory();
 		this.information = new EventInformationDto(
 			event.getInformation().getTitle(),
 			event.getInformation().getThumbnailUrl(),

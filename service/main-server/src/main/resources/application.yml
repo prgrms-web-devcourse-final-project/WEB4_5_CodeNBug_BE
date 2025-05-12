@@ -98,3 +98,10 @@ sns:
 allowed:
   redirect:
     domains: localhost:3001,localhost:9000,code-bug.vercel.app
+
+cloud:
+  aws:
+    s3:
+      bucket: ${aws.s3.bucket}
+    region:
+      static: ${aws.region.static}

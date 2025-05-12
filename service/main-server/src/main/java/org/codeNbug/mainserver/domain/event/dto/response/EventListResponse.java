@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 
@@ -16,19 +17,19 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Getter
 public class EventListResponse implements Serializable {
-	private Long eventId;
-	private Long typeId;
-	private EventInformationDto information;
-	private LocalDateTime bookingStart;
-	private LocalDateTime bookingEnd;
-	private Integer viewCount;
-	private EventStatusEnum status;
-	private Boolean seatSelectable;
-	private Boolean isDeleted;
+	Long eventId;
+	EventCategoryEnum category;
+	EventInformationDto information;
+	LocalDateTime bookingStart;
+	LocalDateTime bookingEnd;
+	Integer viewCount;
+	EventStatusEnum status;
+	Boolean seatSelectable;
+	Boolean isDeleted;
 
 	public EventListResponse(Event event) {
 		this.eventId = event.getEventId();
-		this.typeId = event.getTypeId();
+		this.category = event.getCategory();
 		this.information = new EventInformationDto(event.getInformation());
 		this.bookingStart = event.getBookingStart();
 		this.bookingEnd = event.getBookingEnd();
