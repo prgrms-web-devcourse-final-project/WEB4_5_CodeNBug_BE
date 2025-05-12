@@ -6,9 +6,7 @@ import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
-import org.codeNbug.mainserver.domain.user.dto.request.RoleUpdateRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
-import org.codeNbug.mainserver.domain.user.dto.response.ModifyRoleResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
 import org.codeNbug.mainserver.domain.user.service.UserService;
@@ -299,42 +297,5 @@ public class UserController {
         PurchaseHistoryDetailResponse response = purchaseService.getPurchaseHistoryDetail(userId, purchaseId);
         return ResponseEntity.ok(
                 new RsData<>("200-SUCCESS", "구매 이력 상세 조회 성공", response));
-    }
-
-    /**
-     * 관리자 - 이용자의 권한을 변경합니다
-     * 일반 사용자와 SNS 사용자 모두 지원합니다.
-     */
-    @RoleRequired(UserRole.ADMIN)
-    @PutMapping("/admin/{userType}/{userId}/role")
-    public ResponseEntity<RsData<ModifyRoleResponse>> modifyRole(
-            @PathVariable String userType,
-            @PathVariable Long userId,
-            @Valid @RequestBody RoleUpdateRequest request,
-            BindingResult bindingResult) {
-        // 입력값 유효성 검사
-        if (bindingResult.hasErrors()) {
-            log.warn(">> 역할 변경 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
-            return ResponseEntity.badRequest()
-                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
-        }
-        
-        log.info(">> 관리자 권한 변경 요청: userType={}, userId={}, role={}", 
-                userType, userId, request.getRole());
-
-        // userType이 유효한지 검사
-        if (!userType.equals("regular") && !userType.equals("sns")) {
-            log.error(">> 유효하지 않은 사용자 타입: {}", userType);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new RsData<>("400-BAD_REQUEST", "유효하지 않은 사용자 타입입니다. 'regular' 또는 'sns'여야 합니다."));
-        }
-
-        ModifyRoleResponse response = userService.modifyRole(userType, userId, request.getRole());
-
-        log.info(">> 권한 변경 성공: userType={}, userId={}, newRole={}",
-                userType, userId, response.getRole());
-
-        return ResponseEntity.ok(
-                new RsData<>("200-SUCCESS", "권한 변경 성공", response));
     }
 }

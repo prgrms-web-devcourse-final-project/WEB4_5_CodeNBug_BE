@@ -4,17 +4,27 @@ import org.codeNbug.mainserver.domain.admin.dto.request.AdminLoginRequest;
 import org.codeNbug.mainserver.domain.admin.dto.request.AdminSignupRequest;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminLoginResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminSignupResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.DashboardStatsResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.ModifyRoleResponse;
+import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
 import org.codenbug.user.security.exception.AuthenticationFailedException;
+import org.codenbug.user.sns.Entity.SnsUser;
+import org.codenbug.user.sns.repository.SnsUserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 관리자 관련 서비스
@@ -25,6 +35,8 @@ import lombok.extern.slf4j.Slf4j;
 public class AdminService {
 
     private final UserRepository userRepository;
+    private final SnsUserRepository snsUserRepository;
+    private final EventRepository eventRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
@@ -148,5 +160,147 @@ public class AdminService {
             log.error(">> 관리자 로그아웃 처리 실패: {}", e.getMessage(), e);
             throw new AuthenticationFailedException("로그아웃 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 대시보드 통계 정보를 조회합니다.
+     * 사용자 수, 이벤트 수, 기타 통계 정보를 포함합니다.
+     *
+     * @return 대시보드 통계 정보 응답
+     */
+    @Transactional(readOnly = true)
+    public DashboardStatsResponse getDashboardStats() {
+        log.info(">> 대시보드 통계 정보 조회");
+        
+        try {
+            // 일반 사용자 수 조회
+            long regularUserCount = userRepository.count();
+            log.debug(">> 일반 사용자 수: {}", regularUserCount);
+            
+            // SNS 사용자 수 조회
+            long snsUserCount = snsUserRepository.count();
+            log.debug(">> SNS 사용자 수: {}", snsUserCount);
+            
+            // 전체 사용자 수 계산
+            long totalUserCount = regularUserCount + snsUserCount;
+            log.debug(">> 전체 사용자 수: {}", totalUserCount);
+            
+            // 이벤트 수 조회
+            long eventCount = eventRepository.count();
+            log.debug(">> 이벤트 수: {}", eventCount);
+            
+            // 응답 생성
+            DashboardStatsResponse response = DashboardStatsResponse.builder()
+                    .totalUsers(totalUserCount)
+                    .totalEvents(eventCount)
+                    .build();
+            
+            log.info(">> 대시보드 통계 정보 조회 완료: 사용자={}, 이벤트={}", 
+                    totalUserCount, eventCount);
+            
+            return response;
+        } catch (Exception e) {
+            log.error(">> 대시보드 통계 정보 조회 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("대시보드 통계 정보 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 모든 사용자 목록을 조회합니다.
+     * 일반 사용자와 SNS 사용자를 모두 포함합니다.
+     *
+     * @return 사용자 정보가 담긴 맵
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getAllUsers() {
+        log.info(">> 모든 사용자 목록 조회");
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 일반 사용자 목록 조회
+            List<User> regularUsers = userRepository.findAll();
+            log.debug(">> 일반 사용자 목록 조회 완료: {} 명", regularUsers.size());
+            
+            // SNS 사용자 목록 조회
+            List<SnsUser> snsUsers = snsUserRepository.findAll();
+            log.debug(">> SNS 사용자 목록 조회 완료: {} 명", snsUsers.size());
+            
+            // 결과 맵에 저장
+            result.put("regularUsers", regularUsers);
+            result.put("snsUsers", snsUsers);
+            
+            log.info(">> 모든 사용자 목록 조회 완료: 일반 사용자={}, SNS 사용자={}", 
+                    regularUsers.size(), snsUsers.size());
+            
+            return result;
+        } catch (Exception e) {
+            log.error(">> 사용자 목록 조회 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("사용자 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 사용자의 역할을 변경합니다.
+     * 일반 사용자와 SNS 사용자 모두 지원합니다.
+     *
+     * @param userType 사용자 타입 ("regular" 또는 "sns")
+     * @param userId 변경할 사용자의 ID
+     * @param role 변경할 역할 문자열 (USER, ADMIN, MANAGER)
+     * @return 변경된 역할 정보
+     * @throws IllegalArgumentException 사용자를 찾을 수 없거나 역할이 유효하지 않은 경우
+     */
+    @Transactional
+    public ModifyRoleResponse modifyRole(String userType, Long userId, String role) {
+        log.info(">> 사용자 역할 변경 시작: userType={}, userId={}, newRole={}", userType, userId, role);
+        
+        // 역할 유효성 검사
+        try {
+            org.codenbug.user.domain.user.constant.UserRole.valueOf(role);
+        } catch (IllegalArgumentException e) {
+            log.error(">> 유효하지 않은 역할: {}", role);
+            throw new IllegalArgumentException("유효하지 않은 역할입니다. USER, ADMIN, MANAGER 중 하나여야 합니다.");
+        }
+        
+        // 일반 사용자인 경우
+        if ("regular".equals(userType)) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        log.error(">> 일반 사용자를 찾을 수 없음: userId={}", userId);
+                        return new IllegalArgumentException("해당 ID의 일반 사용자를 찾을 수 없습니다: " + userId);
+                    });
+            
+            log.info(">> 일반 사용자 역할 변경: userId={}, 이전 역할={}, 새 역할={}", 
+                   userId, user.getRole(), role);
+            
+            // 역할 변경
+            user.updateRole(role);
+            userRepository.save(user);
+            
+            log.info(">> 일반 사용자 역할 변경 완료: userId={}, newRole={}", userId, role);
+            return ModifyRoleResponse.of(role);
+        }
+        // SNS 사용자인 경우
+        else if ("sns".equals(userType)) {
+            SnsUser snsUser = snsUserRepository.findById(userId)
+                    .orElseThrow(() -> {
+                        log.error(">> SNS 사용자를 찾을 수 없음: userId={}", userId);
+                        return new IllegalArgumentException("해당 ID의 SNS 사용자를 찾을 수 없습니다: " + userId);
+                    });
+            
+            log.info(">> SNS 사용자 역할 변경: userId={}, 이전 역할={}, 새 역할={}", 
+                   userId, snsUser.getRole(), role);
+            
+            // 역할 변경
+            snsUser.setRole(role);
+            snsUserRepository.save(snsUser);
+            
+            log.info(">> SNS 사용자 역할 변경 완료: userId={}, newRole={}", userId, role);
+            return ModifyRoleResponse.of(role);
+        }
+        
+        // 사용자 타입이 유효하지 않은 경우
+        log.error(">> 유효하지 않은 사용자 타입: {}", userType);
+        throw new IllegalArgumentException("유효하지 않은 사용자 타입입니다: " + userType);
     }
 } 

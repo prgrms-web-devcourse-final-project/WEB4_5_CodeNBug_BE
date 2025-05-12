@@ -8,19 +8,25 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.codeNbug.mainserver.domain.admin.dto.request.AdminLoginRequest;
 import org.codeNbug.mainserver.domain.admin.dto.request.AdminSignupRequest;
+import org.codeNbug.mainserver.domain.admin.dto.request.RoleUpdateRequest;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminLoginResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminSignupResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.DashboardStatsResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.ModifyRoleResponse;
 import org.codeNbug.mainserver.domain.admin.service.AdminService;
+import org.codeNbug.mainserver.global.dto.RsData;
 import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.security.annotation.RoleRequired;
 import org.codenbug.user.security.exception.AuthenticationFailedException;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Map;
 
 /**
  * 관리자 컨트롤러
@@ -58,6 +64,17 @@ public class AdminController {
         
         if (!hasToken) {
             log.warn(">> 액세스 토큰이 없습니다. 인증 정보를 확인하세요.");
+        }
+        
+        // 대시보드 통계 정보 조회
+        try {
+            DashboardStatsResponse stats = adminService.getDashboardStats();
+            model.addAttribute("stats", stats);
+            log.info(">> 대시보드 통계 정보 조회 성공: 사용자={}, 이벤트={}", 
+                    stats.getTotalUsers(), stats.getTotalEvents());
+        } catch (Exception e) {
+            log.error(">> 대시보드 통계 정보 조회 실패: {}", e.getMessage(), e);
+            model.addAttribute("errorMessage", "통계 정보를 불러오는 데 실패했습니다.");
         }
         
         model.addAttribute("welcomeMessage", "관리자 대시보드에 오신 것을 환영합니다!");
@@ -252,11 +269,79 @@ public class AdminController {
     }
     
     /**
-     * 예외 처리
+     * 사용자 관리 페이지
      */
+    @RoleRequired(UserRole.ADMIN)
+    @GetMapping("/users")
+    public String userManagement(Model model) {
+        log.info(">> 사용자 관리 페이지 요청");
+        
+        try {
+            // 모든 사용자 목록 조회
+            Map<String, Object> usersData = adminService.getAllUsers();
+            model.addAttribute("regularUsers", usersData.get("regularUsers"));
+            model.addAttribute("snsUsers", usersData.get("snsUsers"));
+            model.addAttribute("roles", UserRole.values());
+            
+            log.info(">> 사용자 목록 조회 성공: 일반 사용자={}, SNS 사용자={}",
+                    ((java.util.List<?>) usersData.get("regularUsers")).size(),
+                    ((java.util.List<?>) usersData.get("snsUsers")).size());
+            
+        } catch (Exception e) {
+            log.error(">> 사용자 목록 조회 실패: {}", e.getMessage(), e);
+            model.addAttribute("errorMessage", "사용자 목록을 불러오는 데 실패했습니다.");
+        }
+        
+        return "admin/users";
+    }
+    
+    /**
+     * 사용자 역할 변경 API
+     */
+    @RoleRequired(UserRole.ADMIN)
+    @PutMapping("/api/users/{userType}/{userId}/role")
+    @ResponseBody
+    public ResponseEntity<RsData<ModifyRoleResponse>> modifyRole(
+            @PathVariable String userType,
+            @PathVariable Long userId,
+            @Valid @RequestBody RoleUpdateRequest request,
+            BindingResult bindingResult) {
+        
+        // 입력값 유효성 검사
+        if (bindingResult.hasErrors()) {
+            log.warn(">> 역할 변경 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
+            return ResponseEntity.badRequest()
+                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
+        }
+        
+        log.info(">> 관리자 권한 변경 요청: userType={}, userId={}, role={}", 
+                userType, userId, request.getRole());
+
+        // userType이 유효한지 검사
+        if (!userType.equals("regular") && !userType.equals("sns")) {
+            log.error(">> 유효하지 않은 사용자 타입: {}", userType);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new RsData<>("400-BAD_REQUEST", "유효하지 않은 사용자 타입입니다. 'regular' 또는 'sns'여야 합니다."));
+        }
+
+        try {
+            ModifyRoleResponse response = adminService.modifyRole(userType, userId, request.getRole());
+            
+            log.info(">> 권한 변경 성공: userType={}, userId={}, newRole={}",
+                    userType, userId, response.getRole());
+            
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "권한 변경 성공", response));
+        } catch (Exception e) {
+            log.error(">> 권한 변경 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
+        }
+    }
+    
     @ExceptionHandler(Exception.class)
     public String handleException(Exception e, RedirectAttributes redirectAttributes) {
-        log.error(">> 관리자 컨트롤러에서 예외 발생: {}", e.getMessage(), e);
+        log.error(">> 예외 발생: {}", e.getMessage(), e);
         redirectAttributes.addFlashAttribute("errorMessage", "요청 처리 중 오류가 발생했습니다: " + e.getMessage());
         return "redirect:/admin/login";
     }
