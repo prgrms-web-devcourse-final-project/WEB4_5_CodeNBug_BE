@@ -8,9 +8,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.codeNbug.mainserver.domain.event.dto.EventInfoResponse;
 import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.event.entity.CostRange;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.service.CommonEventService;
 import org.codeNbug.mainserver.domain.event.service.EventViewCountUpdateScheduler;
 import org.junit.jupiter.api.DisplayName;
@@ -110,6 +112,90 @@ public class EventControllerTest {
 			.andExpect(jsonPath("$.msg").value("데이터 형식이 잘못되었습니다."))
 			.andExpect(jsonPath("$.data").doesNotExist());
 	}
-	
+
+	@Test
+	@DisplayName("카테고리 리스트 조회")
+	@WithMockUser
+	public void getCategoryListTest() throws Exception {
+		Mockito.when(commonEventService.getEventCategories())
+			.thenReturn(List.of(EventCategoryEnum.values()));
+
+		mockMvc.perform(get("/api/v1/events/categories")
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+			.andExpect(jsonPath("$.msg").value("Event categories retrieved successfully"))
+			.andExpect(jsonPath("$.data").isArray());
+	}
+
+	@Test
+	@DisplayName("예매 가능 좌석수 조회")
+	@WithMockUser
+	public void getAvailableSeatCountTest() throws Exception {
+		Long eventId = 1L;
+		Integer availableSeats = 100;
+
+		Mockito.when(commonEventService.getAvailableSeatCount(eventId))
+			.thenReturn(availableSeats);
+
+		mockMvc.perform(get("/api/v1/events/" + eventId + "/seats")
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+			.andExpect(jsonPath("$.msg").value("가능한 좌석수 조회 성공"))
+			.andExpect(jsonPath("$.data").value(availableSeats));
+	}
+
+	@Test
+	@DisplayName("예매 가능 좌석수 조회 - 존재하지 않는 이벤트 id로 조회")
+	@WithMockUser
+	public void getAvailableSeatCountWithInvalidEventIdTest() throws Exception {
+		Long eventId = 999L;
+
+		Mockito.when(commonEventService.getAvailableSeatCount(eventId))
+			.thenThrow(new IllegalArgumentException("해당 id의 event는 없습니다."));
+
+		mockMvc.perform(get("/api/v1/events/" + eventId + "/seats")
+				.with(csrf()))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("해당 id의 event는 없습니다."))
+			.andExpect(jsonPath("$.data").doesNotExist());
+	}
+
+	@Test
+	@DisplayName("이벤트 단건 조회")
+	@WithMockUser
+	public void getEventTest() throws Exception {
+		Long eventId = 1L;
+		EventInfoResponse eventInfoResponse = new EventInfoResponse();
+
+		Mockito.when(commonEventService.getEvent(eventId))
+			.thenReturn(eventInfoResponse);
+
+		mockMvc.perform(get("/api/v1/events/" + eventId)
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+			.andExpect(jsonPath("$.msg").value("event 단건 조회 성공."))
+			.andExpect(jsonPath("$.data").exists());
+	}
+
+	@Test
+	@DisplayName("이벤트 단건 조회 - 존재하지 않는 이벤트 id로 조회")
+	@WithMockUser
+	public void getEventWithInvalidEventIdTest() throws Exception {
+		Long eventId = 999L;
+
+		Mockito.when(commonEventService.getEvent(eventId))
+			.thenThrow(new IllegalArgumentException("해당 id의 event는 없습니다."));
+
+		mockMvc.perform(get("/api/v1/events/" + eventId)
+				.with(csrf()))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("해당 id의 event는 없습니다."))
+			.andExpect(jsonPath("$.data").doesNotExist());
+	}
 
 }
