@@ -1,31 +1,31 @@
 name: deploy
 
-on:
-  push:
-    paths:
-      - ".github/workflows/**"
-      - "build.gradle"
-      - "settings.gradle"
-      - "service/main-server/src/**"
-      - "service/main-server/build.gradle"
-      - "service/main-server/Dockerfile"
-      - "service/queue-server/src/**"
-      - "service/queue-server/build.gradle"
-      - "service/queue-server/Dockerfile"
-      - "service/message-dispatcher/src/**"
-      - "service/message-dispatcher/build.gradle"
-      - "service/message-dispatcher/Dockerfile"
-      - "service/user/**"
-      - "service/common/**"
-    branches:
-      - develop
-      - main
-      - hotfix
-      - feat/사용자-도메인분리
-      - Chore/대기열-배포
-  pull_request:
-    paths:
-      - "service/**"
+#on:
+#  push:
+#    paths:
+#      - ".github/workflows/**"
+#      - "build.gradle"
+#      - "settings.gradle"
+#      - "service/main-server/src/**"
+#      - "service/main-server/build.gradle"
+#      - "service/main-server/Dockerfile"
+#      - "service/queue-server/src/**"
+#      - "service/queue-server/build.gradle"
+#      - "service/queue-server/Dockerfile"
+#      - "service/message-dispatcher/src/**"
+#      - "service/message-dispatcher/build.gradle"
+#      - "service/message-dispatcher/Dockerfile"
+#      - "service/user/**"
+#      - "service/common/**"
+#    branches:
+#      - develop
+#      - main
+#      - hotfix
+#      - feat/사용자-도메인분리
+#      - Chore/대기열-배포
+#  pull_request:
+#    paths:
+#      - "service/**"
 jobs:
   test:
     services:
