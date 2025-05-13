@@ -3,9 +3,13 @@ package org.codeNbug.mainserver.domain.manager.controller;
 import java.util.List;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
-import org.codeNbug.mainserver.domain.manager.service.EventEditService;
-import org.codeNbug.mainserver.domain.manager.dto.*;
+import org.codeNbug.mainserver.domain.manager.dto.EventPurchaseResponse;
+import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
+import org.codeNbug.mainserver.domain.manager.dto.ManagerEventListResponse;
+import org.codeNbug.mainserver.domain.manager.dto.ManagerRefundRequest;
+import org.codeNbug.mainserver.domain.manager.dto.ManagerRefundResponse;
 import org.codeNbug.mainserver.domain.manager.service.EventDeleteService;
+import org.codeNbug.mainserver.domain.manager.service.EventEditService;
 import org.codeNbug.mainserver.domain.manager.service.EventRegisterService;
 import org.codeNbug.mainserver.domain.manager.service.ManagerEventSearchService;
 import org.codeNbug.mainserver.domain.manager.service.ManagerPurchasesService;
@@ -84,7 +88,7 @@ public class ManagerController {
 
 	@RoleRequired({UserRole.MANAGER, UserRole.ADMIN})
 	@PatchMapping("/{eventId}")
-	public ResponseEntity<RsData<Void>> deleteEvent(@PathVariable Long eventId) {
+	public ResponseEntity<RsData<Void>> deleteEvent(@PathVariable Long eventId) throws IllegalAccessException {
 		eventDeleteService.deleteEvent(eventId, SecurityUtil.getCurrentUserId());
 		return ResponseEntity.ok(new RsData<>(
 			"200",

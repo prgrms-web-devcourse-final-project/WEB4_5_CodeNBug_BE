@@ -38,9 +38,14 @@ public class EventDeleteService {
      * @param managerId 삭제 요청을 한 매니저의 사용자 ID
      */
     @Transactional
-    public void deleteEvent(Long eventId, Long managerId) {
+    public void deleteEvent(Long eventId, Long managerId) throws IllegalAccessException {
         Event event = getEventOrThrow(eventId);
         validateManagerAuthority(managerId, event);
+
+        // 이벤트기 이미 삭제되었다면 400에러 전송
+        if (event.getIsDeleted()) {
+            throw new IllegalAccessException("이미 삭제된 이벤트입니다.");
+        }
 
         // 이벤트 상태 변경
         event.setIsDeleted(true);
