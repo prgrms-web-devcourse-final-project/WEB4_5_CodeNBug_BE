@@ -6,33 +6,74 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
+import org.codeNbug.mainserver.util.TestUtil;
 import org.codenbug.common.util.CookieUtil;
+import org.codenbug.common.util.JwtConfig;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redis.testcontainers.RedisContainer;
 
 import jakarta.servlet.http.Cookie;
-import org.codenbug.common.util.JwtConfig;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ActiveProfiles("test")
+@Testcontainers
 class UserControllerTest {
+	@Container
+	@ServiceConnection
+	static MySQLContainer<?> mysql =
+		new MySQLContainer<>("mysql:8.0.34")
+			.withDatabaseName("ticketoneTest")
+			.withUsername("test")
+			.withPassword("test");
+	@Container
+	@ServiceConnection
+	static RedisContainer redis =
+		new RedisContainer("redis:alpine")
+			.withExposedPorts(6379)
+			.waitingFor(Wait.forListeningPort());
+
+
+	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
+	// @DynamicPropertySource
+	// static void overrideProps(DynamicPropertyRegistry registry) {
+	//
+	// 	registry.add("spring.datasource.url", mysql::getJdbcUrl);
+	// 	registry.add("spring.datasource.username", mysql::getUsername);
+	// 	registry.add("spring.datasource.password", mysql::getPassword);
+	// 	registry.add("spring.redis.host", () -> redis.getHost());
+	// 	registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+	// 	registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+	//
+	// }
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -57,6 +98,9 @@ class UserControllerTest {
 
 	@Autowired
 	private RedisTemplate<String, String> redisTemplate;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private String testToken;
 	private User testUser;
@@ -93,9 +137,14 @@ class UserControllerTest {
 		if (tokenInfo != null && tokenInfo.getAccessToken() != null) {
 			tokenService.deleteRefreshToken(testUser.getEmail());
 		}
-		
+
 		// 테스트 사용자 삭제 - @Transactional로 롤백되지만 추가 보장
 		userRepository.deleteAll();
+	}
+
+	@AfterAll
+	void afterAll() {
+		TestUtil.truncateAllTables(jdbcTemplate);
 	}
 
 	@Test
@@ -149,7 +198,7 @@ class UserControllerTest {
 	void logout_success() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
@@ -170,10 +219,10 @@ class UserControllerTest {
 	void logout_fail_no_refresh_token() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
-		
+
 		// when - 리프레시 토큰을 의도적으로 전달하지 않음
 		ResultActions result = mockMvc.perform(
 			post("/api/v1/users/logout").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken()));
@@ -189,7 +238,7 @@ class UserControllerTest {
 	void withdrawal_success() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
@@ -271,7 +320,7 @@ class UserControllerTest {
 	void getProfile_success() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거 
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
@@ -316,7 +365,7 @@ class UserControllerTest {
 	void updateProfile_success() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
@@ -373,7 +422,7 @@ class UserControllerTest {
 	void updateProfile_badRequest() throws Exception {
 		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
 		clearBlacklist();
-		
+
 		// 새로운 토큰 생성
 		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
 		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());

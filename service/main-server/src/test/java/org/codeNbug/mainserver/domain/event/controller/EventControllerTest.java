@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,14 +16,13 @@ import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.event.entity.CostRange;
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
-import org.codeNbug.mainserver.domain.event.entity.EventType;
 import org.codeNbug.mainserver.domain.event.entity.Location;
 import org.codeNbug.mainserver.domain.event.repository.JpaCommonEventRepository;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.PriceDto;
 import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
-import org.codeNbug.mainserver.domain.manager.repository.EventTypeRepository;
 import org.codeNbug.mainserver.util.TestUtil;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,23 +33,60 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.redis.testcontainers.RedisContainer;
 
 import jakarta.transaction.Transactional;
 
 @ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Testcontainers
 class EventControllerTest {
+
+	@Container
+	@ServiceConnection
+	static MySQLContainer<?> mysql =
+		new MySQLContainer<>("mysql:8.0.34")
+			.withDatabaseName("ticketoneTest")
+			.withUsername("test")
+			.withPassword("test");
+	@Container
+	@ServiceConnection
+	static RedisContainer redis =
+		new RedisContainer("redis:alpine")
+			.withExposedPorts(6379)
+			.waitingFor(Wait.forListeningPort());
+
+
+	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
+	// @DynamicPropertySource
+	// static void overrideProps(DynamicPropertyRegistry registry) {
+	//
+	// 	registry.add("spring.datasource.url", mysql::getJdbcUrl);
+	// 	registry.add("spring.datasource.username", mysql::getUsername);
+	// 	registry.add("spring.datasource.password", mysql::getPassword);
+	// 	registry.add("spring.redis.host", () -> redis.getHost());
+	// 	registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+	// 	registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+	//
+	// }
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -65,8 +102,6 @@ class EventControllerTest {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
-	@Autowired
-	private EventTypeRepository eventTypeRepository;
 	@Autowired
 	private RedisTemplate<String, Object> redisTemplate;
 
@@ -226,18 +261,17 @@ class EventControllerTest {
 		// SPORTS 타입 이벤트 생성
 		EventRegisterResponse event2 = TestUtil.registerEvent(mockMvc, "title2", "SPORTS", objectMapper);
 		// MOVIE 타입 이벤트 생성
-		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "MOVIE", objectMapper);
+		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "ETC", objectMapper);
 
-		List<Long> eventTypeIdToFilterList = eventTypeRepository.findAll()
+		List<EventCategoryEnum> eventTypeIdToFilterList = Arrays.asList(EventCategoryEnum.values())
 			.stream()
-			.filter(type -> type.getName().equals("CONCERT")
-				|| type.getName().equals("SPORTS")
+			.filter(type -> type.name().equals("CONCERT")
+				|| type.name().equals("SPORTS")
 			)
-			.map(type -> type.getEventTypeId())
 			.toList();
 
 		// CONCERT, SPORTS 타입 조회하는 필터
-		EventListFilter filter = new EventListFilter.Builder().eventTypeList(
+		EventListFilter filter = new EventListFilter.Builder().eventCategoryList(
 			eventTypeIdToFilterList
 		).build();
 
@@ -389,7 +423,7 @@ class EventControllerTest {
 
 		EventRegisterResponse event1 = TestUtil.registerEvent(mockMvc, "title1", "CONCERT", objectMapper);
 		EventRegisterResponse event2 = TestUtil.registerEvent(mockMvc, "title2", "SPORTS", objectMapper);
-		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "MOVIE", objectMapper);
+		EventRegisterResponse event3 = TestUtil.registerEvent(mockMvc, "title3", "ETC", objectMapper);
 
 		// when
 		ResultActions result = mockMvc.perform(get("/api/v1/events/categories")
@@ -400,14 +434,14 @@ class EventControllerTest {
 			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
 			.andExpect(jsonPath("$.msg").value("Event categories retrieved successfully"))
 			.andExpect(jsonPath("$.data").isArray())
-			.andExpect(jsonPath("$.data.length()").value(3))
+			.andExpect(jsonPath("$.data.length()").value(EventCategoryEnum.values().length))
 			.andReturn().getResponse().getContentAsString();
 
-		List<EventType> contents = objectMapper.convertValue(
+		List<EventCategoryEnum> contents = objectMapper.convertValue(
 			objectMapper.readTree(eventCategoriesRetrievedSuccessfully).get("data"),
-			new TypeReference<List<EventType>>() {
+			new TypeReference<List<EventCategoryEnum>>() {
 			});
-		Assertions.assertThat(contents).extracting("name").contains("CONCERT", "SPORTS", "MOVIE");
+		Assertions.assertThat(contents).contains(EventCategoryEnum.CONCERT, EventCategoryEnum.SPORTS);
 
 	}
 
@@ -477,7 +511,7 @@ class EventControllerTest {
 			.andExpect(jsonPath("$.data").exists())
 			.andExpect(jsonPath("$.data.eventId").value(event1.getEventId()))
 			.andExpect(jsonPath("$.data.information.title").value(event1.getTitle()))
-			.andExpect(jsonPath("$.data.typeId").value(event.getTypeId()));
+			.andExpect(jsonPath("$.data.category").value(event.getCategory().name()));
 	}
 
 	@Test
