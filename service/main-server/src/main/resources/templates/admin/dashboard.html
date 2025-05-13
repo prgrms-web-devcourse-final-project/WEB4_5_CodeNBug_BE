@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="admin/fragments/layout :: head('대시보드')">
+</head>
+<body>
+    <!-- 사이드바 -->
+    <div th:replace="admin/fragments/layout :: sidebar" th:with="currentPage='dashboard'"></div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="content">
+        <div class="dashboard-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">대시보드</h4>
+            <span class="text-muted" th:text="${welcomeMessage}">환영합니다, 관리자님!</span>
+        </div>
+
+        <div class="row">
+            <!-- 통계 카드 -->
+            <div class="col-md-4">
+                <a href="/admin/users" class="text-decoration-none">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="card-icon mx-auto">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <h5 class="card-title">총 사용자</h5>
+                            <h2 class="mb-0" th:text="${stats != null ? stats.totalUsers : 0}">0</h2>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/admin/tickets" class="text-decoration-none">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="card-icon mx-auto">
+                                <i class="bi bi-ticket-perforated"></i>
+                            </div>
+                            <h5 class="card-title">총 티켓</h5>
+                            <h2 class="mb-0" th:text="${stats != null ? stats.soldTickets : 0}">0</h2>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a href="/admin/events" class="text-decoration-none">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="card-icon mx-auto">
+                                <i class="bi bi-calendar-event"></i>
+                            </div>
+                            <h5 class="card-title">총 이벤트</h5>
+                            <h2 class="mb-0" th:text="${stats != null ? stats.totalEvents : 0}">0</h2>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- 최근 활동 -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">최근 활동</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>활동</th>
+                                <th>사용자</th>
+                                <th>날짜</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    아직 활동 내역이 없습니다.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 오류 메시지 표시 -->
+        <div th:if="${errorMessage}" class="alert alert-danger mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+    </div>
+
+    <div th:replace="admin/fragments/layout :: scripts"></div>
+</body>
+</html> 

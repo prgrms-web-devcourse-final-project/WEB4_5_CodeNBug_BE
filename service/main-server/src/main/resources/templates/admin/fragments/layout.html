@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- 헤더 조각 -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - 관리자 대시보드'">관리자 대시보드</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            background-color: #343a40;
+            padding-top: 20px;
+            z-index: 999;
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.75);
+            padding: 0.7rem 1rem;
+        }
+        .sidebar .nav-link:hover {
+            color: #fff;
+        }
+        .sidebar .nav-link.active {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .dashboard-header {
+            background-color: #fff;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            margin-bottom: 20px;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-icon {
+            font-size: 2rem;
+            padding: 20px;
+            border-radius: 50%;
+            background-color: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+            margin-bottom: 15px;
+        }
+        .logout-btn {
+            position: absolute;
+            bottom: 20px;
+            width: calc(100% - 32px);
+            margin: 0 16px;
+        }
+        .brand {
+            color: white;
+            text-align: center;
+            padding: 10px 0 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<!-- 사이드바 조각 -->
+<div th:fragment="sidebar" class="sidebar">
+    <div class="brand">
+        <i class="bi bi-shield-lock"></i> Admin
+    </div>
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentPage == 'dashboard' ? 'active' : ''}" th:href="@{/admin/dashboard}">
+                <i class="bi bi-speedometer2"></i> 대시보드
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentPage == 'users' ? 'active' : ''}" th:href="@{/admin/users}">
+                <i class="bi bi-people"></i> 사용자 관리
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentPage == 'tickets' ? 'active' : ''}" th:href="@{/admin/tickets}">
+                <i class="bi bi-ticket-perforated"></i> 티켓 관리
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentPage == 'events' ? 'active' : ''}" th:href="@{/admin/events}">
+                <i class="bi bi-calendar-event"></i> 이벤트 관리
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentPage == 'inquiries' ? 'active' : ''}" href="#">
+                <i class="bi bi-chat-left-text"></i> 문의 관리
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentPage == 'settings' ? 'active' : ''}" href="#">
+                <i class="bi bi-gear"></i> 설정
+            </a>
+        </li>
+    </ul>
+    <a th:href="@{/admin/logout}" class="btn btn-danger logout-btn">
+        <i class="bi bi-box-arrow-right"></i> 로그아웃
+    </a>
+</div>
+
+<!-- 스크립트 조각 -->
+<div th:fragment="scripts">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // 역할 변경 함수
+        function changeUserRole(userType, userId, selectElement) {
+            const role = selectElement.value;
+            
+            // AJAX 요청 보내기
+            $.ajax({
+                url: `/admin/api/users/${userType}/${userId}/role`,
+                type: 'PUT',
+                contentType: 'application/json',
+                data: JSON.stringify({ role: role }),
+                success: function(response) {
+                    // 성공 시 알림
+                    alert('역할이 성공적으로 변경되었습니다.');
+                },
+                error: function(xhr) {
+                    // 실패 시 원래 값으로 되돌리기
+                    const originalRole = selectElement.getAttribute('data-original-role');
+                    selectElement.value = originalRole;
+                    
+                    // 에러 메시지 표시
+                    const errorMsg = xhr.responseJSON ? 
+                        xhr.responseJSON.msg || '역할 변경에 실패했습니다.' : 
+                        '역할 변경에 실패했습니다.';
+                    alert(errorMsg);
+                }
+            });
+        }
+    </script>
+</div>
+
+</html> 
