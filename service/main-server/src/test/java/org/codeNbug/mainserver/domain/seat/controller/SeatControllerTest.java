@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
+import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
@@ -254,6 +255,28 @@ class SeatControllerTest {
 	}
 
 	@Test
+	@DisplayName("좌석 선택 실패 - entryAuthToken 유효성 검증 실패의 경우 400 반환")
+	void nonSelectSeats_fail_invalidEntryToken() throws Exception {
+		// given
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of());
+		request.setTicketCount(2);
+		Long eventId = 2L;
+
+		willThrow(new BadRequestException("잘못된 입장 토큰입니다."))
+			.given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "invalidToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.msg").value("잘못된 입장 토큰입니다."));
+	}
+
+	@Test
 	@DisplayName("미지정석 선택 성공 - 200 반환")
 	void nonSelectSeats_success() throws Exception {
 		// given
@@ -361,24 +384,29 @@ class SeatControllerTest {
 		System.out.println(result.getResponse().getContentAsString());
 	}
 
-	// @Test
-	// @DisplayName("좌석 취소 성공 - 200 반환")
-	// void cancelSeats_success() throws Exception {
-	// 	// given
-	// 	SeatCancelRequest request = new SeatCancelRequest();
-	// 	request.setSeatList(List.of(101L));
-	//
-	// 	given(seatService.cancelSeat(anyLong(), any(SeatCancelRequest.class), anyString()))
-	// 		.willReturn(new ApiResponse<>(200, "좌석 취소 성공", null));
-	//
-	// 	// when & then
-	// 	mockMvc.perform(delete("/api/v1/event/1/seats")
-	// 			.header("Authorization", "Bearer testToken")
-	// 			.header("entryAuthToken", "testToken")
-	// 			.contentType(MediaType.APPLICATION_JSON)
-	// 			.content(objectMapper.writeValueAsString(request)))
-	// 		.andExpect(status().isOk())
-	// 		.andExpect(jsonPath("$.code").value(200))
-	// 		.andExpect(jsonPath("$.msg").value("좌석 취소 성공"));
-	// }
+	@Test
+	@DisplayName("좌석 취소 성공 - 200 반환")
+	void cancelSeats_success() throws Exception {
+		// given
+		SeatCancelRequest request = new SeatCancelRequest();
+		request.setSeatList(List.of(101L));
+
+		Long eventId = 1L;
+
+		willDoNothing().given(seatService).cancelSeat(eq(eventId), any(SeatCancelRequest.class), anyLong());
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(delete("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value(200))
+			.andExpect(jsonPath("$.msg").value("좌석 취소 성공"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
 }
