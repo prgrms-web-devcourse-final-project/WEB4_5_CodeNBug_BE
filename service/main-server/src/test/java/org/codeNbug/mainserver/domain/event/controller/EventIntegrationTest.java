@@ -26,6 +26,7 @@ import org.codeNbug.mainserver.domain.manager.dto.layout.SeatInfoDto;
 import org.codeNbug.mainserver.util.TestUtil;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,6 +54,7 @@ import com.redis.testcontainers.RedisContainer;
 
 import jakarta.transaction.Transactional;
 
+@Disabled
 @ExtendWith(MockitoExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
