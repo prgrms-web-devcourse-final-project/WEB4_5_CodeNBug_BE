@@ -12,6 +12,8 @@ import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
 import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codeNbug.mainserver.global.exception.globalException.ConflictException;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.security.service.CustomUserDetails;
 import org.junit.jupiter.api.AfterEach;
@@ -200,7 +202,7 @@ class SeatControllerTest {
 	}
 
 	@Test
-	@DisplayName("좌석 선택 실패 - 좌석 5개 이상 선택 시 404 반환")
+	@DisplayName("지정석 선택 실패 - 좌석 5개 이상 선택 시 400 반환")
 	void selectSeats_seatCountExceed_fail() throws Exception {
 		// given
 		Long eventId = 1L;
@@ -209,7 +211,7 @@ class SeatControllerTest {
 		request.setTicketCount(5);
 
 		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
-			.willThrow(new IllegalArgumentException("최대 4개의 좌석만 선택할 수 있습니다."));
+			.willThrow(new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다."));
 
 		// when & then
 		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
@@ -217,9 +219,35 @@ class SeatControllerTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request))
 				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+			.andExpect(jsonPath("$.msg").value("최대 4개의 좌석만 선택할 수 있습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 선택 실패 - 존재하지 않는 행사일 경우 404 반환")
+	void selectSeats_eventNotFound_fail() throws Exception {
+		// given
+		Long invalidEventId = 999L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(1L, 2L));
+		request.setTicketCount(2);
+
+		given(seatService.selectSeat(eq(invalidEventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new IllegalArgumentException("행사가 존재하지 않습니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", invalidEventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
-			.andExpect(jsonPath("$.msg").value("최대 4개의 좌석만 선택할 수 있습니다."))
+			.andExpect(jsonPath("$.msg").value("행사가 존재하지 않습니다."))
 			.andReturn();
 
 		System.out.println(result.getResponse().getContentAsString());
@@ -254,9 +282,87 @@ class SeatControllerTest {
 
 		System.out.println(result.getResponse().getContentAsString());
 	}
-	//
+
+	@Test
+	@DisplayName("미지정석 선택 실패 - 미지정석인데 좌석 목록이 전달된 경우 400 반환")
+	void selectSeats_unselectableEventWithSeatList_fail() throws Exception {
+		// given
+		Long eventId = 3L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(1L, 2L));
+		request.setTicketCount(2);
+
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+			.andExpect(jsonPath("$.msg").value("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("미지정석 선택 실패 - 예매 가능한 좌석 부족 시 409 반환")
+	void selectSeats_notEnoughAvailableSeats_fail() throws Exception {
+		// given
+		Long eventId = 4L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of()); // 미지정석
+		request.setTicketCount(3);
+
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new ConflictException("[selectSeats] 예매 가능한 좌석 수가 부족합니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("409-CONFLICT"))
+			.andExpect(jsonPath("$.msg").value("[selectSeats] 예매 가능한 좌석 수가 부족합니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 선택 실패 - 이미 예매된 좌석 선택 시 409 반환")
+	void selectSeats_alreadyReservedSeat_fail() throws Exception {
+		// given
+		Long eventId = 5L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(10L));
+		request.setTicketCount(1);
+
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new ConflictException("[selectSeats] 이미 예매된 좌석입니다. seatId = 10"));
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("409-CONFLICT"))
+			.andExpect(jsonPath("$.msg").value("[selectSeats] 이미 예매된 좌석입니다. seatId = 10"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
 	// @Test
-	// @DisplayName("좌석 취소 - 성공")
+	// @DisplayName("좌석 취소 성공 - 200 반환")
 	// void cancelSeats_success() throws Exception {
 	// 	// given
 	// 	SeatCancelRequest request = new SeatCancelRequest();
