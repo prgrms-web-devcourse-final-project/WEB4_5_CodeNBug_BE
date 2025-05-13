@@ -6,6 +6,7 @@ import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.QEvent;
+import org.codeNbug.mainserver.domain.seat.entity.QSeat;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -82,12 +83,13 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 
 	@Override
 	public Integer countAvailableSeat(Long id) {
-		return jpaQueryFactory
-			.select(QEvent.event.seatLayout.seats.size())
-			.from(QEvent.event)
-			.where(QEvent.event.eventId.eq(id)
-				.and(QEvent.event.seatLayout.seats.any().available.isTrue())
-				.and(filterDeletedFalseExpression()))
-			.fetchOne();
+		return Math.toIntExact(jpaQueryFactory
+			.select(QSeat.seat.count()) // 단순히 개수를 셀 것이므로 seat.count() 또는 다른 표현도 가능합니다.
+			.from(QSeat.seat)
+			.where(
+				QSeat.seat.event.eventId.eq(id), // 기존 이벤트 ID 조건
+				QSeat.seat.available.isTrue()    // available이 true인 좌석만 선택하는 조건 추가!
+			)
+			.fetchOne());
 	}
 }
