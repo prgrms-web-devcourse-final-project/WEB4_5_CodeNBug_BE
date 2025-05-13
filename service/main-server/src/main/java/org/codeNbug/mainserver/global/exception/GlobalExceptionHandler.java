@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.global.exception;
 
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codeNbug.mainserver.global.exception.globalException.ConflictException;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.user.security.exception.AuthenticationFailedException;
 import org.springframework.http.HttpStatus;
@@ -144,6 +145,19 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<RsData<Object>> handleBadRequestException(BadRequestException e) {
 		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 			.body(new RsData<>("400-BAD_REQUEST", e.getMessage()));
+	}
+
+	/**
+	 * ConflictException 처리
+	 * 리소스 상태가 요청과 충돌할 때 발생하는 예외를 처리합니다.
+	 *
+	 * @param e 예외 객체
+	 * @return API 응답
+	 */
+	@ExceptionHandler(ConflictException.class)
+	public ResponseEntity<RsData<Object>> handleConflictException(ConflictException e) {
+		return ResponseEntity.status(HttpStatus.CONFLICT)
+			.body(new RsData<>("409-CONFLICT", e.getMessage()));
 	}
 
 	/**
