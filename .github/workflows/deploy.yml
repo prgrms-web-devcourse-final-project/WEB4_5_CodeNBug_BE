@@ -16,9 +16,6 @@ jobs:
   deployMainServer:
     runs-on: ubuntu-latest
     if: inputs.selectServer == 'main-server'
-    outputs:
-      owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
-      image_name: ${{ steps.export_image.outputs.image_name }}
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -53,10 +50,10 @@ jobs:
           working-directory: /
           comment: Deploy
           command: |
-            docker pull ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/backend-main-deploy:latest && \
+            docker pull ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest && \
             docker stop app1 2>/dev/null || true && \
             docker rm app1 2>/dev/null || true && \
-            docker run -d --name app1 --network env_common -p 9000:9000 ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/backend-main-deploy:latest && \
+            docker run -d --name app1 --network env_common -p 9000:9000 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest && \
             docker rmi $(docker images -f "dangling=true" -q) || true
 
   deployQueueServer:
@@ -69,7 +66,11 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
+      - name: set lower case owner name
+        id: export_owner
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
       - name: Fetch EC2 Instance ID
         id: fetch_instance2
         run: |
@@ -85,6 +86,7 @@ jobs:
       - name: AWS SSM Send-Command
         uses: peterkimzz/aws-ssm-send-command@master
         id: ssm
+
         with:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -93,10 +95,10 @@ jobs:
           working-directory: /
           comment: Deploy
           command: |
-            docker pull ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/backend-queue-deploy:latest && \
+            docker pull ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest && \
             docker stop queue-server 2>/dev/null || true && \
             docker rm queue-server 2>/dev/null || true && \
-            docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/backend-queue-deploy:latest && \
+            docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest && \
             docker rmi $(docker images -f "dangling=true" -q) || true
 
 
@@ -110,7 +112,11 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
+      - name: set lower case owner name
+        id: export_owner
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
       - name: Fetch EC2 Instance ID
         id: fetch_instance2
         run: |
@@ -134,8 +140,8 @@ jobs:
           working-directory: /
           comment: Deploy
           command: |
-            docker pull ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/backend-dispatch-deploy:latest && \
+            docker pull ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:latest && \
             docker stop dispatch-server 2>/dev/null || true && \
             docker rm dispatch-server 2>/dev/null || true && \
-            docker run -d --name dispatch-server --network env_common -p 9002:9002 ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/backend-dispatch-deploy:latest && \
+            docker run -d --name dispatch-server --network env_common -p 9002:9002 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:latest && \
             docker rmi $(docker images -f "dangling=true" -q) || true
