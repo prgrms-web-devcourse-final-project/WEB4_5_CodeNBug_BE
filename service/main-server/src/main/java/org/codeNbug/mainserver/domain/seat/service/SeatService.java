@@ -50,7 +50,7 @@ public class SeatService {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
 		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
-			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("해당 이벤트에 좌석 레이아웃이 존재하지 않습니다."));
 
 		log.info("SeatLayout ID: {}", seatLayout.getId());
 
