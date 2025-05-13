@@ -56,8 +56,6 @@ class SeatControllerTest {
 	@Autowired
 	private EntryTokenValidator entryTokenValidator;
 
-	private HashOperations<String, Object, Object> hashOperations;
-
 	@TestConfiguration
 	static class MockBeans {
 		@Bean
@@ -267,13 +265,16 @@ class SeatControllerTest {
 			.given(entryTokenValidator).validate(anyLong(), anyString());
 
 		// when & then
-		mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
 				.header("entryAuthToken", "invalidToken")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request))
 				.with(csrf()))
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.msg").value("잘못된 입장 토큰입니다."));
+			.andExpect(jsonPath("$.msg").value("잘못된 입장 토큰입니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
 	}
 
 	@Test
@@ -281,7 +282,7 @@ class SeatControllerTest {
 	void nonSelectSeats_success() throws Exception {
 		// given
 		SeatSelectRequest request = new SeatSelectRequest();
-		request.setSeatList(List.of()); // 빈 좌석 목록
+		request.setSeatList(List.of()); // 미지정석
 		request.setTicketCount(2);
 
 		Long eventId = 2L;
@@ -317,6 +318,7 @@ class SeatControllerTest {
 
 		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
 			.willThrow(new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다."));
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
 
 		// when & then
 		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
@@ -338,7 +340,7 @@ class SeatControllerTest {
 		// given
 		Long eventId = 4L;
 		SeatSelectRequest request = new SeatSelectRequest();
-		request.setSeatList(List.of()); // 미지정석
+		request.setSeatList(List.of());
 		request.setTicketCount(3);
 
 		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
@@ -405,6 +407,57 @@ class SeatControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.code").value(200))
 			.andExpect(jsonPath("$.msg").value("좌석 취소 성공"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 취소 실패 - 존재하지 않는 좌석의 경우 400 반환")
+	void cancelSeats_fail_seatNotFound() throws Exception {
+		// given
+		SeatCancelRequest request = new SeatCancelRequest();
+		request.setSeatList(List.of(999L));
+		Long eventId = 1L;
+
+		willThrow(new IllegalArgumentException("[cancelSeat] 좌석을 찾을 수 없습니다. seatId: 999"))
+			.given(seatService).cancelSeat(eq(eventId), any(SeatCancelRequest.class), anyLong());
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(delete("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("[cancelSeat] 좌석을 찾을 수 없습니다. seatId: 999"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 취소 실패 - Redis 락 해제 실패 시 400 반환")
+	void cancelSeats_fail_unlockFailed() throws Exception {
+		// given
+		SeatCancelRequest request = new SeatCancelRequest();
+		request.setSeatList(List.of(101L));
+		Long eventId = 1L;
+
+		willThrow(new BadRequestException("[cancelSeat] 좌석 락을 해제할 수 없습니다."))
+			.given(seatService).cancelSeat(eq(eventId), any(SeatCancelRequest.class), anyLong());
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(delete("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.msg").value("[cancelSeat] 좌석 락을 해제할 수 없습니다."))
 			.andReturn();
 
 		System.out.println(result.getResponse().getContentAsString());
