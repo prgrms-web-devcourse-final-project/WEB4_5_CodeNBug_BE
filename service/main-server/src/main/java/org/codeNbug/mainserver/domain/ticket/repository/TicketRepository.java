@@ -23,4 +23,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
 
 	List<Ticket> findAllByPurchaseId(Long purchaseId);
+	
+	@Query("SELECT COUNT(t) FROM Ticket t WHERE t.event.eventId = :eventId")
+	int countByEventId(@Param("eventId") Long eventId);
+	
+	@Query("SELECT COUNT(t) FROM Ticket t JOIN t.purchase p WHERE t.event.eventId = :eventId AND p.paymentStatus = org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum.DONE")
+	int countPaidTicketsByEventId(@Param("eventId") Long eventId);
 }

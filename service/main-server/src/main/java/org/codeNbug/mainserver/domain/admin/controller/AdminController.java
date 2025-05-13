@@ -26,6 +26,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -355,7 +356,19 @@ public class AdminController {
     @RoleRequired(UserRole.ADMIN)
     @GetMapping("/events")
     public String eventManagement(Model model) {
-        // TODO: 이벤트 목록 조회 및 model.addAttribute("events", ...);
+        log.info(">> 이벤트 관리 페이지 요청");
+        
+        try {
+            // 모든 이벤트 목록 조회
+            List<org.codeNbug.mainserver.domain.admin.dto.response.EventAdminDto> events = adminService.getAllEvents();
+            model.addAttribute("events", events);
+            
+            log.info(">> 이벤트 목록 조회 성공: {} 개의 이벤트", events.size());
+        } catch (Exception e) {
+            log.error(">> 이벤트 목록 조회 실패: {}", e.getMessage(), e);
+            model.addAttribute("errorMessage", "이벤트 목록을 불러오는 데 실패했습니다.");
+        }
+        
         return "admin/events";
     }
     

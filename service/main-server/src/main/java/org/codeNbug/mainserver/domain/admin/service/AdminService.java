@@ -5,6 +5,7 @@ import org.codeNbug.mainserver.domain.admin.dto.request.AdminSignupRequest;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminLoginResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminSignupResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.DashboardStatsResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.EventAdminDto;
 import org.codeNbug.mainserver.domain.admin.dto.response.ModifyRoleResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
@@ -23,9 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 관리자 관련 서비스
@@ -313,5 +316,40 @@ public class AdminService {
         // 사용자 타입이 유효하지 않은 경우
         log.error(">> 유효하지 않은 사용자 타입: {}", userType);
         throw new IllegalArgumentException("유효하지 않은 사용자 타입입니다: " + userType);
+    }
+
+    /**
+     * 모든 이벤트 목록을 조회하고 각 이벤트의 티켓 정보를 포함하여 반환합니다.
+     * 
+     * @return 이벤트 관리자 DTO 목록
+     */
+    @Transactional(readOnly = true)
+    public List<EventAdminDto> getAllEvents() {
+        log.info(">> 모든 이벤트 목록 조회");
+        
+        try {
+            // 모든 이벤트 조회
+            List<Event> events = eventRepository.findAll();
+            log.debug(">> 이벤트 목록 조회 완료: {} 개", events.size());
+            
+            // 각 이벤트에 대한 정보와 티켓 정보를 포함한 DTO 생성
+            List<EventAdminDto> eventDtos = events.stream()
+                .map(event -> {
+                    // 해당 이벤트의 판매된 티켓 수 조회
+                    int soldTickets = ticketRepository.countPaidTicketsByEventId(event.getEventId());
+                    log.debug(">> 이벤트 ID={}, 판매된 티켓 수={}", event.getEventId(), soldTickets);
+                    
+                    // DTO 생성
+                    return EventAdminDto.fromEntity(event, soldTickets);
+                })
+                .collect(Collectors.toList());
+            
+            log.info(">> 이벤트 목록 조회 완료: {} 개의 이벤트", eventDtos.size());
+            
+            return eventDtos;
+        } catch (Exception e) {
+            log.error(">> 이벤트 목록 조회 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("이벤트 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
     }
 } 
