@@ -43,10 +43,6 @@ public class Event {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long eventId;
 
-//	@Column(nullable = false)
-//	@Setter
-//	private Long typeId;
-
 	@Setter
 	@Enumerated(EnumType.STRING)
 	private EventCategoryEnum category;
