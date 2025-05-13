@@ -101,7 +101,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+      - name: dispatch application-secret 추가
+        env:
+          ACTIONS_STEP_DEBUG: true
+          APPLICATION_SECRET: ${{ secrets.DISPATCH_APPLICATION_SECRET }}
+        run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
       - name: set lower case owner name
         id: export_owner
         run: |
