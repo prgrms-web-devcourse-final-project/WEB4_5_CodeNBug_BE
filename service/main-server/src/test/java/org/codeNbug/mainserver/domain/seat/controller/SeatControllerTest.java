@@ -200,6 +200,32 @@ class SeatControllerTest {
 	}
 
 	@Test
+	@DisplayName("좌석 선택 실패 - 좌석 5개 이상 선택 시 404 반환")
+	void selectSeats_seatCountExceed_fail() throws Exception {
+		// given
+		Long eventId = 1L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(1L, 2L, 3L, 4L, 5L));
+		request.setTicketCount(5);
+
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new IllegalArgumentException("최대 4개의 좌석만 선택할 수 있습니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("최대 4개의 좌석만 선택할 수 있습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
 	@DisplayName("미지정석 선택 성공 - 200 반환")
 	void nonSelectSeats_success() throws Exception {
 		// given
