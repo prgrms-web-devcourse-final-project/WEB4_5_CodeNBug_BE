@@ -22,7 +22,7 @@ on:
 
 jobs:
   test:
-    if: inputs.runAll == true
+    if: inputs.buildAll == true
     services:
       redis:
         image: redis:7.0.8-alpine
@@ -71,7 +71,7 @@ jobs:
 
 
   makeTagAndReleaseServer:
-    if: inputs.runAll == true
+    if: inputs.buildAll == true
     runs-on: ubuntu-latest
     needs: test
     outputs:
@@ -100,11 +100,11 @@ jobs:
 
 
   buildImageAndPushMain:
-    if: inputs.runAll == true
+    if: inputs.buildAll == true
     permissions:
       contents: read
       packages: write
-    name: 도커 이미지 빌드와 푸시
+    name: 메인 이미지 빌드와 푸시
     needs: [ test, makeTagAndReleaseServer ]
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
@@ -148,11 +148,11 @@ jobs:
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest
 
   buildImageAndPushQueue:
-    if: inputs.runAll == true
+    if: inputs.buildAll == true
     permissions:
       contents: read
       packages: write
-    name: 도커 이미지 빌드와 푸시
+    name: 큐 이미지 빌드와 푸시
     needs: [ test, makeTagAndReleaseServer ]
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
@@ -197,11 +197,11 @@ jobs:
   
 
   buildImageAndPushDispatch:
-    if: inputs.runAll == true
+    if: inputs.buildAll == true
     permissions:
       contents: read
       packages: write
-    name: 도커 이미지 빌드와 푸시
+    name: 디스패치 이미지 빌드와 푸시
     needs: [ test, makeTagAndReleaseServer ]
     outputs:
       owner_lc: ${{ steps.export_owner.outputs.owner_lc }}
