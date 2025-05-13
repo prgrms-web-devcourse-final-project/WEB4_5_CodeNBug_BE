@@ -1,9 +1,6 @@
 name: 테스트 및 빌드
 
 on:
-  pull_request:
-    paths:
-      - "/**"
   workflow_dispatch:
     inputs:
       buildAll:
