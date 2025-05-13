@@ -346,7 +346,19 @@ public class AdminController {
     @RoleRequired(UserRole.ADMIN)
     @GetMapping("/tickets")
     public String ticketManagement(Model model) {
-        // TODO: 티켓 목록 조회 및 model.addAttribute("tickets", ...);
+        log.info(">> 티켓 관리 페이지 요청");
+        
+        try {
+            // 모든 티켓 목록 조회
+            List<org.codeNbug.mainserver.domain.admin.dto.response.TicketAdminDto> tickets = adminService.getAllTickets();
+            model.addAttribute("tickets", tickets);
+            
+            log.info(">> 티켓 목록 조회 성공: {} 개의 티켓", tickets.size());
+        } catch (Exception e) {
+            log.error(">> 티켓 목록 조회 실패: {}", e.getMessage(), e);
+            model.addAttribute("errorMessage", "티켓 목록을 불러오는 데 실패했습니다.");
+        }
+        
         return "admin/tickets";
     }
 

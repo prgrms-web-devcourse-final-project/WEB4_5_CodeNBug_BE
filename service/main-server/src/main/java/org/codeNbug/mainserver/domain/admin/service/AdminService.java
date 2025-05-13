@@ -7,6 +7,7 @@ import org.codeNbug.mainserver.domain.admin.dto.response.AdminSignupResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.DashboardStatsResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.EventAdminDto;
 import org.codeNbug.mainserver.domain.admin.dto.response.ModifyRoleResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.TicketAdminDto;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
@@ -350,6 +351,29 @@ public class AdminService {
         } catch (Exception e) {
             log.error(">> 이벤트 목록 조회 중 오류: {}", e.getMessage(), e);
             throw new RuntimeException("이벤트 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 모든 티켓 목록을 조회합니다.
+     * 
+     * @return 티켓 관리자 DTO 목록
+     */
+    @Transactional(readOnly = true)
+    public List<TicketAdminDto> getAllTickets() {
+        log.info(">> 모든 티켓 목록 조회");
+        
+        try {
+            // 모든 티켓 조회
+            List<TicketAdminDto> tickets = ticketRepository.findAllTicketsForAdmin();
+            log.debug(">> 티켓 목록 조회 완료: {} 개", tickets.size());
+            
+            log.info(">> 티켓 목록 조회 완료: {} 개의 티켓", tickets.size());
+            
+            return tickets;
+        } catch (Exception e) {
+            log.error(">> 티켓 목록 조회 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("티켓 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 } 

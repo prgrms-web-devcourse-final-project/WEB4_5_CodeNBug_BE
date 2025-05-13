@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.domain.ticket.repository;
 
 import java.util.List;
 
+import org.codeNbug.mainserver.domain.admin.dto.response.TicketAdminDto;
 import org.codeNbug.mainserver.domain.manager.dto.TicketDto;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,4 +30,17 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 	
 	@Query("SELECT COUNT(t) FROM Ticket t JOIN t.purchase p WHERE t.event.eventId = :eventId AND p.paymentStatus = org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum.DONE")
 	int countPaidTicketsByEventId(@Param("eventId") Long eventId);
+	
+	@Query("""
+    SELECT new org.codeNbug.mainserver.domain.admin.dto.response.TicketAdminDto(
+        t.id, e.eventId, e.information.title, u.name, u.email, u.phoneNum,
+        t.seatInfo, p.paymentStatus, p.amount, p.purchaseDate
+    )
+    FROM Ticket t
+    JOIN t.event e
+    JOIN t.purchase p
+    JOIN p.user u
+    ORDER BY p.purchaseDate DESC
+""")
+	List<TicketAdminDto> findAllTicketsForAdmin();
 }
