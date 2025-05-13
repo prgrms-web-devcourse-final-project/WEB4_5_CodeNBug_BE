@@ -1,9 +1,10 @@
-redis:
-  port: 6379
-  host: env-redis-1
-db:
-  url: jdbc:mysql://env-mysql-1:3306/ticketone
 spring:
+  data:
+    redis:
+      port: 6379
+      host: env-redis-1
+  datasource:
+    url: jdbc:mysql://env-mysql-1:3306/ticketone
   jpa:
     hibernate:
       ddl-auto: validate

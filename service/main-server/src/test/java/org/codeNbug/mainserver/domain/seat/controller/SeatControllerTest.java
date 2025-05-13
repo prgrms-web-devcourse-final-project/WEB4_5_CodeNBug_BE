@@ -5,7 +5,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
@@ -17,6 +16,7 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
 import org.codeNbug.mainserver.util.BaseTestUtil;
+import org.codeNbug.mainserver.util.TestUtil;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.json.JSONException;
@@ -29,24 +29,61 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redis.testcontainers.RedisContainer;
 
 import jakarta.transaction.Transactional;
 
 @SpringBootTest
-@Transactional
 @AutoConfigureMockMvc
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ActiveProfiles("test")
+@Testcontainers
+@Transactional
 class SeatControllerTest {
 	@Autowired
 	private BaseTestUtil baseTestUtil;
 
+	@Container
+	@ServiceConnection
+	static MySQLContainer<?> mysql =
+		new MySQLContainer<>("mysql:8.0.34")
+			.withDatabaseName("ticketoneTest")
+			.withUsername("test")
+			.withPassword("test");
+	@Container
+	@ServiceConnection
+	static RedisContainer redis =
+		new RedisContainer("redis:alpine")
+			.withExposedPorts(6379)
+			.waitingFor(Wait.forListeningPort());
+
+
+	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
+	// @DynamicPropertySource
+	// static void overrideProps(DynamicPropertyRegistry registry) {
+	//
+	// 	registry.add("spring.datasource.url", mysql::getJdbcUrl);
+	// 	registry.add("spring.datasource.username", mysql::getUsername);
+	// 	registry.add("spring.datasource.password", mysql::getPassword);
+	// 	registry.add("spring.redis.host", () -> redis.getHost());
+	// 	registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
+	// 	registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+	//
+	// }
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -78,6 +115,8 @@ class SeatControllerTest {
 	private static String testToken;
 	private static Event testEvent;
 	private static Seat availableSeat;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	@BeforeAll
 	public void setUpAll() throws JSONException {
@@ -89,13 +128,7 @@ class SeatControllerTest {
 
 	@AfterAll
 	void tearDown() {
-		seatRepository.deleteAll();
-		seatGradeRepository.deleteAll();
-		seatLayoutRepository.deleteAll();
-		eventRepository.deleteAll();
-		userRepository.deleteAll();
-
-		Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().flushAll();
+		TestUtil.truncateAllTables(jdbcTemplate);
 	}
 
 	@Test

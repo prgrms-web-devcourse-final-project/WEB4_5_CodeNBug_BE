@@ -1,0 +1,19 @@
+
+
+# Cookie Configuration for Production
+cookie:
+  domain: localhost  # 실제 프로덕션 도메인
+  secure: true  # HTTPS 필수
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create
+  datasource:
+    hikari:
+      max-lifetime: 30000
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
