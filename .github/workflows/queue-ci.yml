@@ -1,4 +1,4 @@
-name: 테스트 및 빌드
+name: 큐 테스트 및 빌드
 
 on:
   pull_request:
