@@ -1,9 +1,9 @@
-name: 큐 테스트 및 빌드
+name: dispatch module 테스트 및 빌드
 
 on:
   pull_request:
     paths:
-      - "service/queue-server/**"
+      - "service/message-dispatcher/**"
 
 jobs:
   test:
@@ -19,11 +19,7 @@ jobs:
           MYSQL_ROOT_PASSWORD: test
         ports:
           - 3306:3306
-    #        options: >-
-    #          --health-cmd="mysqladmin ping -h localhost"
-    #          --health-interval=10s
-    #          --health-timeout=5s
-    #          --health-retries=3
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +47,7 @@ jobs:
         run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
 
       - name: Run Tests
-        run: ./gradlew test
+        run: ./gradlew test -x jar
 
 
   makeTagAndReleaseServer:
@@ -79,6 +75,7 @@ jobs:
           body: ${{ steps.create_tag.outputs.changelog }}
           draft: false
           prerelease: false
+        continue-on-error: true
 
 
   buildImageAndPushMain:
@@ -113,13 +110,13 @@ jobs:
 
       - name: export image name
         id: export_image
-        run: echo "image_name=backend-queue-deploy" >> $GITHUB_OUTPUT
-      - name: 메인 서버 모듈 빌드 앤 푸시
+        run: echo "image_name=backend-dispatch-deploy" >> $GITHUB_OUTPUT
+      - name: 디스패치 서버 모듈 빌드 앤 푸시
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: service/queue-server/Dockerfile
+          file: service/message-dispatcher/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:latest
