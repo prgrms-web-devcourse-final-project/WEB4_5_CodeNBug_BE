@@ -10,14 +10,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class SeatLayoutResponse {
-
-	private final List<SeatDto> seats;
-	private final List<List<String>> layout;
+	private List<SeatDto> seats;
+	private List<List<String>> layout;
 
 	@Getter
 	@NoArgsConstructor
