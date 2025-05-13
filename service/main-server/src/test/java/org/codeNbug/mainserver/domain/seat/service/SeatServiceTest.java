@@ -152,7 +152,7 @@ class SeatServiceTest {
 	}
 
 	@Test
-	@DisplayName("지정석 선택 실패 - 이미 예매된 좌석")
+	@DisplayName("지정석 선택 실패 - 이미 선택된 좌석")
 	void selectSeat_fail_alreadyReserved() {
 		// given
 		ReflectionTestUtils.setField(event, "seatSelectable", true);
@@ -190,5 +190,58 @@ class SeatServiceTest {
 		assertThatThrownBy(() -> seatService.selectSeat(eventId, request, userId))
 			.isInstanceOf(BadRequestException.class)
 			.hasMessageContaining("최대 4개의 좌석만 선택할 수 있습니다.");
+	}
+
+	@Test
+	@DisplayName("미지정석 선택 성공")
+	void nonSelectSeat_success() {
+		// given
+		ReflectionTestUtils.setField(event, "seatSelectable", false); // 미지정석
+
+		given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+		given(seatRepository.findAvailableSeatsByEventId(eventId)).willReturn(List.of(seat1, seat2));
+		given(redisLockService.tryLock(any(), any(), any())).willReturn(true);
+
+		SeatSelectRequest request = new SeatSelectRequest(null, 2); // 미지정석 예매 시 좌석 목록은 null
+
+		// when
+		SeatSelectResponse result = seatService.selectSeat(eventId, request, userId);
+
+		// then
+		assertThat(result).isNotNull();
+	}
+
+	@Test
+	@DisplayName("미지정석 선택 실패 - 좌석 목록 전달")
+	void nonSelectSeat_withSeats_fail() {
+		// given
+		ReflectionTestUtils.setField(event, "seatSelectable", false); // 미지정석
+
+		given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+
+		// 좌석 목록이 전달된 경우 예외 발생
+		SeatSelectRequest request = new SeatSelectRequest(List.of(1L, 2L), 2);
+
+		// when & then
+		assertThatThrownBy(() -> seatService.selectSeat(eventId, request, userId))
+			.isInstanceOf(BadRequestException.class)
+			.hasMessageContaining("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
+	}
+
+	@Test
+	@DisplayName("미지정석 선택 실패 - 좌석 부족")
+	void nonSelectSeat_insufficientSeats_fail() {
+		// given
+		ReflectionTestUtils.setField(event, "seatSelectable", false); // 미지정석
+		given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
+		given(seatRepository.findAvailableSeatsByEventId(eventId)).willReturn(List.of(seat1));
+
+		// 미지정석 예매 시 좌석 목록은 null
+		SeatSelectRequest request = new SeatSelectRequest(null, 2);
+
+		// when & then
+		assertThatThrownBy(() -> seatService.selectSeat(eventId, request, userId))
+			.isInstanceOf(ConflictException.class)
+			.hasMessageContaining("[selectSeats] 예매 가능한 좌석 수가 부족합니다.");
 	}
 }

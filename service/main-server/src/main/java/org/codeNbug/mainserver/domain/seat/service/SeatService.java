@@ -77,15 +77,19 @@ public class SeatService {
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
 		List<Long> selectedSeats = seatSelectRequest.getSeatList();
-		if (selectedSeats.size() > 4) {
-			throw new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다.");
-		}
 
 		if (event.getSeatSelectable()) {
 			// 지정석 예매 처리
+			if (selectedSeats != null && selectedSeats.size() > 4) {
+				throw new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다.");
+			}
+
 			selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
 		} else {
 			// 미지정석 예매 처리
+			if (selectedSeats != null && !selectedSeats.isEmpty()) {
+				throw new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
+			}
 			selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
 		}
 
@@ -119,10 +123,6 @@ public class SeatService {
 			}
 		} else {
 			// 미지정석 예매 처리
-			if (selectedSeats != null && !selectedSeats.isEmpty()) {
-				throw new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
-			}
-
 			List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(eventId)
 				.stream()
 				.limit(ticketCount)
