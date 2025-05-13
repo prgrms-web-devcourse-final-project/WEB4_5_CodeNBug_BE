@@ -148,7 +148,7 @@ jobs:
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest
 
   buildImageAndPushQueue:
-    if: inputs.runAll == true && inputs.
+    if: inputs.runAll == true
     permissions:
       contents: read
       packages: write
