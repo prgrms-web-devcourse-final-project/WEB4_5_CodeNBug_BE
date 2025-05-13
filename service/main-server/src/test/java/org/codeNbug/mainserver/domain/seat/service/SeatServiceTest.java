@@ -8,6 +8,7 @@ import java.util.Optional;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
@@ -243,5 +244,53 @@ class SeatServiceTest {
 		assertThatThrownBy(() -> seatService.selectSeat(eventId, request, userId))
 			.isInstanceOf(ConflictException.class)
 			.hasMessageContaining("[selectSeats] 예매 가능한 좌석 수가 부족합니다.");
+	}
+
+	@Test
+	@DisplayName("좌석 취소 성공")
+	void cancelSeat_success() {
+		// given
+		Seat seat = seat1;
+		given(seatRepository.findById(seat.getId())).willReturn(Optional.of(seat));
+		given(redisLockService.getLockValue(any())).willReturn("lock-value");
+		given(redisLockService.unlock(any(), any())).willReturn(true);
+
+		SeatCancelRequest cancelRequest = new SeatCancelRequest(List.of(seat.getId()));
+
+		// when
+		assertThatCode(() -> seatService.cancelSeat(eventId, cancelRequest, userId))
+			.doesNotThrowAnyException();
+	}
+
+	@Test
+	@DisplayName("좌석 취소 실패 - 좌석 존재하지 않음")
+	void cancelSeat_fail_seatNotFound() {
+		// given
+		given(redisLockService.getLockValue(any())).willReturn("lock-value");
+		given(redisLockService.unlock(any(), any())).willReturn(true);
+		given(seatRepository.findById(any())).willReturn(Optional.empty());
+
+		SeatCancelRequest cancelRequest = new SeatCancelRequest(List.of(999L));
+
+		// when & then
+		assertThatThrownBy(() -> seatService.cancelSeat(eventId, cancelRequest, userId))
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("좌석을 찾을 수 없습니다");
+	}
+
+	@Test
+	@DisplayName("좌석 취소 실패 - Redis 락 해제 실패")
+	void cancelSeat_fail_unlockFailure() {
+		// given
+		Seat seat = seat1;
+		given(redisLockService.getLockValue(any())).willReturn("lock-value");
+		given(redisLockService.unlock(any(), any())).willReturn(false);
+
+		SeatCancelRequest cancelRequest = new SeatCancelRequest(List.of(seat.getId()));
+
+		// when & then
+		assertThatThrownBy(() -> seatService.cancelSeat(eventId, cancelRequest, userId))
+			.isInstanceOf(BadRequestException.class)
+			.hasMessageContaining("좌석 락을 해제할 수 없습니다.");
 	}
 }

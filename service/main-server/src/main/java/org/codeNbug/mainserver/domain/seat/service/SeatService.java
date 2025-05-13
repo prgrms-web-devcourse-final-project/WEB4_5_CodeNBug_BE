@@ -83,7 +83,6 @@ public class SeatService {
 			if (selectedSeats != null && selectedSeats.size() > 4) {
 				throw new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다.");
 			}
-
 			selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
 		} else {
 			// 미지정석 예매 처리
