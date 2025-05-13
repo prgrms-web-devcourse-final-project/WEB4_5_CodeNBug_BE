@@ -12,7 +12,7 @@ import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.security.service.CustomUserDetails;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -67,8 +67,8 @@ class SeatControllerTest {
 		}
 	}
 
-	@BeforeAll
-	static void beforeAll() {
+	@BeforeEach
+	void setUpSecurityContext() {
 		User user = User.builder()
 			.userId(1L)
 			.email("test@codenbug.org")
@@ -135,7 +135,26 @@ class SeatControllerTest {
 			.andExpect(jsonPath("$.data.layout[1][1]").value("B2"))
 			.andReturn();
 
-		System.out.println("좌석 조회 응답: " + result.getResponse().getContentAsString());
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 조회 실패 - 존재하지 않는 행사 404 반환")
+	void getSeats_eventNotFound_fail() throws Exception {
+		// given
+		Long invalidEventId = 999L;
+
+		given(seatService.getSeatLayout(eq(invalidEventId), anyLong()))
+			.willThrow(new IllegalArgumentException("행사가 존재하지 않습니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(get("/api/v1/event/{eventId}/seats", invalidEventId))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("행사가 존재하지 않습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
 	}
 
 	// @Test
@@ -143,15 +162,18 @@ class SeatControllerTest {
 	// void selectSeats_success() throws Exception {
 	// 	// given
 	// 	SeatSelectRequest request = new SeatSelectRequest();
-	// 	request.setSeatList(List.of(101L));
-	// 	request.setTicketCount(1);
+	// 	request.setSeatList(List.of(101L, 102L));
+	// 	request.setTicketCount(2);
 	//
-	// 	given(seatService.selectSeat(anyLong(), any(SeatSelectRequest.class), anyString()))
-	// 		.willReturn(new ApiResponse<>(200, "좌석 선택 성공", null));
+	// 	// eventId에 대한 stubbing
+	// 	Long eventId = 2L;
+	//
+	// 	SeatSelectResponse response = new SeatSelectResponse(List.of(101L, 102L));
+	// 	given(seatService.selectSeat(eventId, any(SeatSelectRequest.class), anyLong()))
+	// 		.willReturn(response);
 	//
 	// 	// when & then
-	// 	mockMvc.perform(post("/api/v1/event/1/seats")
-	// 			.header("Authorization", "Bearer testToken")
+	// 	mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
 	// 			.header("entryAuthToken", "testToken")
 	// 			.contentType(MediaType.APPLICATION_JSON)
 	// 			.content(objectMapper.writeValueAsString(request)))
