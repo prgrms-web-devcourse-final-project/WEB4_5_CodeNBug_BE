@@ -10,7 +10,6 @@ import java.util.List;
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
-import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
 import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
 import org.codenbug.user.domain.user.entity.User;
@@ -52,9 +51,6 @@ class SeatControllerTest {
 	private SeatService seatService;
 
 	@Autowired
-	private RedisLockService redisLockService;
-
-	@Autowired
 	private EntryTokenValidator entryTokenValidator;
 
 	private HashOperations<String, Object, Object> hashOperations;
@@ -73,11 +69,6 @@ class SeatControllerTest {
 			when(redisTemplate.opsForHash()).thenReturn(hashOps);
 			when(hashOps.get("ENTRY_TOKEN", "1")).thenReturn("testToken");
 			return redisTemplate;
-		}
-
-		@Bean
-		public RedisLockService redisLockService() {
-			return Mockito.mock(RedisLockService.class);
 		}
 
 		@Bean
@@ -180,14 +171,12 @@ class SeatControllerTest {
 	}
 
 	@Test
-	@DisplayName("좌석 선택 성공 - 200 반환")
+	@DisplayName("지정석 선택 성공 - 200 반환")
 	void selectSeats_success() throws Exception {
 		// given
 		SeatSelectRequest request = new SeatSelectRequest();
 		request.setSeatList(List.of(101L, 102L));
 		request.setTicketCount(2);
-
-		// eventId에 대한 stubbing
 		Long eventId = 2L;
 
 		// 실제 로직을 타지 않게
@@ -197,14 +186,47 @@ class SeatControllerTest {
 		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
 
 		// when & then
-		mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
 				.header("entryAuthToken", "testToken")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request))
 				.with(csrf()))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.code").value(200))
-			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"));
+			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("미지정석 선택 성공 - 200 반환")
+	void nonSelectSeats_success() throws Exception {
+		// given
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of()); // 빈 좌석 목록
+		request.setTicketCount(2);
+
+		Long eventId = 2L;
+
+		SeatSelectResponse response = new SeatSelectResponse(List.of(201L, 202L));
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willReturn(response);
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value(200))
+			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"))
+			.andExpect(jsonPath("$.data.seatList").isArray())
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
 	}
 	//
 	// @Test
