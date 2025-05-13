@@ -1,17 +1,21 @@
 package org.codeNbug.mainserver.domain.seat.controller;
 
 import static org.mockito.BDDMockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.List;
 
 import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
+import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
+import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
 import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
 import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.security.service.CustomUserDetails;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +25,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,7 +45,8 @@ class SeatControllerTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
-	// private static StringRedisTemplate redisTemplate;
+	@Autowired
+	private StringRedisTemplate redisTemplate;
 
 	@Autowired
 	private SeatService seatService;
@@ -49,11 +57,22 @@ class SeatControllerTest {
 	@Autowired
 	private EntryTokenValidator entryTokenValidator;
 
+	private HashOperations<String, Object, Object> hashOperations;
+
 	@TestConfiguration
 	static class MockBeans {
 		@Bean
 		public SeatService seatService() {
 			return Mockito.mock(SeatService.class);
+		}
+
+		@Bean
+		public StringRedisTemplate stringRedisTemplate() {
+			StringRedisTemplate redisTemplate = Mockito.mock(StringRedisTemplate.class);
+			HashOperations<String, Object, Object> hashOps = Mockito.mock(HashOperations.class);
+			when(redisTemplate.opsForHash()).thenReturn(hashOps);
+			when(hashOps.get("ENTRY_TOKEN", "1")).thenReturn("testToken");
+			return redisTemplate;
 		}
 
 		@Bean
@@ -90,10 +109,12 @@ class SeatControllerTest {
 		SecurityContextHolder.getContext().setAuthentication(auth);
 	}
 
-	// @AfterAll
-	// static void tearDown() {
-	// 	Objects.requireNonNull(redisTemplate.getConnectionFactory()).getConnection().flushAll();
-	// }
+	@AfterEach
+	void tearDown() {
+		if (redisTemplate.getConnectionFactory() != null) {
+			redisTemplate.getConnectionFactory().getConnection().flushAll();
+		}
+	}
 
 	@Test
 	@DisplayName("좌석 조회 성공 - 200 반환")
@@ -144,6 +165,7 @@ class SeatControllerTest {
 		// given
 		Long invalidEventId = 999L;
 
+		// 실제 로직을 타지 않게
 		given(seatService.getSeatLayout(eq(invalidEventId), anyLong()))
 			.willThrow(new IllegalArgumentException("행사가 존재하지 않습니다."));
 
@@ -157,30 +179,33 @@ class SeatControllerTest {
 		System.out.println(result.getResponse().getContentAsString());
 	}
 
-	// @Test
-	// @DisplayName("좌석 선택 - 성공")
-	// void selectSeats_success() throws Exception {
-	// 	// given
-	// 	SeatSelectRequest request = new SeatSelectRequest();
-	// 	request.setSeatList(List.of(101L, 102L));
-	// 	request.setTicketCount(2);
-	//
-	// 	// eventId에 대한 stubbing
-	// 	Long eventId = 2L;
-	//
-	// 	SeatSelectResponse response = new SeatSelectResponse(List.of(101L, 102L));
-	// 	given(seatService.selectSeat(eventId, any(SeatSelectRequest.class), anyLong()))
-	// 		.willReturn(response);
-	//
-	// 	// when & then
-	// 	mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
-	// 			.header("entryAuthToken", "testToken")
-	// 			.contentType(MediaType.APPLICATION_JSON)
-	// 			.content(objectMapper.writeValueAsString(request)))
-	// 		.andExpect(status().isOk())
-	// 		.andExpect(jsonPath("$.code").value(200))
-	// 		.andExpect(jsonPath("$.msg").value("좌석 선택 성공"));
-	// }
+	@Test
+	@DisplayName("좌석 선택 성공 - 200 반환")
+	void selectSeats_success() throws Exception {
+		// given
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(101L, 102L));
+		request.setTicketCount(2);
+
+		// eventId에 대한 stubbing
+		Long eventId = 2L;
+
+		// 실제 로직을 타지 않게
+		SeatSelectResponse response = new SeatSelectResponse(List.of(101L, 102L));
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willReturn(response);
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value(200))
+			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"));
+	}
 	//
 	// @Test
 	// @DisplayName("좌석 취소 - 성공")
