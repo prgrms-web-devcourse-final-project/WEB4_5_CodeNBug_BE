@@ -14,12 +14,15 @@ import org.codenbug.common.util.Util;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Value;
 
 /**
  * DTO for {@link org.codeNbug.mainserver.domain.event.entity.Event}
  */
-@Value
+@Getter
+@NoArgsConstructor
 public class EventInfoResponse implements Serializable {
 
 	SeatLayoutDto seatLayout;

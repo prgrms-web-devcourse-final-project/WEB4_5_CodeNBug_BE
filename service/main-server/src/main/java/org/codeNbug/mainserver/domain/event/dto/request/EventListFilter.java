@@ -2,14 +2,25 @@ package org.codeNbug.mainserver.domain.event.dto.request;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
+import org.codeNbug.mainserver.domain.event.entity.CostRange;
+import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
+import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
+import org.codeNbug.mainserver.domain.event.entity.Location;
+import org.codeNbug.mainserver.domain.event.entity.QEvent;
+import org.codeNbug.mainserver.domain.event.entity.ValidDateRange;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.codeNbug.mainserver.domain.event.entity.*;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
+
+import jakarta.validation.Valid;
 import lombok.Getter;
 
 @Getter
+@ValidDateRange
 public class EventListFilter {
+	@Valid
 	private CostRange costRange;
 	private List<Location> locationList;
 	private List<EventCategoryEnum> eventCategoryList;
