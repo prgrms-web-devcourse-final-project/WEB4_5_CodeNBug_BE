@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "service/message-dispatcher/**"
+      - "service/common/**"
+      - "service/user/**"
 
 jobs:
   test:

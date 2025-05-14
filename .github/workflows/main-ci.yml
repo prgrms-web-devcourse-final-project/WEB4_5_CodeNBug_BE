@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "service/main-server/**"
+      - "service/common/**"
+      - "service/user/**"
 
 jobs:
   test:
