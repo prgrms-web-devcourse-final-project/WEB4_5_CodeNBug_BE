@@ -249,20 +249,17 @@ class NotificationRealTimeServiceTest {
 
         NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content);
 
-        // emitterService 설정 - 사용자가 연결되어 있음
-        SseEmitter mockEmitter = mock(SseEmitter.class);
+        // 직접적인 예외 발생 시나리오 구성
+        NotificationEmitterService mockEmitterService = mock(NotificationEmitterService.class);
+        doThrow(new RuntimeException("전송 실패")).when(mockEmitterService).sendNotification(eq(userId), any(NotificationDto.class));
 
-        // send 메서드 호출 시 예외 발생하도록 설정
-        doThrow(new IOException("전송 실패")).when(mockEmitter).send(any(SseEventBuilder.class));
+        // 테스트 대상 객체의 emitterService 필드를 목으로 교체
+        java.lang.reflect.Field emitterServiceField = NotificationEventService.class.getDeclaredField("emitterService");
+        emitterServiceField.setAccessible(true);
+        emitterServiceField.set(notificationEventService, mockEmitterService);
 
-        // userConnectionsMap에 연결 추가 (테스트 설정)
-        java.lang.reflect.Field field = NotificationEmitterService.class.getDeclaredField(USER_CONNECTIONS_MAP_FIELD);
-        field.setAccessible(true);
-        Map<Long, List<NotificationSseConnection>> map = (Map<Long, List<NotificationSseConnection>>) field.get(emitterService);
-
-        // NotificationSseConnection 생성 및 userConnectionsMap에 추가
-        NotificationSseConnection connection = new NotificationSseConnection(userId, mockEmitter, null);
-        map.put(userId, new CopyOnWriteArrayList<>(Arrays.asList(connection)));
+        // emitterService.isConnected를 목킹하여 true 반환하도록 설정
+        when(mockEmitterService.isConnected(eq(userId))).thenReturn(true);
 
         // 알림 조회 결과 모킹
         Notification notification = createNotification(notificationId, userId, type, content);
@@ -272,8 +269,13 @@ class NotificationRealTimeServiceTest {
         notificationEventService.handleNotificationCreatedEvent(eventDto);
 
         // then
-        verify(notificationRepository, times(1)).findById(eq(notificationId));
-        verify(notificationRepository, times(1)).save(any(Notification.class));
+        // 알림 상태가 FAILED로 변경되었는지 확인
+        verify(notificationRepository, times(2)).findById(eq(notificationId));
+
+        // FAILED 상태로 업데이트 호출 확인
+        ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository, times(1)).save(notificationCaptor.capture());
+        assertEquals(NotificationStatus.FAILED, notificationCaptor.getValue().getStatus());
     }
 
     @Test
