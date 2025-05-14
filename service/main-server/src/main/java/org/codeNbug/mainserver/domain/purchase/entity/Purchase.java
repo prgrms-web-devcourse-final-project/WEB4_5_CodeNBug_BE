@@ -42,6 +42,7 @@ public class Purchase {
 
 	private String paymentUuid;
 
+	@Setter
 	private Integer amount;
 
 	@Enumerated(EnumType.STRING)
