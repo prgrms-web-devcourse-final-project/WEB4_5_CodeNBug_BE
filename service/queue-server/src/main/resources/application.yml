@@ -75,3 +75,13 @@ cors:
 allowed:
   redirect:
     domains: localhost:3001,localhost:9000,code-bug.vercel.app
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true
