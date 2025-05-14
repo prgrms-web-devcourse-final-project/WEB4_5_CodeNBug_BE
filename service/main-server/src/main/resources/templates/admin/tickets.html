@@ -18,6 +18,36 @@
             <span th:text="${errorMessage}">오류 메시지</span>
         </div>
 
+        <!-- 필터링 옵션 -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">필터링</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">이벤트</label>
+                        <select class="form-select" name="eventId">
+                            <option value="">모든 이벤트</option>
+                            <!-- 이벤트 목록 추가 예정 -->
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">결제 상태</label>
+                        <select class="form-select" name="paymentStatus">
+                            <option value="">모든 상태</option>
+                            <option value="DONE">결제 완료</option>
+                            <option value="WAITING">결제 대기</option>
+                            <option value="CANCELED">취소됨</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">필터 적용</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- 티켓 목록 -->
         <div class="card">
             <div class="card-header bg-white">
@@ -30,34 +60,48 @@
                             <tr>
                                 <th>티켓 ID</th>
                                 <th>이벤트</th>
-                                <th>구매자</th>
+                                <th>사용자</th>
+                                <th>연락처</th>
                                 <th>좌석 정보</th>
-                                <th>구매일</th>
-                                <th>상태</th>
+                                <th>결제 상태</th>
+                                <th>결제 금액</th>
+                                <th>구매 일시</th>
                                 <th>작업</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr th:if="${tickets == null || tickets.isEmpty()}">
-                                <td colspan="7" class="text-center py-4 text-muted">
+                                <td colspan="9" class="text-center py-4 text-muted">
                                     등록된 티켓이 없습니다.
                                 </td>
                             </tr>
                             <tr th:each="ticket : ${tickets}">
-                                <td th:text="${ticket.id}">1</td>
-                                <td th:text="${ticket.event.information.title}">이벤트 제목</td>
-                                <td th:text="${ticket.purchase.user.name}">구매자</td>
-                                <td th:text="${ticket.seatInfo}">좌석 정보</td>
-                                <td th:text="${#temporals.format(ticket.createdAt, 'yyyy-MM-dd HH:mm')}">구매일</td>
-                                <td th:text="${ticket.purchase.paymentStatus}">상태</td>
+                                <td th:text="${ticket.ticketId}">1</td>
+                                <td>
+                                    <a th:href="@{/admin/events/{id}(id=${ticket.eventId})}" th:text="${ticket.eventTitle}">이벤트 제목</a>
+                                </td>
+                                <td>
+                                    <span th:text="${ticket.userName}">사용자 이름</span>
+                                    <br>
+                                    <small class="text-muted" th:text="${ticket.userEmail}">이메일</small>
+                                </td>
+                                <td th:text="${ticket.phoneNumber}">010-1234-5678</td>
+                                <td th:text="${ticket.seatInfo}">A-1</td>
+                                <td>
+                                    <span th:class="${ticket.paymentStatus.name() == 'DONE' ? 'badge bg-success' : (ticket.paymentStatus.name() == 'WAITING' ? 'badge bg-warning' : 'badge bg-danger')}" 
+                                          th:text="${ticket.paymentStatus}">결제 상태</span>
+                                </td>
+                                <td th:text="${#numbers.formatInteger(ticket.amount, 0, 'COMMA') + '원'}">10,000원</td>
+                                <td th:text="${#temporals.format(ticket.purchaseDate, 'yyyy-MM-dd HH:mm')}">2023-01-01 12:30</td>
                                 <td>
                                     <div class="btn-group">
-                                        <a th:href="@{/admin/tickets/{id}(id=${ticket.id})}" class="btn btn-sm btn-primary">
+                                        <a th:href="@{/admin/tickets/{id}(id=${ticket.ticketId})}" class="btn btn-sm btn-primary">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <button type="button" class="btn btn-sm btn-danger" 
-                                                th:onclick="'refundTicket(' + ${ticket.id} + ')'">
-                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                                th:if="${ticket.paymentStatus.name() == 'DONE'}"
+                                                th:onclick="'cancelTicket(' + ${ticket.ticketId} + ')'">
+                                            <i class="bi bi-x-circle"></i>
                                         </button>
                                     </div>
                                 </td>
@@ -71,24 +115,27 @@
 
     <div th:replace="admin/fragments/layout :: scripts"></div>
     <script>
-        function refundTicket(ticketId) {
-            if (confirm('정말로 이 티켓을 환불하시겠습니까?')) {
-                fetch(`/admin/tickets/${ticketId}/refund`, {
+        function cancelTicket(ticketId) {
+            if (confirm('정말로 이 티켓을 취소하시겠습니까? 환불 처리가 진행됩니다.')) {
+                fetch(`/admin/tickets/${ticketId}/cancel`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({
+                        cancelReason: '관리자에 의한 취소'
+                    })
                 })
                 .then(response => {
                     if (response.ok) {
                         window.location.reload();
                     } else {
-                        alert('티켓 환불에 실패했습니다.');
+                        alert('티켓 취소에 실패했습니다.');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('티켓 환불 중 오류가 발생했습니다.');
+                    alert('티켓 취소 중 오류가 발생했습니다.');
                 });
             }
         }

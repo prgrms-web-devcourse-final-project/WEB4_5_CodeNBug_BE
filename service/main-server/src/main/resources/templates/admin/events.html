@@ -12,6 +12,16 @@
             <h4 class="mb-0">이벤트 관리</h4>
         </div>
 
+        <!-- 탭 UI -->
+        <ul class="nav nav-tabs mb-3" id="eventTabs">
+            <li class="nav-item">
+                <a class="nav-link active" id="tab-list" href="#" onclick="showTab('list')">이벤트 목록</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="tab-deleted" href="#" onclick="showTab('deleted')">삭제된 이벤트</a>
+            </li>
+        </ul>
+
         <!-- 오류 메시지 표시 -->
         <div th:if="${errorMessage}" class="alert alert-danger mb-4" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
@@ -19,7 +29,7 @@
         </div>
 
         <!-- 이벤트 목록 -->
-        <div class="card">
+        <div class="card" id="event-list-tab">
             <div class="card-header bg-white">
                 <h5 class="mb-0">이벤트 목록</h5>
             </div>
@@ -40,37 +50,40 @@
                                 <th>작업</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr th:if="${events == null || events.isEmpty()}">
-                                <td colspan="10" class="text-center py-4 text-muted">
-                                    등록된 이벤트가 없습니다.
-                                </td>
+                        <tbody id="event-list-tbody">
+                            <!-- JS로 동적 렌더링 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 삭제된 이벤트 목록 -->
+        <div class="card d-none" id="event-deleted-tab">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">삭제된 이벤트</h5>
+                <button class="btn btn-danger btn-sm" onclick="bulkHideRows()" id="bulkDeleteBtn" style="display:none;">일괄 삭제</button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllDeleted" onclick="toggleSelectAll(this)"></th>
+                                <th>ID</th>
+                                <th>제목</th>
+                                <th>카테고리</th>
+                                <th>시작일</th>
+                                <th>종료일</th>
+                                <th>총 티켓</th>
+                                <th>판매된 티켓</th>
+                                <th>남은 티켓</th>
+                                <th>상태</th>
+                                <th>작업</th>
                             </tr>
-                            <tr th:each="event : ${events}">
-                                <td th:text="${event.eventId}">1</td>
-                                <td th:text="${event.information.title}">이벤트 제목</td>
-                                <td th:text="${event.category}">카테고리</td>
-                                <td th:text="${#temporals.format(event.information.eventStart, 'yyyy-MM-dd HH:mm')}">시작일</td>
-                                <td th:text="${#temporals.format(event.information.eventEnd, 'yyyy-MM-dd HH:mm')}">종료일</td>
-                                <td th:text="${event.information.seatCount}">총 티켓</td>
-                                <td th:text="${event.soldTickets}">판매된 티켓</td>
-                                <td th:text="${event.information.seatCount - event.soldTickets}">남은 티켓</td>
-                                <td th:text="${event.status}">상태</td>
-                                <td>
-                                    <div class="btn-group">
-                                        <a th:href="@{/admin/events/{id}(id=${event.eventId})}" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a th:href="@{/admin/events/{id}/edit(id=${event.eventId})}" class="btn btn-sm btn-warning">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-danger" 
-                                                th:onclick="'deleteEvent(' + ${event.eventId} + ')'">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                        </thead>
+                        <tbody id="event-deleted-tbody">
+                            <!-- JS로 동적 렌더링 -->
                         </tbody>
                     </table>
                 </div>
@@ -80,17 +93,103 @@
 
     <div th:replace="admin/fragments/layout :: scripts"></div>
     <script>
+        // 탭 전환 함수
+        function showTab(tab) {
+            document.getElementById('tab-list').classList.remove('active');
+            document.getElementById('tab-deleted').classList.remove('active');
+            document.getElementById('event-list-tab').classList.add('d-none');
+            document.getElementById('event-deleted-tab').classList.add('d-none');
+            if (tab === 'list') {
+                document.getElementById('tab-list').classList.add('active');
+                document.getElementById('event-list-tab').classList.remove('d-none');
+            } else {
+                document.getElementById('tab-deleted').classList.add('active');
+                document.getElementById('event-deleted-tab').classList.remove('d-none');
+            }
+        }
+
+        // 이벤트 목록 불러오기
+        function loadEventList() {
+            fetch('/admin/api/events')
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('event-list-tbody');
+                    tbody.innerHTML = '';
+                    (data.events || []).forEach(event => {
+                        tbody.innerHTML += renderEventRow(event, false);
+                    });
+                });
+        }
+        // 삭제된 이벤트 목록 불러오기
+        function loadDeletedEventList() {
+            fetch('/admin/api/events/deleted')
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('event-deleted-tbody');
+                    tbody.innerHTML = '';
+                    (data.data || []).forEach(event => {
+                        tbody.innerHTML += renderEventRow(event, true);
+                    });
+                    // 체크박스/버튼 상태 초기화
+                    document.getElementById('bulkDeleteBtn').style.display = 'none';
+                    document.getElementById('selectAllDeleted').checked = false;
+                });
+        }
+        // 테이블 행 렌더링 함수
+        function renderEventRow(event, isDeleted) {
+            if (isDeleted) {
+                let hidden = JSON.parse(localStorage.getItem('hiddenDeletedEvents') || '[]');
+                if (hidden.includes(event.eventId)) return '';
+            }
+            return `<tr>
+                ${isDeleted ? `<td><input type='checkbox' class='row-checkbox' value='${event.eventId}' onchange='onRowCheckboxChange()'></td>` : ''}
+                <td>${event.eventId}</td>
+                <td>${event.title}</td>
+                <td>${event.category}</td>
+                <td>${formatDate(event.eventStart)}</td>
+                <td>${formatDate(event.eventEnd)}</td>
+                <td>${event.seatCount}</td>
+                <td>${event.soldTickets}</td>
+                <td>${event.seatCount - event.soldTickets}</td>
+                <td>${event.status}</td>
+                <td>
+                    <div class="btn-group">
+                        <a href="/admin/events/${event.eventId}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        ${!isDeleted ? `<a href="/admin/events/${event.eventId}/edit" class="btn btn-sm btn-warning">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteEvent(${event.eventId})">
+                            <i class="bi bi-trash"></i>
+                        </button>` : `
+                        <button type="button" class="btn btn-sm btn-success" onclick="restoreEvent(${event.eventId})">
+                            <i class="bi bi-arrow-counterclockwise"></i> 복구
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="hideRow(this, ${event.eventId})">
+                            <i class="bi bi-x"></i>
+                        </button>`}
+                    </div>
+                </td>
+            </tr>`;
+        }
+        // 날짜 포맷 함수
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+        }
+        // 삭제 함수
         function deleteEvent(eventId) {
             if (confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
                 fetch(`/admin/events/${eventId}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 })
                 .then(response => {
                     if (response.ok) {
-                        window.location.reload();
+                        loadEventList();
+                        loadDeletedEventList();
                     } else {
                         alert('이벤트 삭제에 실패했습니다.');
                     }
@@ -101,6 +200,70 @@
                 });
             }
         }
+        // 복구 함수
+        function restoreEvent(eventId) {
+            if (confirm('이 이벤트를 복구하시겠습니까?')) {
+                fetch(`/admin/api/events/${eventId}/restore?status=OPEN`, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        loadEventList();
+                        loadDeletedEventList();
+                    } else {
+                        alert('이벤트 복구에 실패했습니다.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('이벤트 복구 중 오류가 발생했습니다.');
+                });
+            }
+        }
+        // 브라우저에서만 행 숨기기
+        function hideRow(btn, eventId) {
+            if (confirm('이 이벤트를 목록에서 숨기시겠습니까? (다시 보려면 브라우저 저장소를 비워야 합니다)')) {
+                let hidden = JSON.parse(localStorage.getItem('hiddenDeletedEvents') || '[]');
+                if (!hidden.includes(eventId)) hidden.push(eventId);
+                localStorage.setItem('hiddenDeletedEvents', JSON.stringify(hidden));
+                btn.closest('tr').style.display = 'none';
+            }
+        }
+        // 모두 선택 체크박스 제어
+        function toggleSelectAll(allCb) {
+            const checkboxes = document.querySelectorAll('#event-deleted-tbody .row-checkbox');
+            checkboxes.forEach(cb => cb.checked = allCb.checked);
+            onRowCheckboxChange();
+        }
+        // 개별 체크박스 변경 시 일괄삭제 버튼 표시/숨김
+        function onRowCheckboxChange() {
+            const checkboxes = document.querySelectorAll('#event-deleted-tbody .row-checkbox');
+            const checked = Array.from(checkboxes).filter(cb => cb.checked);
+            document.getElementById('bulkDeleteBtn').style.display = checked.length > 0 ? '' : 'none';
+            // 모두 선택 체크박스 상태 동기화
+            const allCb = document.getElementById('selectAllDeleted');
+            allCb.checked = checked.length === checkboxes.length && checkboxes.length > 0;
+        }
+        // 일괄 삭제 함수
+        function bulkHideRows() {
+            if (!confirm('선택한 이벤트를 목록에서 모두 숨기시겠습니까? (다시 보려면 브라우저 저장소를 비워야 합니다)')) return;
+            const checkboxes = document.querySelectorAll('#event-deleted-tbody .row-checkbox:checked');
+            let hidden = JSON.parse(localStorage.getItem('hiddenDeletedEvents') || '[]');
+            checkboxes.forEach(cb => {
+                const eventId = Number(cb.value);
+                if (!hidden.includes(eventId)) hidden.push(eventId);
+                cb.closest('tr').style.display = 'none';
+            });
+            localStorage.setItem('hiddenDeletedEvents', JSON.stringify(hidden));
+            document.getElementById('bulkDeleteBtn').style.display = 'none';
+            document.getElementById('selectAllDeleted').checked = false;
+        }
+        // 초기 로딩
+        document.addEventListener('DOMContentLoaded', function() {
+            showTab('list');
+            loadEventList();
+            loadDeletedEventList();
+        });
     </script>
 </body>
 </html> 

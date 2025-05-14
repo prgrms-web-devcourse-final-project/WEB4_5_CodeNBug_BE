@@ -5,10 +5,18 @@ import org.codeNbug.mainserver.domain.admin.dto.request.AdminSignupRequest;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminLoginResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminSignupResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.DashboardStatsResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.EventAdminDto;
 import org.codeNbug.mainserver.domain.admin.dto.response.ModifyRoleResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.TicketAdminDto;
 import org.codeNbug.mainserver.domain.event.entity.Event;
+import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
+import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
+import org.codeNbug.mainserver.domain.notification.service.NotificationService;
+import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
+import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
@@ -23,9 +31,11 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 관리자 관련 서비스
@@ -41,6 +51,8 @@ public class AdminService {
     private final TicketRepository ticketRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final NotificationService notificationService;
+    private final PurchaseRepository purchaseRepository;
 
     /**
      * 관리자 회원가입 서비스
@@ -313,5 +325,262 @@ public class AdminService {
         // 사용자 타입이 유효하지 않은 경우
         log.error(">> 유효하지 않은 사용자 타입: {}", userType);
         throw new IllegalArgumentException("유효하지 않은 사용자 타입입니다: " + userType);
+    }
+
+    /**
+     * 모든 이벤트 목록을 조회하고 각 이벤트의 티켓 정보를 포함하여 반환합니다.
+     * 
+     * @return 이벤트 관리자 DTO 목록
+     */
+    @Transactional(readOnly = true)
+    public List<EventAdminDto> getAllEvents() {
+        log.info(">> 모든 이벤트 목록 조회");
+        
+        try {
+            // 삭제되지 않은 이벤트만 조회
+            List<Event> events = eventRepository.findAllByIsDeletedFalse();
+            log.debug(">> 이벤트 목록 조회 완료: {} 개", events.size());
+            
+            // 각 이벤트에 대한 정보와 티켓 정보를 포함한 DTO 생성
+            List<EventAdminDto> eventDtos = events.stream()
+                .map(event -> {
+                    // 해당 이벤트의 판매된 티켓 수 조회
+                    int soldTickets = ticketRepository.countPaidTicketsByEventId(event.getEventId());
+                    log.debug(">> 이벤트 ID={}, 판매된 티켓 수={}", event.getEventId(), soldTickets);
+                    
+                    // DTO 생성
+                    return EventAdminDto.fromEntity(event, soldTickets);
+                })
+                .collect(Collectors.toList());
+            
+            log.info(">> 이벤트 목록 조회 완료: {} 개의 이벤트", eventDtos.size());
+            
+            return eventDtos;
+        } catch (Exception e) {
+            log.error(">> 이벤트 목록 조회 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("이벤트 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 모든 티켓 목록을 조회합니다.
+     * 
+     * @return 티켓 관리자 DTO 목록
+     */
+    @Transactional(readOnly = true)
+    public List<TicketAdminDto> getAllTickets() {
+        log.info(">> 모든 티켓 목록 조회");
+        
+        try {
+            // 모든 티켓 조회
+            List<TicketAdminDto> tickets = ticketRepository.findAllTicketsForAdmin();
+            log.debug(">> 티켓 목록 조회 완료: {} 개", tickets.size());
+            
+            log.info(">> 티켓 목록 조회 완료: {} 개의 티켓", tickets.size());
+            
+            return tickets;
+        } catch (Exception e) {
+            log.error(">> 티켓 목록 조회 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("티켓 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 특정 이벤트 정보를 조회합니다.
+     * 
+     * @param eventId 조회할 이벤트 ID
+     * @return 이벤트 관리자 DTO
+     * @throws RuntimeException 이벤트를 찾을 수 없거나 오류 발생 시
+     */
+    @Transactional(readOnly = true)
+    public EventAdminDto getEvent(Long eventId) {
+        log.info(">> 이벤트 상세 정보 조회: id={}", eventId);
+        
+        try {
+            // 이벤트 조회
+            Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("해당 이벤트를 찾을 수 없습니다: " + eventId));
+            
+            // 해당 이벤트의 판매된 티켓 수 조회
+            int soldTickets = ticketRepository.countPaidTicketsByEventId(eventId);
+            log.debug(">> 이벤트 ID={}, 판매된 티켓 수={}", event.getEventId(), soldTickets);
+            
+            // DTO 생성
+            EventAdminDto eventDto = EventAdminDto.fromEntity(event, soldTickets);
+            
+            log.info(">> 이벤트 상세 정보 조회 완료: id={}, 제목={}", eventId, eventDto.getTitle());
+            
+            return eventDto;
+        } catch (Exception e) {
+            log.error(">> 이벤트 상세 정보 조회 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("이벤트 상세 정보 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 삭제 대기 중인 이벤트 목록을 조회합니다.
+     * 
+     * @return 삭제 대기 중인 이벤트 목록
+     */
+    @Transactional(readOnly = true)
+    public List<EventAdminDto> getDeletedEvents() {
+        log.info(">> 삭제 대기 중인 이벤트 목록 조회");
+        
+        try {
+            // 삭제된 이벤트 조회
+            List<Event> events = eventRepository.findAllByIsDeletedTrue();
+            log.debug(">> 삭제된 이벤트 목록 조회 완료: {} 개", events.size());
+            
+            // 각 이벤트에 대한 정보와 티켓 정보를 포함한 DTO 생성
+            List<EventAdminDto> eventDtos = events.stream()
+                .map(event -> {
+                    // 해당 이벤트의 판매된 티켓 수 조회
+                    int soldTickets = ticketRepository.countPaidTicketsByEventId(event.getEventId());
+                    log.debug(">> 이벤트 ID={}, 판매된 티켓 수={}", event.getEventId(), soldTickets);
+                    
+                    // DTO 생성
+                    return EventAdminDto.fromEntity(event, soldTickets);
+                })
+                .collect(Collectors.toList());
+            
+            log.info(">> 삭제된 이벤트 목록 조회 완료: {} 개의 이벤트", eventDtos.size());
+            
+            return eventDtos;
+        } catch (Exception e) {
+            log.error(">> 삭제된 이벤트 목록 조회 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("삭제된 이벤트 목록 조회 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 삭제된 이벤트를 복구합니다.
+     * 
+     * @param eventId 복구할 이벤트 ID
+     * @param status 복구 후 설정할 이벤트 상태
+     * @return 복구된 이벤트 정보
+     * @throws IllegalAccessException 이벤트가 삭제되지 않은 경우
+     */
+    @Transactional
+    public EventAdminDto restoreEvent(Long eventId, EventStatusEnum status) throws IllegalAccessException {
+        log.info(">> 이벤트 복구 처리 시작: eventId={}, status={}", eventId, status);
+        
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> {
+                    log.error(">> 이벤트 복구 실패: 존재하지 않는 이벤트 - eventId={}", eventId);
+                    return new BadRequestException("존재하지 않는 이벤트입니다.");
+                });
+
+        // 이벤트가 삭제되지 않았다면 400에러 전송
+        if (!event.getIsDeleted()) {
+            log.warn(">> 이벤트 복구 실패: 삭제되지 않은 이벤트 - eventId={}", eventId);
+            throw new IllegalAccessException("삭제되지 않은 이벤트입니다.");
+        }
+
+        // 이벤트 상태 변경
+        event.setIsDeleted(false);
+        event.setStatus(status);
+        log.info(">> 이벤트 상태 변경 완료: eventId={}, status={}", eventId, status);
+
+        // 알림 처리는 메인 로직과 분리하여 예외 처리
+        try {
+            // 해당 이벤트 구매자들 조회
+            List<Purchase> purchases = purchaseRepository.findAllByEventId(eventId);
+            log.debug(">> 이벤트 구매자 조회 완료: eventId={}, 구매자 수={}", eventId, purchases.size());
+
+            // 모든 구매자에게 행사 복구 알림 전송
+            String notificationContent = String.format(
+                    "[%s] 행사가 복구되었습니다. 예매 내역을 확인해주세요.",
+                    event.getInformation().getTitle()
+            );
+
+            for (Purchase purchase : purchases) {
+                try {
+                    Long userId = purchase.getUser().getUserId();
+                    notificationService.createNotification(
+                            userId,
+                            NotificationEnum.EVENT,
+                            notificationContent
+                    );
+                    log.debug(">> 알림 전송 완료: userId={}, eventId={}", userId, eventId);
+                } catch (Exception e) {
+                    log.error(">> 행사 복구 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+                            purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
+                    // 개별 사용자 알림 실패는 다른 사용자 알림이나 이벤트 복구에 영향을 주지 않음
+                }
+            }
+        } catch (Exception e) {
+            log.error(">> 행사 복구 알림 처리 실패. 이벤트ID: {}, 오류: {}", eventId, e.getMessage(), e);
+            // 알림 전체 실패는 이벤트 복구에 영향을 주지 않도록 예외를 무시함
+        }
+
+        // 복구된 이벤트 정보 반환
+        int soldTickets = ticketRepository.countPaidTicketsByEventId(eventId);
+        EventAdminDto eventDto = EventAdminDto.fromEntity(event, soldTickets);
+        
+        log.info(">> 이벤트 복구 처리 완료: eventId={}", eventId);
+        return eventDto;
+    }
+
+    /**
+     * 이벤트를 삭제 처리하는 메서드입니다.
+     * 관리자 권한으로 이벤트를 삭제하고, 관련된 구매자들에게 알림을 전송합니다.
+     *
+     * @param eventId 삭제할 이벤트 ID
+     * @throws IllegalAccessException 이미 삭제된 이벤트인 경우
+     */
+    @Transactional
+    public void deleteEvent(Long eventId) throws IllegalAccessException {
+        log.info(">> 이벤트 삭제 처리 시작: eventId={}", eventId);
+        
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> {
+                    log.error(">> 이벤트 삭제 실패: 존재하지 않는 이벤트 - eventId={}", eventId);
+                    return new BadRequestException("존재하지 않는 이벤트입니다.");
+                });
+
+        // 이벤트가 이미 삭제되었다면 400에러 전송
+        if (event.getIsDeleted()) {
+            log.warn(">> 이벤트 삭제 실패: 이미 삭제된 이벤트 - eventId={}", eventId);
+            throw new IllegalAccessException("이미 삭제된 이벤트입니다.");
+        }
+
+        // 이벤트 상태 변경
+        event.setIsDeleted(true);
+        event.setStatus(EventStatusEnum.CANCELLED);
+        log.info(">> 이벤트 상태 변경 완료: eventId={}, status=CANCELLED", eventId);
+
+        // 알림 처리는 메인 로직과 분리하여 예외 처리
+        try {
+            // 해당 이벤트 구매자들 조회
+            List<Purchase> purchases = purchaseRepository.findAllByEventId(eventId);
+            log.debug(">> 이벤트 구매자 조회 완료: eventId={}, 구매자 수={}", eventId, purchases.size());
+
+            // 모든 구매자에게 행사 취소 알림 전송
+            String notificationContent = String.format(
+                    "[%s] 행사가 취소되었습니다. 예매 내역을 확인해주세요.",
+                    event.getInformation().getTitle()
+            );
+
+            for (Purchase purchase : purchases) {
+                try {
+                    Long userId = purchase.getUser().getUserId();
+                    notificationService.createNotification(
+                            userId,
+                            NotificationEnum.EVENT,
+                            notificationContent
+                    );
+                    log.debug(">> 알림 전송 완료: userId={}, eventId={}", userId, eventId);
+                } catch (Exception e) {
+                    log.error(">> 행사 취소 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+                            purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
+                    // 개별 사용자 알림 실패는 다른 사용자 알림이나 이벤트 취소에 영향을 주지 않음
+                }
+            }
+        } catch (Exception e) {
+            log.error(">> 행사 취소 알림 처리 실패. 이벤트ID: {}, 오류: {}", eventId, e.getMessage(), e);
+            // 알림 전체 실패는 이벤트 취소에 영향을 주지 않도록 예외를 무시함
+        }
+
+        log.info(">> 이벤트 삭제 처리 완료: eventId={}", eventId);
     }
 } 
