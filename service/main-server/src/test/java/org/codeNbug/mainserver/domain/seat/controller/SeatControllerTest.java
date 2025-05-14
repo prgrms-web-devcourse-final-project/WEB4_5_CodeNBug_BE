@@ -413,7 +413,7 @@ class SeatControllerTest {
 	}
 
 	@Test
-	@DisplayName("좌석 취소 실패 - 존재하지 않는 좌석의 경우 400 반환")
+	@DisplayName("좌석 취소 실패 - 존재하지 않는 좌석의 경우 404 반환")
 	void cancelSeats_fail_seatNotFound() throws Exception {
 		// given
 		SeatCancelRequest request = new SeatCancelRequest();
