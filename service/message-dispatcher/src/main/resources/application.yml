@@ -8,26 +8,5 @@ spring:
 
   data:
     redis:
-      port: ${redis.port}
-      host: ${redis.host}
-
-  datasource:
-    url: ${db.url}
-    username: ${db.username}
-    password: ${db.password}
-    hikari:
-      auto-commit: false
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: true
-        highlight_sql: true
-        use_sql_comments: true
-        default_batch_fetch_size: 100
-        dialect: org.hibernate.dialect.MySQL8Dialect
-    open-in-view: false
+      port: 6379
+      host: localhost
