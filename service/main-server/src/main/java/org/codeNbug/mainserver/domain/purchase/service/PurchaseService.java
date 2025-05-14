@@ -38,6 +38,7 @@ import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.external.toss.dto.CanceledPaymentInfo;
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -103,7 +104,7 @@ public class PurchaseService {
 			.orElseThrow(() -> new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
 
 		if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
-			throw new IllegalArgumentException("[confirm] 결제 금액이 일치하지 않습니다.");
+			throw new BadRequestException("[confirm] 결제 금액이 일치하지 않습니다.");
 		}
 
 		Long eventId = redisLockService.extractEventIdByUserId(userId);
@@ -114,7 +115,7 @@ public class PurchaseService {
 
 		List<Seat> seats = seatRepository.findAllById(seatIds);
 		if (seats.size() != seatIds.size()) {
-			throw new IllegalStateException("[confirm] 일부 좌석을 찾을 수 없습니다.");
+			throw new BadRequestException("[confirm] 일부 좌석을 찾을 수 없습니다.");
 		}
 		seats.forEach(seat -> seat.setAvailable(false));
 

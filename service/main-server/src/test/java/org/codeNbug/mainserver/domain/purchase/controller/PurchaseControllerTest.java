@@ -5,10 +5,14 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 
+import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
+import org.codeNbug.mainserver.domain.purchase.entity.PaymentMethodEnum;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.domain.seat.service.RedisKeyScanner;
 import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
@@ -181,6 +185,101 @@ class PurchaseControllerTest {
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
 			.andExpect(jsonPath("$.msg").value("[extractEventIdByUserId] 선택된 좌석 정보가 존재하지 않습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("결제 승인 성공 - 200 반환")
+	void confirmPayment_success() throws Exception {
+		ConfirmPaymentRequest request = new ConfirmPaymentRequest(1L, "paymentKey", "orderId", 1000);
+
+		String url = "https://dashboard.tosspayments.com/receipt/redirection?transactionId=tviva20250502114628Tfml5&ref=PX";
+		ConfirmPaymentResponse response = new ConfirmPaymentResponse(
+			"paymentKey", "orderId", "지정석 1매", 1000, "DONE",
+			PaymentMethodEnum.카드, LocalDateTime.now(), new ConfirmPaymentResponse.Receipt(url));
+
+		given(purchaseService.confirmPayment(any(), anyLong())).willReturn(response);
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		MvcResult result = mockMvc.perform(post("/api/v1/payments/confirm")
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.msg").value("결제 승인 완료"))
+			.andExpect(jsonPath("$.data.paymentKey").value("paymentKey"))
+			.andExpect(jsonPath("$.data.orderId").value("orderId"))
+			.andExpect(jsonPath("$.data.orderName").value("지정석 1매"))
+			.andExpect(jsonPath("$.data.totalAmount").value(1000))
+			.andExpect(jsonPath("$.data.status").value("DONE"))
+			.andExpect(jsonPath("$.data.method").value("카드"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("결제 승인 실패 - 구매 정보 없음 404 반환")
+	void confirmPayment_fail_noPurchase() throws Exception {
+		ConfirmPaymentRequest request = new ConfirmPaymentRequest(999L, "key", "orderId", 1000);
+
+		given(purchaseService.confirmPayment(any(ConfirmPaymentRequest.class), anyLong()))
+			.willThrow(new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
+
+		MvcResult result = mockMvc.perform(post("/api/v1/payments/confirm")
+				.header("entryAuthToken", "token")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("[confirm] 구매 정보를 찾을 수 없습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("결제 승인 실패 - 금액 불일치 400 반환")
+	void confirmPayment_fail_amountMismatch() throws Exception {
+		ConfirmPaymentRequest request = new ConfirmPaymentRequest(1L, "key", "orderId", 10000);
+
+		given(purchaseService.confirmPayment(any(ConfirmPaymentRequest.class), anyLong()))
+			.willThrow(new BadRequestException("[confirm] 결제 금액이 일치하지 않습니다."));
+
+		MvcResult result = mockMvc.perform(post("/api/v1/payments/confirm")
+				.header("entryAuthToken", "token")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+			.andExpect(jsonPath("$.msg").value("[confirm] 결제 금액이 일치하지 않습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("결제 승인 실패 - 일부 좌석 누락 400 반환")
+	void confirmPayment_fail_missingSeats() throws Exception {
+		ConfirmPaymentRequest request = new ConfirmPaymentRequest(1L, "key", "orderId", 1000);
+
+		given(purchaseService.confirmPayment(any(ConfirmPaymentRequest.class), anyLong()))
+			.willThrow(new BadRequestException("[confirm] 일부 좌석을 찾을 수 없습니다."));
+
+		MvcResult result = mockMvc.perform(post("/api/v1/payments/confirm")
+				.header("entryAuthToken", "token")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+			.andExpect(jsonPath("$.msg").value("[confirm] 일부 좌석을 찾을 수 없습니다."))
 			.andReturn();
 
 		System.out.println(result.getResponse().getContentAsString());
