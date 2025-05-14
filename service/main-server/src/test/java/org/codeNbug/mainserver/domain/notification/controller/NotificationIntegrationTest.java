@@ -54,7 +54,7 @@ import com.redis.testcontainers.RedisContainer;
 @Transactional
 @ActiveProfiles("test")
 @Testcontainers
-class NotificationControllerTest {
+class NotificationIntegrationTest {
 
     @Container
     @ServiceConnection
