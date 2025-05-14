@@ -49,6 +49,11 @@ spring:
           timeout: 5000
           writetimeout: 5000
       auth-code-expiration-millis: 180000  # 30 * 60 * 100 == 3분
+  batch:
+    job:
+      enabled: false   # 서버 시작 시 자동 배치 job 실행 방지
+    jdbc:
+      initialize-schema: always  # 배치용 테이블 자동 생성 (개발 환경만)
 payment:
   toss:
     secret-key: ON_SECRET

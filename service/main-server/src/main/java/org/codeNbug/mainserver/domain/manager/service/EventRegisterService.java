@@ -81,7 +81,7 @@ public class EventRegisterService {
 			0, // viewCount 기본값
 			null, // createdAt
 			null, // modifiedAt
-			EventStatusEnum.OPEN,
+			EventStatusEnum.CLOSED,
 			true,
 			false,
 			null

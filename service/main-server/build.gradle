@@ -23,6 +23,7 @@ dependencies {
     // https://mvnrepository.com/artifact/com.redis/testcontainers-redis
     testImplementation("com.redis:testcontainers-redis:2.2.4")
 
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
 
     implementation platform("software.amazon.awssdk:bom:2.25.24")
     implementation 'software.amazon.awssdk:s3'
