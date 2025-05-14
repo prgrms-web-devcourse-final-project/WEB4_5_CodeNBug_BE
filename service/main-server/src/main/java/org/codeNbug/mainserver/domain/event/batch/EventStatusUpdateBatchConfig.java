@@ -16,6 +16,7 @@ import org.springframework.batch.item.data.builder.RepositoryItemReaderBuilder;
 import org.springframework.batch.item.database.JpaItemWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.data.domain.Sort;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -47,6 +48,11 @@ public class EventStatusUpdateBatchConfig {
                 .reader(eventReader())
                 .processor(eventProcessor())
                 .writer(eventWriter())
+                .faultTolerant()
+                .skip(IllegalArgumentException.class)   // 특정 잘못된 Event → 무시하고 계속
+                .skipLimit(10)                          // 최대 10건 까지만 skip
+                .retry(TransientDataAccessException.class)  // DB 일시 오류 재시도
+                .retryLimit(3)                          // 최대 3회 재시도
                 .build();
     }
 
