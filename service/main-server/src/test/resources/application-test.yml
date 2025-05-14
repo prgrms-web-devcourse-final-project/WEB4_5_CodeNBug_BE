@@ -4,8 +4,6 @@ cookie:
   secure: true  # HTTPS 필수
 
 spring:
-  main:
-    allow-bean-definition-overriding: true
   jpa:
     show-sql: true
     properties:
