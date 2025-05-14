@@ -4,10 +4,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:mysql'      // MySQL 통합 테스트용
     testImplementation 'io.rest-assured:rest-assured'  // REST API 테스트용
-    testImplementation 'org.springframework.security:spring-security-test'
-
 
 }
