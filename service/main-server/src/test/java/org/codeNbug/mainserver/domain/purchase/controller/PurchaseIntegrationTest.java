@@ -39,7 +39,6 @@ import org.codenbug.user.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -60,7 +59,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.Commit;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestConstructor;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.test.web.servlet.MockMvc;
@@ -77,10 +75,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redis.testcontainers.RedisContainer;
 
-@Disabled
 @SpringBootTest
 @AutoConfigureMockMvc
-@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
@@ -96,7 +92,7 @@ class PurchaseIntegrationTest {
 	@Container
 	@ServiceConnection
 	static RedisContainer redis =
-		new RedisContainer("redis:7.2-alpine")
+		new RedisContainer("redis:alpine")
 			.withExposedPorts(6379)
 			.waitingFor(Wait.forListeningPort());
 
