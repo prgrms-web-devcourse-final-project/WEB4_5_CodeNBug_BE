@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -70,18 +71,18 @@ public class RedisLockService {
 	 *
 	 * @param userId 사용자 ID
 	 * @return 이벤트 ID
-	 * @throws IllegalStateException 락이 없거나 키 형식이 잘못된 경우
+	 * @throws BadRequestException 락이 없거나 키 형식이 잘못된 경우
 	 */
 	public Long extractEventIdByUserId(Long userId) {
 		Set<String> keys = redisKeyScanner.scanKeys(PREFIX + userId + ":*:*");
 
 		if (keys == null || keys.isEmpty()) {
-			throw new IllegalStateException("[extractEventIdByUserId] 선택된 좌석 정보가 존재하지 않습니다.");
+			throw new BadRequestException("[extractEventIdByUserId] 선택된 좌석 정보가 존재하지 않습니다.");
 		}
 		String key = keys.iterator().next(); // e.g. seat:lock:26:1:22
 		String[] parts = key.split(":");
 		if (parts.length < 5) {
-			throw new IllegalStateException("좌석 키 형식 오류: " + key);
+			throw new BadRequestException("좌석 키 형식 오류: " + key);
 		}
 		return Long.parseLong(parts[3]);
 	}
