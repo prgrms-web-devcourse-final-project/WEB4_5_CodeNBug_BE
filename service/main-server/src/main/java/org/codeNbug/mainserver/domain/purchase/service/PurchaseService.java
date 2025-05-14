@@ -157,15 +157,15 @@ public class PurchaseService {
 		// 결제 완료 알림 생성
 		try {
 			String notificationContent = String.format(
-					"[%s] 결제가 완료되었습니다. 금액: %d원, 결제수단: %s",
-					purchase.getOrderName(),
-					purchase.getAmount(),
-					methodEnum.name()
+				"[%s] 결제가 완료되었습니다. 금액: %d원, 결제수단: %s",
+				purchase.getOrderName(),
+				purchase.getAmount(),
+				methodEnum.name()
 			);
 			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
 		} catch (Exception e) {
 			log.error("결제 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
-					userId, purchase.getId(), e.getMessage(), e);
+				userId, purchase.getId(), e.getMessage(), e);
 			// 알림 발송 실패는 결제 성공에 영향을 주지 않도록 예외를 무시함
 		}
 
@@ -295,16 +295,16 @@ public class PurchaseService {
 		// 환불 완료 알림 생성
 		try {
 			String notificationContent = String.format(
-					"[%s] 환불 처리가 완료되었습니다. 환불금액: %d원",
-					purchase.getOrderName(),
-					canceledPaymentInfo.getCancels().stream()
-							.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
-							.sum()
+				"[%s] 환불 처리가 완료되었습니다. 환불금액: %d원",
+				purchase.getOrderName(),
+				canceledPaymentInfo.getCancels().stream()
+					.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+					.sum()
 			);
 			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
 		} catch (Exception e) {
 			log.error("환불 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
-					userId, purchase.getId(), e.getMessage(), e);
+				userId, purchase.getId(), e.getMessage(), e);
 			// 알림 발송 실패는 환불 처리에 영향을 주지 않도록 예외를 무시함
 		}
 
@@ -396,23 +396,23 @@ public class PurchaseService {
 			// 각 사용자에게 환불 알림 전송
 			try {
 				String notificationContent = String.format(
-						"[%s] 매니저에 의해 환불 처리되었습니다. 사유: %s, 환불금액: %d원",
-						purchase.getOrderName(),
-						request.getReason(),
-						canceledPaymentInfo.getCancels().stream()
-								.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
-								.sum()
+					"[%s] 매니저에 의해 환불 처리되었습니다. 사유: %s, 환불금액: %d원",
+					purchase.getOrderName(),
+					request.getReason(),
+					canceledPaymentInfo.getCancels().stream()
+						.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+						.sum()
 				);
 
 				// 각 구매자에게 개별 알림 전송
 				notificationService.createNotification(
-						purchase.getUser().getUserId(),
-						NotificationEnum.PAYMENT,
-						notificationContent
+					purchase.getUser().getUserId(),
+					NotificationEnum.PAYMENT,
+					notificationContent
 				);
 			} catch (Exception e) {
 				log.error("매니저 환불 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
-						purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
+					purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
 				// 알림 발송 실패는 환불 처리에 영향을 주지 않도록 예외를 무시함
 			}
 
