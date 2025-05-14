@@ -12,8 +12,10 @@ import org.codeNbug.mainserver.domain.admin.dto.request.RoleUpdateRequest;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminLoginResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminSignupResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.DashboardStatsResponse;
+import org.codeNbug.mainserver.domain.admin.dto.response.EventAdminDto;
 import org.codeNbug.mainserver.domain.admin.dto.response.ModifyRoleResponse;
 import org.codeNbug.mainserver.domain.admin.service.AdminService;
+import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.security.annotation.RoleRequired;
@@ -29,6 +31,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.HashMap;
 
 /**
  * 관리자 컨트롤러
@@ -442,5 +445,65 @@ public class AdminController {
         log.error(">> 예외 발생: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(RsData.error("500-INTERNAL_SERVER_ERROR", "요청 처리 중 오류가 발생했습니다: " + e.getMessage()));
+    }
+
+    /**
+     * 삭제 대기 중인 이벤트 목록을 조회합니다.
+     */
+    @GetMapping("/api/events/deleted")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<List<EventAdminDto>>> getDeletedEvents() {
+        log.info(">> 삭제 대기 중인 이벤트 목록 조회 요청");
+        
+        try {
+            List<EventAdminDto> events = adminService.getDeletedEvents();
+            log.info(">> 삭제 대기 중인 이벤트 목록 조회 성공: {} 개의 이벤트", events.size());
+            return ResponseEntity.ok(RsData.success("삭제 대기 중인 이벤트 목록 조회 성공", events));
+        } catch (Exception e) {
+            log.error(">> 삭제 대기 중인 이벤트 목록 조회 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "삭제 대기 중인 이벤트 목록을 불러오는 데 실패했습니다."));
+        }
+    }
+
+    /**
+     * 삭제된 이벤트를 복구합니다.
+     * 
+     * @param eventId 복구할 이벤트 ID
+     * @param status 복구 후 설정할 이벤트 상태
+     * @return 복구된 이벤트 정보
+     */
+    @PostMapping("/api/events/{eventId}/restore")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<EventAdminDto>> restoreEvent(
+            @PathVariable Long eventId,
+            @RequestParam EventStatusEnum status) {
+        log.info(">> 이벤트 복구 요청: eventId={}, status={}", eventId, status);
+        
+        try {
+            EventAdminDto event = adminService.restoreEvent(eventId, status);
+            log.info(">> 이벤트 복구 성공: eventId={}, status={}", eventId, status);
+            return ResponseEntity.ok(RsData.success("이벤트가 성공적으로 복구되었습니다.", event));
+        } catch (IllegalAccessException e) {
+            log.error(">> 이벤트 복구 실패: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(RsData.error("400-BAD_REQUEST", e.getMessage()));
+        } catch (Exception e) {
+            log.error(">> 이벤트 복구 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "이벤트 복구 중 오류가 발생했습니다."));
+        }
+    }
+
+    /**
+     * 이벤트 목록을 JSON으로 반환하는 API
+     */
+    @GetMapping(value = "/api/events", produces = "application/json")
+    @ResponseBody
+    public Map<String, Object> getEventListJson() {
+        List<EventAdminDto> events = adminService.getAllEvents();
+        Map<String, Object> result = new HashMap<>();
+        result.put("events", events);
+        return result;
     }
 }

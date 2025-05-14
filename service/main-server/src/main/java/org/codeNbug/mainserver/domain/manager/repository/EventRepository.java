@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
@@ -14,4 +15,17 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             "WHERE e.eventId = :eventId")
     Optional<Event> findByIdWithSeats(@Param("eventId") Long eventId);
 
+    /**
+     * 삭제된 모든 이벤트를 조회합니다.
+     * 
+     * @return 삭제된 이벤트 목록
+     */
+    List<Event> findAllByIsDeletedTrue();
+
+    /**
+     * 삭제되지 않은 모든 이벤트를 조회합니다.
+     * 
+     * @return 삭제되지 않은 이벤트 목록
+     */
+    List<Event> findAllByIsDeletedFalse();
 }
