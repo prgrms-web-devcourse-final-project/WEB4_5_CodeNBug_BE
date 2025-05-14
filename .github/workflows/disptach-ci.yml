@@ -49,7 +49,7 @@ jobs:
         run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
 
       - name: Run Tests
-        run: ./gradlew test -x jar
+        run: ./gradlew test
 
 
   makeTagAndReleaseServer:
