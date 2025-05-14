@@ -233,7 +233,7 @@ public class BaseTestUtil {
 		stringRedisTemplate.opsForHash().put(
 			ENTRY_TOKEN_STORAGE_KEY_NAME,
 			String.valueOf(testUser.getUserId()),
-			"\"" + testToken + "\""
+			testToken
 		);
 	}
 }

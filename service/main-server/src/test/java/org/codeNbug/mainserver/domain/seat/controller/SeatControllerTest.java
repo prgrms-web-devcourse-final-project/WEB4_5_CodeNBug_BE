@@ -1,89 +1,46 @@
 package org.codeNbug.mainserver.domain.seat.controller;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.mockito.BDDMockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.util.List;
 
-import org.codeNbug.mainserver.domain.event.entity.Event;
-import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.seat.dto.SeatCancelRequest;
+import org.codeNbug.mainserver.domain.seat.dto.SeatLayoutResponse;
 import org.codeNbug.mainserver.domain.seat.dto.SeatSelectRequest;
-import org.codeNbug.mainserver.domain.seat.entity.Seat;
-import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
-import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
-import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
-import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
-import org.codeNbug.mainserver.util.BaseTestUtil;
-import org.codeNbug.mainserver.util.TestUtil;
+import org.codeNbug.mainserver.domain.seat.dto.SeatSelectResponse;
+import org.codeNbug.mainserver.domain.seat.service.SeatService;
+import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codeNbug.mainserver.global.exception.globalException.ConflictException;
 import org.codenbug.user.domain.user.entity.User;
-import org.codenbug.user.domain.user.repository.UserRepository;
-import org.json.JSONException;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.codenbug.user.security.service.CustomUserDetails;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.web.servlet.MvcResult;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redis.testcontainers.RedisContainer;
 
-import jakarta.transaction.Transactional;
-
-@SpringBootTest
-@AutoConfigureMockMvc
-@TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@ActiveProfiles("test")
-@Testcontainers
-@Transactional
+@WebMvcTest(SeatController.class)
+@Import(SeatControllerTest.MockBeans.class)
 class SeatControllerTest {
-	@Autowired
-	private BaseTestUtil baseTestUtil;
-
-	@Container
-	@ServiceConnection
-	static MySQLContainer<?> mysql =
-		new MySQLContainer<>("mysql:8.0.34")
-			.withDatabaseName("ticketoneTest")
-			.withUsername("test")
-			.withPassword("test");
-	@Container
-	@ServiceConnection
-	static RedisContainer redis =
-		new RedisContainer("redis:alpine")
-			.withExposedPorts(6379)
-			.waitingFor(Wait.forListeningPort());
-
-
-	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
-	// @DynamicPropertySource
-	// static void overrideProps(DynamicPropertyRegistry registry) {
-	//
-	// 	registry.add("spring.datasource.url", mysql::getJdbcUrl);
-	// 	registry.add("spring.datasource.username", mysql::getUsername);
-	// 	registry.add("spring.datasource.password", mysql::getPassword);
-	// 	registry.add("spring.redis.host", () -> redis.getHost());
-	// 	registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
-	// 	registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-	//
-	// }
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -91,108 +48,418 @@ class SeatControllerTest {
 	private ObjectMapper objectMapper;
 
 	@Autowired
-	private UserRepository userRepository;
-
-	@Autowired
-	private EventRepository eventRepository;
-
-	@Autowired
-	private SeatLayoutRepository seatLayoutRepository;
-
-	@Autowired
-	private SeatRepository seatRepository;
-
-	@Autowired
-	private SeatGradeRepository seatGradeRepository;
-
-	@Autowired
-	private RedisLockService redisLockService;
-
-	@Autowired
 	private StringRedisTemplate redisTemplate;
 
-	private static User testUser;
-	private static String testToken;
-	private static Event testEvent;
-	private static Seat availableSeat;
 	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private SeatService seatService;
 
-	@BeforeAll
-	public void setUpAll() throws JSONException {
-		testUser = baseTestUtil.setUpUser();
-		testToken = baseTestUtil.setUpToken();
-		testEvent = baseTestUtil.setUpEvent();
-		baseTestUtil.setUpRedis();
+	@Autowired
+	private EntryTokenValidator entryTokenValidator;
+
+	@TestConfiguration
+	static class MockBeans {
+		@Bean
+		public SeatService seatService() {
+			return Mockito.mock(SeatService.class);
+		}
+
+		@Bean
+		public StringRedisTemplate stringRedisTemplate() {
+			StringRedisTemplate redisTemplate = Mockito.mock(StringRedisTemplate.class);
+			HashOperations<String, Object, Object> hashOps = Mockito.mock(HashOperations.class);
+			when(redisTemplate.opsForHash()).thenReturn(hashOps);
+			when(hashOps.get("ENTRY_TOKEN", "1")).thenReturn("testToken");
+			return redisTemplate;
+		}
+
+		@Bean
+		public EntryTokenValidator entryTokenValidator() {
+			return Mockito.mock(EntryTokenValidator.class);
+		}
 	}
 
-	@AfterAll
+	@BeforeEach
+	void setUpSecurityContext() {
+		User user = User.builder()
+			.userId(1L)
+			.email("test@codenbug.org")
+			.password("encodedPw")
+			.name("테스트유저")
+			.sex("M")
+			.phoneNum("01012345678")
+			.location("서울시")
+			.role("ROLE_USER")
+			.age(25)
+			.build();
+
+		CustomUserDetails userDetails = new CustomUserDetails(user);
+
+		Authentication auth = new UsernamePasswordAuthenticationToken(
+			userDetails, null, userDetails.getAuthorities()
+		);
+
+		SecurityContextHolder.getContext().setAuthentication(auth);
+	}
+
+	@AfterEach
 	void tearDown() {
-		TestUtil.truncateAllTables(jdbcTemplate);
+		if (redisTemplate.getConnectionFactory() != null) {
+			redisTemplate.getConnectionFactory().getConnection().flushAll();
+		}
 	}
 
 	@Test
-	@Order(1)
-	@DisplayName("좌석 조회 성공")
-	void testGetSeatLayout() throws Exception {
-		mockMvc.perform(get("/api/v1/event/{eventId}/seats", testEvent.getEventId())
-				.header("Authorization", "Bearer " + testToken))
+	@DisplayName("좌석 조회 성공 - 200 반환")
+	void getSeats_success() throws Exception {
+		// given
+		List<SeatLayoutResponse.SeatDto> seatList = List.of(
+			new SeatLayoutResponse.SeatDto(1L, "A1", "VIP", true),
+			new SeatLayoutResponse.SeatDto(4L, "B2", "VIP", false)
+		);
+
+		List<List<String>> layout = List.of(
+			List.of("A1", "A2"),
+			List.of("B1", "B2")
+		);
+
+		SeatLayoutResponse response = new SeatLayoutResponse(seatList, layout);
+
+		// eventId에 대한 stubbing
+		Long eventId = 1L;
+
+		// 실제 로직을 타지 않게
+		given(seatService.getSeatLayout(eq(eventId), anyLong()))
+			.willReturn(response);
+
+		// when & then
+		MvcResult result = mockMvc.perform(get("/api/v1/event/{eventId}/seats", eventId))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.code").value(200))
 			.andExpect(jsonPath("$.msg").value("좌석 조회 성공"))
+			.andExpect(jsonPath("$.data.seats[0].seatId").value(1))
 			.andExpect(jsonPath("$.data.seats[0].location").value("A1"))
 			.andExpect(jsonPath("$.data.seats[0].grade").value("VIP"))
-			.andExpect(jsonPath("$.data.seats[1].location").value("A2"))
-			.andExpect(jsonPath("$.data.seats[1].grade").value("VIP"));
+			.andExpect(jsonPath("$.data.seats[0].available").value(true))
+			.andExpect(jsonPath("$.data.seats[1].seatId").value(4))
+			.andExpect(jsonPath("$.data.seats[1].location").value("B2"))
+			.andExpect(jsonPath("$.data.seats[1].grade").value("VIP"))
+			.andExpect(jsonPath("$.data.seats[1].available").value(false))
+			.andExpect(jsonPath("$.data.layout[0][0]").value("A1"))
+			.andExpect(jsonPath("$.data.layout[1][1]").value("B2"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
 	}
 
 	@Test
-	@Order(2)
-	@DisplayName("지정석 좌석 선택 - Redis 락 획득 확인")
-	void selectSeat_withRedisLock() throws Exception {
-		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(testEvent.getEventId());
-		availableSeat = availableSeats.get(0);
+	@DisplayName("좌석 조회 실패 - 존재하지 않는 행사 404 반환")
+	void getSeats_eventNotFound_fail() throws Exception {
+		// given
+		Long invalidEventId = 999L;
 
+		// 실제 로직을 타지 않게
+		given(seatService.getSeatLayout(eq(invalidEventId), anyLong()))
+			.willThrow(new IllegalArgumentException("행사가 존재하지 않습니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(get("/api/v1/event/{eventId}/seats", invalidEventId))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("행사가 존재하지 않습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("지정석 선택 성공 - 200 반환")
+	void selectSeats_success() throws Exception {
+		// given
 		SeatSelectRequest request = new SeatSelectRequest();
-		request.setSeatList(List.of(availableSeat.getId()));
+		request.setSeatList(List.of(101L, 102L));
+		request.setTicketCount(2);
+		Long eventId = 2L;
+
+		// 실제 로직을 타지 않게
+		SeatSelectResponse response = new SeatSelectResponse(List.of(101L, 102L));
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willReturn(response);
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value(200))
+			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("지정석 선택 실패 - 좌석 5개 이상 선택 시 400 반환")
+	void selectSeats_seatCountExceed_fail() throws Exception {
+		// given
+		Long eventId = 1L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(1L, 2L, 3L, 4L, 5L));
+		request.setTicketCount(5);
+
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+			.andExpect(jsonPath("$.msg").value("최대 4개의 좌석만 선택할 수 있습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 선택 실패 - 존재하지 않는 행사일 경우 404 반환")
+	void selectSeats_eventNotFound_fail() throws Exception {
+		// given
+		Long invalidEventId = 999L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(1L, 2L));
+		request.setTicketCount(2);
+
+		given(seatService.selectSeat(eq(invalidEventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new IllegalArgumentException("행사가 존재하지 않습니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", invalidEventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("행사가 존재하지 않습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 선택 실패 - entryAuthToken 유효성 검증 실패의 경우 400 반환")
+	void nonSelectSeats_fail_invalidEntryToken() throws Exception {
+		// given
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of());
+		request.setTicketCount(2);
+		Long eventId = 2L;
+
+		willThrow(new BadRequestException("잘못된 입장 토큰입니다."))
+			.given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "invalidToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.msg").value("잘못된 입장 토큰입니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("미지정석 선택 성공 - 200 반환")
+	void nonSelectSeats_success() throws Exception {
+		// given
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of()); // 미지정석
+		request.setTicketCount(2);
+
+		Long eventId = 2L;
+
+		SeatSelectResponse response = new SeatSelectResponse(List.of(201L, 202L));
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willReturn(response);
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value(200))
+			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"))
+			.andExpect(jsonPath("$.data.seatList").isArray())
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("미지정석 선택 실패 - 미지정석인데 좌석 목록이 전달된 경우 400 반환")
+	void selectSeats_unselectableEventWithSeatList_fail() throws Exception {
+		// given
+		Long eventId = 3L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(1L, 2L));
+		request.setTicketCount(2);
+
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다."));
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+			.andExpect(jsonPath("$.msg").value("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("미지정석 선택 실패 - 예매 가능한 좌석 부족 시 409 반환")
+	void selectSeats_notEnoughAvailableSeats_fail() throws Exception {
+		// given
+		Long eventId = 4L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of());
+		request.setTicketCount(3);
+
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new ConflictException("[selectSeats] 예매 가능한 좌석 수가 부족합니다."));
+
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("409-CONFLICT"))
+			.andExpect(jsonPath("$.msg").value("[selectSeats] 예매 가능한 좌석 수가 부족합니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 선택 실패 - 이미 예매된 좌석 선택 시 409 반환")
+	void selectSeats_alreadyReservedSeat_fail() throws Exception {
+		// given
+		Long eventId = 5L;
+		SeatSelectRequest request = new SeatSelectRequest();
+		request.setSeatList(List.of(10L));
 		request.setTicketCount(1);
 
-		String json = objectMapper.writeValueAsString(request);
+		given(seatService.selectSeat(eq(eventId), any(SeatSelectRequest.class), anyLong()))
+			.willThrow(new ConflictException("[selectSeats] 이미 예매된 좌석입니다. seatId = 10"));
 
-		mockMvc.perform(post("/api/v1/event/{eventId}/seats", testEvent.getEventId())
-				.header("Authorization", "Bearer " + testToken)
-				.header("entryAuthToken", testToken)
+		// when & then
+		MvcResult result = mockMvc.perform(post("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(json))
-			.andExpect(status().isOk());
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("409-CONFLICT"))
+			.andExpect(jsonPath("$.msg").value("[selectSeats] 이미 예매된 좌석입니다. seatId = 10"))
+			.andReturn();
 
-		String redisKey =
-			"seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + request.getSeatList().getFirst();
-		String lockValue = redisLockService.getLockValue(redisKey);
-		assertThat(lockValue).isNotNull();
+		System.out.println(result.getResponse().getContentAsString());
 	}
 
 	@Test
-	@Order(3)
-	@DisplayName("좌석 취소 성공 - Redis 락 해제 확인")
-	void testCancelSeat() throws Exception {
+	@DisplayName("좌석 취소 성공 - 200 반환")
+	void cancelSeats_success() throws Exception {
+		// given
 		SeatCancelRequest request = new SeatCancelRequest();
-		request.setSeatList(List.of(availableSeat.getId()));
+		request.setSeatList(List.of(101L));
 
-		String json = objectMapper.writeValueAsString(request);
+		Long eventId = 1L;
 
-		mockMvc.perform(delete("/api/v1/event/{eventId}/seats", testEvent.getEventId())
-				.header("Authorization", "Bearer " + testToken)
-				.header("entryAuthToken", testToken)
+		willDoNothing().given(seatService).cancelSeat(eq(eventId), any(SeatCancelRequest.class), anyLong());
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(delete("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(json))
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200"))
-			.andExpect(jsonPath("$.msg").value("좌석 취소 성공"));
+			.andExpect(jsonPath("$.code").value(200))
+			.andExpect(jsonPath("$.msg").value("좌석 취소 성공"))
+			.andReturn();
 
-		String redisKey =
-			"seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + request.getSeatList().getFirst();
-		String lockValue = redisLockService.getLockValue(redisKey);
-		assertThat(lockValue).isNull();
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 취소 실패 - 존재하지 않는 좌석의 경우 400 반환")
+	void cancelSeats_fail_seatNotFound() throws Exception {
+		// given
+		SeatCancelRequest request = new SeatCancelRequest();
+		request.setSeatList(List.of(999L));
+		Long eventId = 1L;
+
+		willThrow(new IllegalArgumentException("[cancelSeat] 좌석을 찾을 수 없습니다. seatId: 999"))
+			.given(seatService).cancelSeat(eq(eventId), any(SeatCancelRequest.class), anyLong());
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(delete("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("[cancelSeat] 좌석을 찾을 수 없습니다. seatId: 999"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("좌석 취소 실패 - Redis 락 해제 실패 시 400 반환")
+	void cancelSeats_fail_unlockFailed() throws Exception {
+		// given
+		SeatCancelRequest request = new SeatCancelRequest();
+		request.setSeatList(List.of(101L));
+		Long eventId = 1L;
+
+		willThrow(new BadRequestException("[cancelSeat] 좌석 락을 해제할 수 없습니다."))
+			.given(seatService).cancelSeat(eq(eventId), any(SeatCancelRequest.class), anyLong());
+		willDoNothing().given(entryTokenValidator).validate(anyLong(), anyString());
+
+		// when & then
+		MvcResult result = mockMvc.perform(delete("/api/v1/event/{eventId}/seats", eventId)
+				.header("entryAuthToken", "testToken")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.msg").value("[cancelSeat] 좌석 락을 해제할 수 없습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
 	}
 }
