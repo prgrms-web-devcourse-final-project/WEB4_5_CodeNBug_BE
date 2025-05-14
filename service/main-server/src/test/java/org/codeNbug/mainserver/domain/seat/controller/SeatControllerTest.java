@@ -17,7 +17,6 @@ import org.codeNbug.mainserver.global.exception.globalException.BadRequestExcept
 import org.codeNbug.mainserver.global.exception.globalException.ConflictException;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.security.service.CustomUserDetails;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,8 +26,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.redis.core.HashOperations;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -48,9 +45,6 @@ class SeatControllerTest {
 	private ObjectMapper objectMapper;
 
 	@Autowired
-	private StringRedisTemplate redisTemplate;
-
-	@Autowired
 	private SeatService seatService;
 
 	@Autowired
@@ -61,15 +55,6 @@ class SeatControllerTest {
 		@Bean
 		public SeatService seatService() {
 			return Mockito.mock(SeatService.class);
-		}
-
-		@Bean
-		public StringRedisTemplate stringRedisTemplate() {
-			StringRedisTemplate redisTemplate = Mockito.mock(StringRedisTemplate.class);
-			HashOperations<String, Object, Object> hashOps = Mockito.mock(HashOperations.class);
-			when(redisTemplate.opsForHash()).thenReturn(hashOps);
-			when(hashOps.get("ENTRY_TOKEN", "1")).thenReturn("testToken");
-			return redisTemplate;
 		}
 
 		@Bean
@@ -99,13 +84,6 @@ class SeatControllerTest {
 		);
 
 		SecurityContextHolder.getContext().setAuthentication(auth);
-	}
-
-	@AfterEach
-	void tearDown() {
-		if (redisTemplate.getConnectionFactory() != null) {
-			redisTemplate.getConnectionFactory().getConnection().flushAll();
-		}
 	}
 
 	@Test
