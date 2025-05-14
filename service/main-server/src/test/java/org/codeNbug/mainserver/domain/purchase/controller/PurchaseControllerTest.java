@@ -84,7 +84,7 @@ class PurchaseControllerTest {
 			return Mockito.mock(RedisKeyScanner.class);
 		}
 
-		@Bean
+		@Bean(name = "purchaseEntryTokenValidator")
 		public EntryTokenValidator entryTokenValidator() {
 			return Mockito.mock(EntryTokenValidator.class);
 		}

@@ -57,7 +57,7 @@ class SeatControllerTest {
 			return Mockito.mock(SeatService.class);
 		}
 
-		@Bean
+		@Bean(name = "seatEntryTokenValidator")
 		public EntryTokenValidator entryTokenValidator() {
 			return Mockito.mock(EntryTokenValidator.class);
 		}
