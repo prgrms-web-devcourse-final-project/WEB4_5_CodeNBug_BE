@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.domain.seat.service;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -77,23 +78,24 @@ public class SeatService {
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
 		List<Long> selectedSeats = seatSelectRequest.getSeatList();
+		List<Long> reservedSeatIds;
 
 		if (event.getSeatSelectable()) {
 			// 지정석 예매 처리
 			if (selectedSeats != null && selectedSeats.size() > 4) {
 				throw new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다.");
 			}
-			selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
+			reservedSeatIds = selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
 		} else {
 			// 미지정석 예매 처리
 			if (selectedSeats != null && !selectedSeats.isEmpty()) {
 				throw new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
 			}
-			selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
+			reservedSeatIds = selectSeats(null, userId, eventId, true, seatSelectRequest.getTicketCount());
 		}
 
 		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
-		seatSelectResponse.setSeatList(selectedSeats);
+		seatSelectResponse.setSeatList(reservedSeatIds);
 		return seatSelectResponse;
 	}
 
@@ -106,8 +108,9 @@ public class SeatService {
 	 * @param isDesignated  지정석 여부
 	 * @param ticketCount   예매할 좌석 수 (미지정석 예매 시 사용)
 	 */
-	private void selectSeats(List<Long> selectedSeats, Long userId, Long eventId, boolean isDesignated,
+	private List<Long> selectSeats(List<Long> selectedSeats, Long userId, Long eventId, boolean isDesignated,
 		int ticketCount) {
+		List<Long> reservedSeatIds = new ArrayList<>();
 		if (isDesignated) {
 			// 지정석 예매 처리
 			for (Long seatId : selectedSeats) {
@@ -119,6 +122,7 @@ public class SeatService {
 				}
 
 				reserveSeat(seat, userId, eventId, seatId);
+				reservedSeatIds.add(seatId);
 			}
 		} else {
 			// 미지정석 예매 처리
@@ -133,8 +137,10 @@ public class SeatService {
 
 			for (Seat seat : availableSeats) {
 				reserveSeat(seat, userId, eventId, seat.getId());
+				reservedSeatIds.add(seat.getId());
 			}
 		}
+		return reservedSeatIds;
 	}
 
 	/**
