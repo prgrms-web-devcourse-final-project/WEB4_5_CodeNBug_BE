@@ -6,7 +6,13 @@ on:
       - "service/main-server/**"
       - "service/common/**"
       - "service/user/**"
-
+  push:
+    branches:
+      - develop
+    paths:
+      - "service/main-server/**"
+      - "service/common/**"
+      - "service/user/**"
 jobs:
   test:
     services:
@@ -58,6 +64,7 @@ jobs:
 
   makeTagAndReleaseServer:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
     needs: test
     outputs:
       tag_name: ${{ steps.create_tag.outputs.new_tag }}
@@ -85,6 +92,8 @@ jobs:
 
 
   buildImageAndPushMain:
+    if: ${{ github.event_name == 'push' }}
+
     permissions:
       contents: read
       packages: write

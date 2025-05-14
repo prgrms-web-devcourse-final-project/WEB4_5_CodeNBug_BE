@@ -6,7 +6,13 @@ on:
       - "service/message-dispatcher/**"
       - "service/common/**"
       - "service/user/**"
-
+  push:
+    branches:
+      - develop
+    paths:
+      - "service/message-dispatcher/**"
+      - "service/common/**"
+      - "service/user/**"
 jobs:
   test:
     services:
@@ -53,6 +59,7 @@ jobs:
 
 
   makeTagAndReleaseServer:
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     needs: test
     outputs:
@@ -81,6 +88,7 @@ jobs:
 
 
   buildImageAndPushMain:
+    if: ${{ github.event_name == 'push' }}
     permissions:
       contents: read
       packages: write
