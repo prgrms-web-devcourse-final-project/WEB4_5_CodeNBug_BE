@@ -78,7 +78,7 @@ public class ManagerController {
 			@PathVariable Long eventId
 	) {
 
-		EventRegisterResponse response = eventRegisterService.searchEvent(eventId, SecurityUtil.getCurrentUserId());
+		EventRegisterResponse response = eventSearchService.searchEvent(eventId, SecurityUtil.getCurrentUserId());
 		return ResponseEntity.ok(new RsData<>(
 				"200",
 				"이벤트 조회 성공",
