@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDateTime;
 import java.util.Collections;
 
+import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
@@ -280,6 +282,54 @@ class PurchaseControllerTest {
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
 			.andExpect(jsonPath("$.msg").value("[confirm] 일부 좌석을 찾을 수 없습니다."))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("결제 취소 성공 - 200 반환")
+	void cancelPayment_success() throws Exception {
+		String paymentKey = "paymentKey";
+		CancelPaymentRequest request = new CancelPaymentRequest("단순 변심");
+
+		CancelPaymentResponse response = CancelPaymentResponse.builder()
+			.status("CANCELED")
+			.receiptUrl(
+				"https://dashboard.tosspayments.com/receipt/redirection?transactionId=tviva20250502114628Tfml5&ref=PX")
+			.build();
+
+		given(purchaseService.cancelPayment(any(), eq(paymentKey), anyLong())).willReturn(response);
+
+		MvcResult result = mockMvc.perform(post("/api/v1/payments/{paymentKey}/cancel", paymentKey)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.msg").value("결제 취소 완료"))
+			.andExpect(jsonPath("$.data.status").value("CANCELED"))
+			.andReturn();
+
+		System.out.println(result.getResponse().getContentAsString());
+	}
+
+	@Test
+	@DisplayName("결제 취소 실패 - 결제 정보 없음 404 반환")
+	void cancelPayment_fail_purchaseNotFound() throws Exception {
+		String paymentKey = "paymentKey";
+		CancelPaymentRequest request = new CancelPaymentRequest("단순 변심");
+
+		given(purchaseService.cancelPayment(any(CancelPaymentRequest.class), eq(paymentKey), anyLong()))
+			.willThrow(new IllegalArgumentException("[cancel] 해당 결제 정보를 찾을 수 없습니다."));
+
+		MvcResult result = mockMvc.perform(post("/api/v1/payments/{paymentKey}/cancel", paymentKey)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request))
+				.with(csrf()))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("404-NOT_FOUND"))
+			.andExpect(jsonPath("$.msg").value("[cancel] 해당 결제 정보를 찾을 수 없습니다."))
 			.andReturn();
 
 		System.out.println(result.getResponse().getContentAsString());

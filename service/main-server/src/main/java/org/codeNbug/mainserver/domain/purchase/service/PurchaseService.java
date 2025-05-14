@@ -261,10 +261,10 @@ public class PurchaseService {
 	 */
 	public CancelPaymentResponse cancelPayment(CancelPaymentRequest request, String paymentKey, Long userId) {
 		userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("[confirm] 사용자가 존재하지 않습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("[cancel] 사용자가 존재하지 않습니다."));
 
 		Purchase purchase = purchaseRepository.findByPaymentUuid(paymentKey)
-			.orElseThrow(() -> new IllegalArgumentException("해당 결제 정보를 찾을 수 없습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("[cancel] 해당 결제 정보를 찾을 수 없습니다."));
 
 		CanceledPaymentInfo canceledPaymentInfo = tossPaymentService.cancelPayment(paymentKey,
 			request.getCancelReason());
