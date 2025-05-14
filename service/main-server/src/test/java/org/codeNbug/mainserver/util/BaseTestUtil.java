@@ -1,5 +1,7 @@
 package org.codeNbug.mainserver.util;
 
+import static org.junit.jupiter.api.TestInstance.Lifecycle.*;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,12 +22,13 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
+import org.codenbug.user.security.config.SecurityConfig;
 import org.codenbug.user.security.service.CustomUserDetailsService;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,17 +41,19 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@SpringBootTest
 @Transactional
 @Component
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@TestInstance(PER_CLASS)
 public class BaseTestUtil {
 	@Autowired
 	protected UserRepository userRepository;
 	@Autowired
 	protected PasswordEncoder passwordEncoder;
+	@Autowired
+	protected SecurityConfig securityConfig;
 	@Autowired
 	protected TokenService tokenService;
 	@Autowired
@@ -64,10 +69,9 @@ public class BaseTestUtil {
 	@Autowired
 	protected StringRedisTemplate stringRedisTemplate;
 
-	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
-	public static String testToken;
-	public static User testUser;
-	public static Event testEvent;
+	public String testToken;
+	public User testUser;
+	public Event testEvent;
 
 	public User setUpUser() {
 		// 테스트용 사용자 생성
@@ -226,14 +230,5 @@ public class BaseTestUtil {
 			case A -> 50000;
 			default -> 40000;
 		};
-	}
-
-	public void setUpRedis() {
-		// 테스트용 entry token 저장
-		stringRedisTemplate.opsForHash().put(
-			ENTRY_TOKEN_STORAGE_KEY_NAME,
-			String.valueOf(testUser.getUserId()),
-			testToken
-		);
 	}
 }
