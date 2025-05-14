@@ -506,4 +506,14 @@ public class AdminController {
         result.put("events", events);
         return result;
     }
+
+    /**
+     * 모니터링(Grafana) 페이지
+     */
+    @GetMapping("/monitoring")
+    @RoleRequired(UserRole.ADMIN)
+    public String monitoringPage(Model model) {
+        model.addAttribute("currentPage", "monitoring");
+        return "admin/monitoring";
+    }
 }

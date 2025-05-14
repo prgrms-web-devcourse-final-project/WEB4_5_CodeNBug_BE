@@ -117,6 +117,11 @@
                 <i class="bi bi-gear"></i> 설정
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" th:classappend="${currentPage == 'monitoring' ? 'active' : ''}" th:href="@{/admin/monitoring}">
+                <i class="bi bi-graph-up"></i> 모니터링
+            </a>
+        </li>
     </ul>
     <a th:href="@{/admin/logout}" class="btn btn-danger logout-btn">
         <i class="bi bi-box-arrow-right"></i> 로그아웃
