@@ -12,12 +12,14 @@ import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentRequest;
+import org.codeNbug.mainserver.domain.purchase.dto.CancelPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.ConfirmPaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentRequest;
 import org.codeNbug.mainserver.domain.purchase.dto.InitiatePaymentResponse;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
+import org.codeNbug.mainserver.domain.purchase.repository.PurchaseCancelRepository;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
@@ -27,6 +29,7 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
 import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
+import org.codeNbug.mainserver.external.toss.dto.CanceledPaymentInfo;
 import org.codeNbug.mainserver.external.toss.dto.ConfirmedPaymentInfo;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
@@ -53,6 +56,9 @@ class PurchaseServiceTest {
 
 	@Mock
 	private PurchaseRepository purchaseRepository;
+
+	@Mock
+	private PurchaseCancelRepository purchaseCancelRepository;
 
 	@Mock
 	private RedisLockService redisLockService;
@@ -143,6 +149,7 @@ class PurchaseServiceTest {
 
 		initiateRequest = new InitiatePaymentRequest(eventId, 10000);
 		confirmRequest = new ConfirmPaymentRequest(1L, "paymentKey", "orderId", 10000);
+		cancelRequest = new CancelPaymentRequest("단순 변심");
 	}
 
 	@Test
@@ -232,7 +239,7 @@ class PurchaseServiceTest {
 	@DisplayName("결제 승인 실패 - 금액 불일치")
 	void confirmPayment_fail_amountMismatch() {
 		// Given
-		purchase.setAmount(5000); // 요청과 다르게 설정
+		ReflectionTestUtils.setField(purchase, "amount", 5000); // 요청과 다르게
 		given(purchaseRepository.findById(1L)).willReturn(Optional.of(purchase));
 
 		// When & Then
@@ -270,5 +277,48 @@ class PurchaseServiceTest {
 		assertThatThrownBy(() -> purchaseService.confirmPayment(confirmRequest, userId))
 			.isInstanceOf(BadRequestException.class)
 			.hasMessageContaining("[confirm] 일부 좌석을 찾을 수 없습니다");
+	}
+
+	@DisplayName("결제 취소 성공")
+	@Test
+	void cancelPayment_success() {
+		// given
+		ReflectionTestUtils.setField(purchase, "paymentUuid", "paymentKey");
+		given(userRepository.findById(userId)).willReturn(Optional.of(user));
+		given(purchaseRepository.findByPaymentUuid("paymentKey")).willReturn(Optional.of(purchase));
+
+		CanceledPaymentInfo.CancelDetail detail = new CanceledPaymentInfo.CancelDetail(
+			1000, "2025-05-14T12:00:00Z", "단순 변심"
+		);
+		CanceledPaymentInfo info = new CanceledPaymentInfo(
+			"paymentKey", "orderId", "CANCELED", "카드", 1000, null,
+			List.of(detail)
+		);
+
+		given(tossPaymentService.cancelPayment("paymentKey", "단순 변심")).willReturn(info);
+		given(ticketRepository.findAllByPurchaseId(purchase.getId())).willReturn(List.of(ticket));
+		given(seatRepository.findByTicketId(ticket.getId())).willReturn(List.of(seat1));
+
+		// when
+		CancelPaymentResponse response = purchaseService.cancelPayment(cancelRequest, "paymentKey", userId);
+
+		// then
+		assertThat(response).isNotNull();
+		assertThat(response.getStatus()).isEqualTo("CANCELED");
+		assertThat(response.getCancels().get(0).getCancelAmount()).isEqualTo(1000);
+		assertThat(response.getCancels().get(0).getCancelReason()).isEqualTo("단순 변심");
+	}
+
+	@DisplayName("결제 취소 실패 - 결제 정보 없음")
+	@Test
+	void cancelPayment_fail_purchaseNotFound() {
+		// given
+		given(userRepository.findById(userId)).willReturn(Optional.of(user));
+		given(purchaseRepository.findByPaymentUuid("invalidKey")).willReturn(Optional.empty());
+
+		// when & then
+		assertThatThrownBy(() -> purchaseService.cancelPayment(cancelRequest, "invalidKey", userId))
+			.isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("[cancel] 해당 결제 정보를 찾을 수 없습니다.");
 	}
 }
