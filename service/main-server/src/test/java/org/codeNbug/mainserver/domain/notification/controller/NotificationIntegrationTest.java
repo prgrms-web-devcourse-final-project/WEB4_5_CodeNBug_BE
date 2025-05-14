@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.notification.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -329,5 +330,18 @@ class NotificationIntegrationTest {
             throw new IllegalStateException("요청한 개수만큼의 테스트 알림이 존재하지 않습니다.");
         }
         return notifications.subList(0, count).stream().map(Notification::getId).collect(Collectors.toList());
+    }
+
+    @Test
+    @DisplayName("알림 구독 SSE 엔드포인트 테스트")
+    void subscribeToSSE() throws Exception {
+        // when - SSE 구독 요청
+        mockMvc.perform(get("/api/v1/notifications/subscribe")
+                        .header("Authorization", "Bearer " + testToken)
+                        .accept(MediaType.TEXT_EVENT_STREAM_VALUE))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", containsString("text/event-stream")));
+
+        // 비동기 연결이므로 더 깊은 검증은 하지 않음
     }
 }
