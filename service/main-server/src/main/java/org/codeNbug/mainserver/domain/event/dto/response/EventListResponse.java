@@ -26,6 +26,8 @@ public class EventListResponse implements Serializable {
 	EventStatusEnum status;
 	Boolean seatSelectable;
 	Boolean isDeleted;
+	Integer minPrice;
+	Integer maxPrice;
 
 	public EventListResponse(Event event) {
 		this.eventId = event.getEventId();
@@ -38,6 +40,21 @@ public class EventListResponse implements Serializable {
 		this.seatSelectable = event.getSeatSelectable();
 		this.isDeleted = event.getIsDeleted();
 	}
+
+	public EventListResponse(Event event, Integer minPrice, Integer maxPrice) {
+		this.eventId = event.getEventId();
+		this.category = event.getCategory();
+		this.information = new EventInformationDto(event.getInformation());
+		this.bookingStart = event.getBookingStart();
+		this.bookingEnd = event.getBookingEnd();
+		this.viewCount = event.getViewCount();
+		this.status = event.getStatus();
+		this.seatSelectable = event.getSeatSelectable();
+		this.isDeleted = event.getIsDeleted();
+		this.minPrice = minPrice;
+		this.maxPrice = maxPrice;
+	}
+
 
 	/**
 	 * DTO for {@link org.codeNbug.mainserver.domain.event.entity.EventInformation}

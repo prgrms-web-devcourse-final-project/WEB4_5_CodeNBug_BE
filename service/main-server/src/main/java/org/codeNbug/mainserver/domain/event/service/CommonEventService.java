@@ -6,6 +6,7 @@ import org.codeNbug.mainserver.domain.event.dto.EventInfoResponse;
 import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
 import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
+import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.repository.JpaCommonEventRepository;
 import org.springframework.data.domain.Pageable;
@@ -23,8 +24,8 @@ public class CommonEventService {
 	private final RedisTemplate<String, Object> redisTemplate;
 
 	public CommonEventService(CommonEventRepository commonEventRepository,
-							  JpaCommonEventRepository jpaCommonEventRepository,
-							  RedisTemplate<String, Object> redisTemplate) {
+		JpaCommonEventRepository jpaCommonEventRepository,
+		RedisTemplate<String, Object> redisTemplate) {
 		this.commonEventRepository = commonEventRepository;
 		this.jpaCommonEventRepository = jpaCommonEventRepository;
 		this.redisTemplate = redisTemplate;
@@ -50,7 +51,8 @@ public class CommonEventService {
 		Pageable pageable) {
 		return commonEventRepository.findAllByFilterAndKeyword(keyword, filter, pageable)
 			.stream()
-			.map(event -> new EventListResponse(event))
+			.map(event -> new EventListResponse(event.get(0, Event.class), event.get(1, Integer.class),
+				event.get(2, Integer.class)))
 			.toList();
 
 	}
@@ -58,7 +60,8 @@ public class CommonEventService {
 	private List<EventListResponse> getEventsOnlyKeyword(String keyword, Pageable pageable) {
 		return commonEventRepository.findAllByKeyword(keyword, pageable)
 			.stream()
-			.map(event -> new EventListResponse(event))
+			.map(event -> new EventListResponse(event.get(0, Event.class), event.get(1, Integer.class),
+				event.get(2, Integer.class)))
 			.toList();
 
 	}
@@ -66,7 +69,8 @@ public class CommonEventService {
 	private List<EventListResponse> getEventsOnlyFilters(EventListFilter filter, Pageable pageable) {
 		return commonEventRepository.findAllByFilter(filter, pageable)
 			.stream()
-			.map(event -> new EventListResponse(event))
+			.map(event -> new EventListResponse(event.get(0, Event.class), event.get(1, Integer.class),
+				event.get(2, Integer.class)))
 			.toList();
 	}
 
