@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,7 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -66,6 +65,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
@@ -145,7 +145,7 @@ class PurchaseIntegrationTest {
 	private PurchaseService purchaseService;
 
 	@Autowired
-	private StringRedisTemplate stringRedisTemplate;
+	private RedisTemplate<String, String> redisTemplate;
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -171,41 +171,31 @@ class PurchaseIntegrationTest {
 			"test_sk_xxx",
 			"https://api.tosspayments.com/v1/payments"
 		);
-
-		// PurchaseService 생성자 주입
-		purchaseService = new PurchaseService(
-			tossPaymentService,
-			purchaseRepository,
-			purchaseCancelRepository,
-			userRepository,
-			eventRepository,
-			seatRepository,
-			ticketRepository,
-			redisLockService,
-			managerEventRepository,
-			notificationService
-		);
 	}
 
 	@BeforeAll
 	public void setUpAll() throws Exception {
 		mockRestServiceServer = MockRestServiceServer.createServer(restTemplate);
 
-		mockRestServiceServer.expect(requestTo("http://localhost:9001/api/v1/events/1/tickets/waiting"))
-			.andExpect(method(HttpMethod.GET))
-			.andRespond(withSuccess("{\"data\": {\"entryAuthToken\": \"testToken\"}}", MediaType.APPLICATION_JSON));
-
 		testUser = baseTestUtil.setUpUser();
 		testToken = baseTestUtil.setUpToken();
 		testEvent = baseTestUtil.setUpEvent();
 
-		stringRedisTemplate.opsForHash().put(
+		String url = UriComponentsBuilder.fromHttpUrl("http://localhost:9001/api/v1/events/{eventId}/tickets/waiting")
+			.buildAndExpand(testEvent.getEventId())  // {eventId}에 실제 값 삽입
+			.toUriString();
+
+		mockRestServiceServer.expect(
+				requestTo(url))
+			.andExpect(method(HttpMethod.GET))
+			.andRespond(withSuccess("{\"data\": {\"entryAuthToken\": \"testToken\"}}", MediaType.APPLICATION_JSON));
+
+		redisTemplate.opsForHash().put(
 			ENTRY_TOKEN_STORAGE_KEY_NAME,
 			String.valueOf(testUser.getUserId()),
 			testToken
 		);
 
-		stringRedisTemplate.opsForHash().put("ENTRY_TOKEN", String.valueOf(testUser.getUserId()), "testToken");
 		entryToken = "testToken";
 	}
 
@@ -227,7 +217,6 @@ class PurchaseIntegrationTest {
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	@DisplayName("결제 사전 등록 성공")
 	void testInitiatePayment() throws Exception {
-		System.out.println("redis:: " + redis.getContainerId() + ", " + redis.isRunning());
 		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(testEvent.getEventId());
 		Seat seatToLock = availableSeats.get(0);
 
@@ -236,19 +225,19 @@ class PurchaseIntegrationTest {
 		seatSelectRequest.setTicketCount(1);
 
 		String seatSelectJson = objectMapper.writeValueAsString(seatSelectRequest);
+		System.out.println(seatSelectJson);
 
 		mockMvc.perform(post("/api/v1/event/{eventId}/seats", testEvent.getEventId())
 				.header("Authorization", "Bearer " + testToken)
 				.header("entryAuthToken", entryToken)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(seatSelectJson))
-			.andExpect(status().isOk());
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.code").value("200"))
+			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"));
 
 		String redisKey = "seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + seatToLock.getId();
-		System.out.println("redis11:: " + redis.getContainerId() + ", " + redis.isRunning());
-		String redisValue = stringRedisTemplate.opsForValue().get(redisKey);
-
-		redisLockService.tryLock(redisKey, redisValue, Duration.ofMillis(5));
+		String redisValue = redisTemplate.opsForValue().get(redisKey);
 		assertThat(redisValue).isNotNull();
 
 		InitiatePaymentRequest paymentRequest = new InitiatePaymentRequest(testEvent.getEventId(), 1000);
