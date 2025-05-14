@@ -118,6 +118,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/admin/login").permitAll()
                         .requestMatchers("/admin/signup").permitAll()
+					.requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/events").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/events/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/events/{id}/seats").permitAll()
