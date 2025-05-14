@@ -43,8 +43,13 @@ class EventRegisterServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private ManagerEventRepository managerEventRepository;
+
     @InjectMocks
     private EventRegisterService eventRegisterService;
+
+
 
     @DisplayName("이벤트 등록 성공 테스트")
     @Test

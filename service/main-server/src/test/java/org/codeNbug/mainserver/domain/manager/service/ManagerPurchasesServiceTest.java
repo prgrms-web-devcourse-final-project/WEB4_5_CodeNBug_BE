@@ -82,6 +82,7 @@ class ManagerPurchasesServiceTest {
 
         // when - mock 설정
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(managerEventRepository.existsByManagerAndEvent(manager, event)).thenReturn(true);
         when(ticketRepository.findTicketPurchasesByEventId(eventId)).thenReturn(dummyTickets);
 
         // then
