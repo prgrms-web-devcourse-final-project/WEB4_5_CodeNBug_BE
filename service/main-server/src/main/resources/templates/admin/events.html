@@ -60,14 +60,16 @@
 
         <!-- 삭제된 이벤트 목록 -->
         <div class="card d-none" id="event-deleted-tab">
-            <div class="card-header bg-white">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">삭제된 이벤트</h5>
+                <button class="btn btn-danger btn-sm" onclick="bulkHideRows()" id="bulkDeleteBtn" style="display:none;">일괄 삭제</button>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th><input type="checkbox" id="selectAllDeleted" onclick="toggleSelectAll(this)"></th>
                                 <th>ID</th>
                                 <th>제목</th>
                                 <th>카테고리</th>
@@ -128,11 +130,19 @@
                     (data.data || []).forEach(event => {
                         tbody.innerHTML += renderEventRow(event, true);
                     });
+                    // 체크박스/버튼 상태 초기화
+                    document.getElementById('bulkDeleteBtn').style.display = 'none';
+                    document.getElementById('selectAllDeleted').checked = false;
                 });
         }
         // 테이블 행 렌더링 함수
         function renderEventRow(event, isDeleted) {
+            if (isDeleted) {
+                let hidden = JSON.parse(localStorage.getItem('hiddenDeletedEvents') || '[]');
+                if (hidden.includes(event.eventId)) return '';
+            }
             return `<tr>
+                ${isDeleted ? `<td><input type='checkbox' class='row-checkbox' value='${event.eventId}' onchange='onRowCheckboxChange()'></td>` : ''}
                 <td>${event.eventId}</td>
                 <td>${event.title}</td>
                 <td>${event.category}</td>
@@ -152,8 +162,12 @@
                         </a>
                         <button type="button" class="btn btn-sm btn-danger" onclick="deleteEvent(${event.eventId})">
                             <i class="bi bi-trash"></i>
-                        </button>` : `<button type="button" class="btn btn-sm btn-success" onclick="restoreEvent(${event.eventId})">
+                        </button>` : `
+                        <button type="button" class="btn btn-sm btn-success" onclick="restoreEvent(${event.eventId})">
                             <i class="bi bi-arrow-counterclockwise"></i> 복구
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="hideRow(this, ${event.eventId})">
+                            <i class="bi bi-x"></i>
                         </button>`}
                     </div>
                 </td>
@@ -205,6 +219,44 @@
                     alert('이벤트 복구 중 오류가 발생했습니다.');
                 });
             }
+        }
+        // 브라우저에서만 행 숨기기
+        function hideRow(btn, eventId) {
+            if (confirm('이 이벤트를 목록에서 숨기시겠습니까? (다시 보려면 브라우저 저장소를 비워야 합니다)')) {
+                let hidden = JSON.parse(localStorage.getItem('hiddenDeletedEvents') || '[]');
+                if (!hidden.includes(eventId)) hidden.push(eventId);
+                localStorage.setItem('hiddenDeletedEvents', JSON.stringify(hidden));
+                btn.closest('tr').style.display = 'none';
+            }
+        }
+        // 모두 선택 체크박스 제어
+        function toggleSelectAll(allCb) {
+            const checkboxes = document.querySelectorAll('#event-deleted-tbody .row-checkbox');
+            checkboxes.forEach(cb => cb.checked = allCb.checked);
+            onRowCheckboxChange();
+        }
+        // 개별 체크박스 변경 시 일괄삭제 버튼 표시/숨김
+        function onRowCheckboxChange() {
+            const checkboxes = document.querySelectorAll('#event-deleted-tbody .row-checkbox');
+            const checked = Array.from(checkboxes).filter(cb => cb.checked);
+            document.getElementById('bulkDeleteBtn').style.display = checked.length > 0 ? '' : 'none';
+            // 모두 선택 체크박스 상태 동기화
+            const allCb = document.getElementById('selectAllDeleted');
+            allCb.checked = checked.length === checkboxes.length && checkboxes.length > 0;
+        }
+        // 일괄 삭제 함수
+        function bulkHideRows() {
+            if (!confirm('선택한 이벤트를 목록에서 모두 숨기시겠습니까? (다시 보려면 브라우저 저장소를 비워야 합니다)')) return;
+            const checkboxes = document.querySelectorAll('#event-deleted-tbody .row-checkbox:checked');
+            let hidden = JSON.parse(localStorage.getItem('hiddenDeletedEvents') || '[]');
+            checkboxes.forEach(cb => {
+                const eventId = Number(cb.value);
+                if (!hidden.includes(eventId)) hidden.push(eventId);
+                cb.closest('tr').style.display = 'none';
+            });
+            localStorage.setItem('hiddenDeletedEvents', JSON.stringify(hidden));
+            document.getElementById('bulkDeleteBtn').style.display = 'none';
+            document.getElementById('selectAllDeleted').checked = false;
         }
         // 초기 로딩
         document.addEventListener('DOMContentLoaded', function() {
