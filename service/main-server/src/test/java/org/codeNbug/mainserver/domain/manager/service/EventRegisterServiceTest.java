@@ -39,12 +39,9 @@ class EventRegisterServiceTest {
     private EventRepository eventRepository;
     @Mock
     private SeatLayoutRepository seatLayoutRepository;
-    @Mock
-    private ManagerEventRepository managerEventRepository;
+
     @Mock
     private UserRepository userRepository;
-    @Mock
-    private SeatGradeRepository seatGradeRepository;
 
     @InjectMocks
     private EventRegisterService eventRegisterService;
