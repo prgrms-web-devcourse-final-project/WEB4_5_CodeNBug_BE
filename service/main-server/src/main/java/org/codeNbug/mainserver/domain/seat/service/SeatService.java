@@ -14,6 +14,8 @@ import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
+import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codeNbug.mainserver.global.exception.globalException.ConflictException;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
@@ -48,7 +50,7 @@ public class SeatService {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
 		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
-			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
+			.orElseThrow(() -> new IllegalArgumentException("해당 이벤트에 좌석 레이아웃이 존재하지 않습니다."));
 
 		log.info("SeatLayout ID: {}", seatLayout.getId());
 
@@ -75,15 +77,18 @@ public class SeatService {
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
 		List<Long> selectedSeats = seatSelectRequest.getSeatList();
-		if (selectedSeats.size() > 4) {
-			throw new IllegalArgumentException("최대 4개의 좌석만 선택할 수 있습니다.");
-		}
 
 		if (event.getSeatSelectable()) {
 			// 지정석 예매 처리
+			if (selectedSeats != null && selectedSeats.size() > 4) {
+				throw new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다.");
+			}
 			selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
 		} else {
 			// 미지정석 예매 처리
+			if (selectedSeats != null && !selectedSeats.isEmpty()) {
+				throw new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
+			}
 			selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
 		}
 
@@ -110,24 +115,20 @@ public class SeatService {
 					.orElseThrow(() -> new IllegalArgumentException("[selectSeats] 좌석이 존재하지 않습니다."));
 
 				if (!seat.isAvailable()) {
-					throw new IllegalStateException("[selectSeats] 이미 예매된 좌석입니다. seatId = " + seatId);
+					throw new ConflictException("[selectSeats] 이미 예매된 좌석입니다. seatId = " + seatId);
 				}
 
 				reserveSeat(seat, userId, eventId, seatId);
 			}
 		} else {
 			// 미지정석 예매 처리
-			if (selectedSeats != null && !selectedSeats.isEmpty()) {
-				throw new IllegalArgumentException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
-			}
-
 			List<Seat> availableSeats = seatRepository.findAvailableSeatsByEventId(eventId)
 				.stream()
 				.limit(ticketCount)
 				.toList();
 
 			if (availableSeats.size() < ticketCount) {
-				throw new IllegalStateException("[selectSeats] 예매 가능한 좌석 수가 부족합니다.");
+				throw new ConflictException("[selectSeats] 예매 가능한 좌석 수가 부족합니다.");
 			}
 
 			for (Seat seat : availableSeats) {
@@ -150,7 +151,7 @@ public class SeatService {
 
 		boolean lockSuccess = redisLockService.tryLock(lockKey, lockValue, Duration.ofMinutes(5));
 		if (!lockSuccess) {
-			throw new IllegalStateException("[reserveSeat] 이미 선택된 좌석이 있습니다.");
+			throw new BadRequestException("[reserveSeat] 이미 선택된 좌석이 있습니다.");
 		}
 
 		seat.reserve();
@@ -177,7 +178,7 @@ public class SeatService {
 			String lockValue = redisLockService.getLockValue(lockKey);
 
 			if (!redisLockService.unlock(lockKey, lockValue)) {
-				throw new IllegalStateException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
+				throw new BadRequestException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
 			}
 
 			Seat seat = seatRepository.findById(seatId)
