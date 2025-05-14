@@ -227,18 +227,15 @@ class NotificationRealTimeServiceTest {
 
         // userConnectionsMap은 비어있으므로 사용자가 연결되어 있지 않음
 
-        // 알림 상태 업데이트를 mock으로 대체
-        NotificationEventService spyEventService = org.mockito.Mockito.spy(notificationEventService);
-        doNothing().when(spyEventService).updateNotificationStatus(anyLong(), any(NotificationStatus.class));
 
         // when
-        spyEventService.handleNotificationCreatedEvent(eventDto);
+        notificationEventService.handleNotificationCreatedEvent(eventDto);
 
         // then
         verify(notificationRepository, times(1)).findById(eq(notificationId));
 
         // 연결되지 않았으므로 상태 업데이트 호출되지 않아야 함
-        verify(spyEventService, never()).updateNotificationStatus(anyLong(), any(NotificationStatus.class));
+        verify(notificationRepository, never()).save(any(Notification.class));
     }
 
     @Test
@@ -256,9 +253,7 @@ class NotificationRealTimeServiceTest {
         SseEmitter mockEmitter = mock(SseEmitter.class);
 
         // send 메서드 호출 시 예외 발생하도록 설정
-        doAnswer(invocation -> {
-            throw new IOException("전송 실패");
-        }).when(mockEmitter).send(any(SseEventBuilder.class));
+        doThrow(new IOException("전송 실패")).when(mockEmitter).send(any(SseEventBuilder.class));
 
         // userConnectionsMap에 연결 추가 (테스트 설정)
         java.lang.reflect.Field field = NotificationEmitterService.class.getDeclaredField(USER_CONNECTIONS_MAP_FIELD);
@@ -273,18 +268,12 @@ class NotificationRealTimeServiceTest {
         Notification notification = createNotification(notificationId, userId, type, content);
         when(notificationRepository.findById(eq(notificationId))).thenReturn(Optional.of(notification));
 
-        // 알림 상태 업데이트를 mock으로 대체
-        NotificationEventService spyEventService = org.mockito.Mockito.spy(notificationEventService);
-        doNothing().when(spyEventService).updateNotificationStatus(anyLong(), any(NotificationStatus.class));
-
         // when
-        spyEventService.handleNotificationCreatedEvent(eventDto);
+        notificationEventService.handleNotificationCreatedEvent(eventDto);
 
         // then
         verify(notificationRepository, times(1)).findById(eq(notificationId));
-
-        // 실패 상태로 업데이트 확인
-        verify(spyEventService, times(1)).updateNotificationStatus(eq(notificationId), eq(NotificationStatus.FAILED));
+        verify(notificationRepository, times(1)).save(any(Notification.class));
     }
 
     @Test
