@@ -48,13 +48,13 @@
                             </tr>
                             <tr th:each="event : ${events}">
                                 <td th:text="${event.eventId}">1</td>
-                                <td th:text="${event.information.title}">이벤트 제목</td>
+                                <td th:text="${event.title}">이벤트 제목</td>
                                 <td th:text="${event.category}">카테고리</td>
-                                <td th:text="${#temporals.format(event.information.eventStart, 'yyyy-MM-dd HH:mm')}">시작일</td>
-                                <td th:text="${#temporals.format(event.information.eventEnd, 'yyyy-MM-dd HH:mm')}">종료일</td>
-                                <td th:text="${event.information.seatCount}">총 티켓</td>
+                                <td th:text="${#temporals.format(event.eventStart, 'yyyy-MM-dd HH:mm')}">시작일</td>
+                                <td th:text="${#temporals.format(event.eventEnd, 'yyyy-MM-dd HH:mm')}">종료일</td>
+                                <td th:text="${event.seatCount}">총 티켓</td>
                                 <td th:text="${event.soldTickets}">판매된 티켓</td>
-                                <td th:text="${event.information.seatCount - event.soldTickets}">남은 티켓</td>
+                                <td th:text="${event.seatCount - event.soldTickets}">남은 티켓</td>
                                 <td th:text="${event.status}">상태</td>
                                 <td>
                                     <div class="btn-group">
