@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "service/queue-server/**"
+      - "service/common/**"
+      - "service/user/**"
 
 jobs:
   test:
