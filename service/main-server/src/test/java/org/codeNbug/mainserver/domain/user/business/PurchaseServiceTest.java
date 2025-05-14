@@ -7,6 +7,7 @@ import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
+import org.codeNbug.mainserver.domain.ticket.entity.Ticket;
 import org.codenbug.user.domain.user.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -88,12 +89,12 @@ class PurchaseServiceTest {
                     .id(purchaseId)
                     .user(createTestUser())
                     .paymentStatus(PaymentStatusEnum.DONE)
-                    .paymentMethod(PaymentMethodEnum.카드)  // 결제 방법 추가
-                    .amount(10000)  // 결제 금액 추가
-                    .orderName("테스트 주문")  // 주문명 추가
-                    .orderId("ORDER_123")  // 주문 ID 추가
+                    .paymentMethod(PaymentMethodEnum.카드)
+                    .amount(10000)
+                    .orderName("테스트 주문")
+                    .orderId("ORDER_123")
                     .purchaseDate(LocalDateTime.now())
-                    .tickets(new ArrayList<>())  // 빈 tickets 리스트 초기화
+                    .tickets(new ArrayList<>())
                     .build();
 
             when(purchaseRepository.findById(purchaseId)).thenReturn(Optional.of(purchase));
@@ -129,12 +130,10 @@ class PurchaseServiceTest {
             Long userId = 1L;
             Long purchaseId = 1L;
             Purchase otherUserPurchase = createTestPurchase();
-            // 다른 사용자의 구매 내역을 위해 새로운 User 객체 생성
             User otherUser = User.builder()
                     .userId(2L)
                     .email("other@example.com")
                     .build();
-            // Purchase 엔티티의 setUser 메서드가 정의되지 않으므로, builder를 통해 직접 설정
             otherUserPurchase = Purchase.builder()
                     .id(purchaseId)
                     .user(otherUser)
@@ -174,12 +173,12 @@ class PurchaseServiceTest {
                 .id(1L)
                 .user(createTestUser())
                 .paymentStatus(PaymentStatusEnum.DONE)
-                .paymentMethod(PaymentMethodEnum.카드)  // 결제 방법 추가
-                .amount(10000)  // 결제 금액 추가
-                .orderName("테스트 주문")  // 주문명 추가
-                .orderId("ORDER_123")  // 주문 ID 추가
+                .paymentMethod(PaymentMethodEnum.카드)
+                .amount(10000)
+                .orderName("테스트 주문")
+                .orderId("ORDER_123")
                 .purchaseDate(LocalDateTime.now())
-                .tickets(new ArrayList<>())  // 빈 tickets 리스트 초기화
+                .tickets(new ArrayList<>())
                 .build();
     }
 } 
