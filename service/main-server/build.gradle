@@ -3,33 +3,55 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
     implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     implementation("com.google.code.gson:gson:2.10.1")
+
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'ognl:ognl:3.3.4'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+
     implementation 'com.amazonaws:aws-java-sdk-s3:1.12.653'
+
+    implementation platform("software.amazon.awssdk:bom:2.25.24")
+    implementation 'software.amazon.awssdk:s3'
+
+    implementation 'com.querydsl:querydsl-core'
+    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+
+    annotationProcessor("com.querydsl:querydsl-apt:5.0.0:jakarta")
+    annotationProcessor("jakarta.persistence:jakarta.persistence-api")
+    annotationProcessor("jakarta.annotation:jakarta.annotation-api")
+
+    // APT로 생성된 소스를 컴파일에 포함
+    tasks.withType(JavaCompile) {
+        options.annotationProcessorGeneratedSourcesDirectory = file("$buildDir/generated/querydsl")
+    }
+    sourceSets.main.java.srcDir("$buildDir/generated/querydsl")
+
+    clean {
+        delete file("$buildDir/generated/querydsl")
+    }
 
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:mysql:1.19.0")
     // https://mvnrepository.com/artifact/com.redis/testcontainers-redis
     testImplementation("com.redis:testcontainers-redis:2.2.4")
 
+    // Test Dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'      // MySQL 통합 테스트용
+    testImplementation 'io.rest-assured:rest-assured'  // REST API 테스트용
+    testImplementation 'org.springframework.security:spring-security-test'
 
-    implementation platform("software.amazon.awssdk:bom:2.25.24")
-    implementation 'software.amazon.awssdk:s3'
     implementation project(':user')
     implementation project(':common')
-}
-
-test {
-    useJUnitPlatform()
 }

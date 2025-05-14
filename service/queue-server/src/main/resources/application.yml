@@ -7,13 +7,13 @@ spring:
     include: secret
   data:
     redis:
-      port: ${redis.port}
-      host: ${redis.host}
+      port: 6379
+      host: localhost
 
   datasource:
-    url: ${db.url}
-    username: ${db.username}
-    password: ${db.password}
+    url: jdbc:mysql://localhost:3306/ticketone
+    username: root
+    password: password
     hikari:
       auto-commit: false
     driver-class-name: com.mysql.cj.jdbc.Driver
