@@ -1,5 +1,10 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryDetailResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryListResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
@@ -13,30 +18,14 @@ import org.codeNbug.mainserver.domain.user.service.UserService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.codenbug.common.util.CookieUtil;
-import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.redis.service.TokenService;
-import org.codenbug.user.security.annotation.RoleRequired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 사용자 관련 컨트롤러
