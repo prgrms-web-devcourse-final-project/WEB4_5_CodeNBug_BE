@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.external.toss.webhook.controller;
 
 import org.codeNbug.mainserver.external.toss.webhook.service.WebhookService;
+import org.codenbug.logging.ControllerLogging;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/webhook/toss")
 @RequiredArgsConstructor
+@ControllerLogging
 public class WebhookController {
 
 	private final WebhookService webhookService;

@@ -6,6 +6,7 @@ include ':queue-server'
 include ':message-dispatcher'
 include ':user'
 include ':common'
+include ':logging'
 
 
 project(':message-dispatcher').projectDir = file('service/message-dispatcher')
@@ -13,4 +14,4 @@ project(':main-server').projectDir = file('service/main-server')
 project(':queue-server').projectDir = file('service/queue-server')
 project(':user').projectDir = file('service/user')
 project(':common').projectDir = file('service/common')
-
+project(':logging').projectDir = file('service/logging')

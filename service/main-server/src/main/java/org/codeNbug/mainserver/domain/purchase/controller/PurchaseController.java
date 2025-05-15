@@ -12,6 +12,7 @@ import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
+import org.codenbug.logging.ControllerLogging;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/payments")
+@ControllerLogging
 public class PurchaseController {
 	private final PurchaseService purchaseService;
 	private final EntryTokenValidator entryTokenValidator;

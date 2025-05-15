@@ -24,5 +24,6 @@ dependencies {
 
     implementation project(':user')
     implementation project(':common')
+    implementation project(':logging')
 
 }

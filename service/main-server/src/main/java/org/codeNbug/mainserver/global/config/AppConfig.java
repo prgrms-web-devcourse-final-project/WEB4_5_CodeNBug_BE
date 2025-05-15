@@ -8,8 +8,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableScheduling
 @EnableJpaAuditing
-@ComponentScan(basePackages = {"org.codeNbug.mainserver", "org.codenbug.user",
-	"org.codenbug.common"})
+@ComponentScan(basePackages = {"org.codeNbug.mainserver",
+	"org.codenbug.user",
+	"org.codenbug.common",
+	"org.codenbug.logging"})
 public class AppConfig {
 
 }
