@@ -6,11 +6,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Controller 호출의 로깅을 담당하는 어노테이션 <br/>
- * 이 어노테이션이 붙어 있으면 컨트롤러 호출의 결과를 {@code info} 레벨로 출력한다.
+ * 주요 비즈니스 호출 로직을 출력하는 어노테이션 <br/>
+ * {@code info} 레벨로 출력한다.
  */
-@Target({ElementType.TYPE})
+@Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ControllerLogging {
+public @interface BusinessLogging {
 	String description() default "";
 }

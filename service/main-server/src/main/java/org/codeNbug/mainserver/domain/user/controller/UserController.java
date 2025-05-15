@@ -13,6 +13,7 @@ import org.codeNbug.mainserver.domain.user.service.UserService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.codenbug.common.util.CookieUtil;
+import org.codenbug.logging.BusinessLogging;
 import org.codenbug.logging.ControllerLogging;
 import org.codenbug.user.redis.service.TokenService;
 import org.springframework.http.HttpStatus;
@@ -55,6 +56,7 @@ public class UserController {
      * @return API 응답
      */
     @PostMapping("/signup")
+    @BusinessLogging(description = "회원가입 진행")
     public ResponseEntity<RsData<SignupResponse>> signup(
             @Valid @RequestBody SignupRequest request,
             BindingResult bindingResult) {
@@ -80,6 +82,7 @@ public class UserController {
      * @return API 응답
      */
     @PostMapping("/login")
+    @BusinessLogging
     public ResponseEntity<RsData<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request,
             BindingResult bindingResult,
@@ -119,6 +122,7 @@ public class UserController {
      * @return API 응답
      */
     @PostMapping("/logout")
+    @BusinessLogging
     public ResponseEntity<RsData<Void>> logout(
             HttpServletRequest request,
             HttpServletResponse response) {
