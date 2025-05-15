@@ -91,7 +91,7 @@ public class User {
 
     @Builder.Default
     @Column(name = "account_lock_duration_minutes")
-    private int accountLockDurationMinutes = 30;
+    private int accountLockDurationMinutes = 5;
 
     @Builder.Default
     @Column(name = "password_expiry_days")

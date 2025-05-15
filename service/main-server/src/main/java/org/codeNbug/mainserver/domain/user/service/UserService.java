@@ -95,24 +95,37 @@ public class UserService {
 
         if (user.isAccountLocked()) {
             log.warn(">> 로그인 실패: 잠긴 계정 - 이메일={}", request.getEmail());
-            throw new AuthenticationFailedException("계정이 잠겨있습니다. 잠금 해제 시간까지 기다려주세요.");
+            throw new AuthenticationFailedException("계정이 잠겨있습니다. " + 
+                (user.getLastLoginAt() != null ? 
+                    String.format("잠금 해제까지 %d분 남았습니다.", 
+                        user.getAccountLockDurationMinutes() - 
+                        java.time.Duration.between(user.getLastLoginAt(), LocalDateTime.now()).toMinutes()) 
+                    : "잠금 해제 시간까지 기다려주세요."));
         }
 
         if (user.getAccountExpiredAt() != null && user.getAccountExpiredAt().isBefore(LocalDateTime.now())) {
             log.warn(">> 로그인 실패: 만료된 계정 - 이메일={}", request.getEmail());
-            throw new AuthenticationFailedException("만료된 계정입니다. 계정을 연장해주세요.");
+            throw new AuthenticationFailedException("계정이 만료되었습니다. 계정 연장을 위해 관리자에게 문의하세요.");
         }
 
         if (user.getPasswordExpiredAt() != null && user.getPasswordExpiredAt().isBefore(LocalDateTime.now())) {
             log.warn(">> 로그인 실패: 만료된 비밀번호 - 이메일={}", request.getEmail());
-            throw new AuthenticationFailedException("비밀번호가 만료되었습니다. 비밀번호를 변경해주세요.");
+            throw new AuthenticationFailedException("비밀번호가 만료되었습니다. 비밀번호 변경 페이지로 이동하여 새로운 비밀번호를 설정해주세요.");
         }
 
         // 비밀번호 검증
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             log.warn(">> 로그인 실패: 잘못된 비밀번호 - 이메일={}", request.getEmail());
             incrementLoginAttemptCount(user);
-            throw new AuthenticationFailedException("이메일 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요.");
+            
+            int remainingAttempts = user.getMaxLoginAttempts() - user.getLoginAttemptCount();
+            if (remainingAttempts <= 0) {
+                throw new AuthenticationFailedException("로그인 시도 횟수가 초과되어 계정이 잠겼습니다. " + 
+                    user.getAccountLockDurationMinutes() + "분 후에 다시 시도해주세요.");
+            } else {
+                throw new AuthenticationFailedException(String.format(
+                    "비밀번호가 일치하지 않습니다. 남은 시도 횟수: %d회", remainingAttempts));
+            }
         }
 
         // 로그인 성공 처리
@@ -485,72 +498,5 @@ public class UserService {
         user.setAccountLocked(false);
         user.setLoginAttemptCount(0);
         userRepository.save(user);
-    }
-
-    /**
-     * 계정 잠금을 자동으로 해제합니다.
-     * 잠금 시간이 지난 계정들의 잠금을 해제합니다.
-     */
-    @Scheduled(fixedRate = 300000) // 5분마다 실행
-    @Transactional
-    public void autoUnlockAccounts() {
-        log.info(">> 계정 잠금 자동 해제 작업 시작");
-        
-        List<User> lockedUsers = userRepository.findByAccountLockedTrue();
-        LocalDateTime now = LocalDateTime.now();
-        
-        for (User user : lockedUsers) {
-            if (user.getLastLoginAt() != null && 
-                user.getLastLoginAt().plusMinutes(user.getAccountLockDurationMinutes()).isBefore(now)) {
-                log.info(">> 계정 잠금 해제: userId={}, email={}", user.getUserId(), user.getEmail());
-                unlockAccount(user);
-            }
-        }
-        
-        log.info(">> 계정 잠금 자동 해제 작업 완료");
-    }
-
-    /**
-     * 만료된 계정을 확인하고 알림을 보냅니다.
-     */
-    @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행
-    @Transactional
-    public void checkExpiringAccounts() {
-        log.info(">> 계정 만료 확인 작업 시작");
-        
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime warningDate = now.plusDays(7); // 7일 후 만료 예정인 계정 확인
-        
-        List<User> expiringUsers = userRepository.findByAccountExpiredAtBetween(now, warningDate);
-        
-        for (User user : expiringUsers) {
-            log.info(">> 계정 만료 예정 알림: userId={}, email={}, 만료일={}", 
-                    user.getUserId(), user.getEmail(), user.getAccountExpiredAt());
-            // TODO: 이메일 알림 발송 로직 구현
-        }
-        
-        log.info(">> 계정 만료 확인 작업 완료");
-    }
-
-    /**
-     * 만료된 비밀번호를 확인하고 알림을 보냅니다.
-     */
-    @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행
-    @Transactional
-    public void checkExpiringPasswords() {
-        log.info(">> 비밀번호 만료 확인 작업 시작");
-        
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime warningDate = now.plusDays(7); // 7일 후 만료 예정인 비밀번호 확인
-        
-        List<User> expiringUsers = userRepository.findByPasswordExpiredAtBetween(now, warningDate);
-        
-        for (User user : expiringUsers) {
-            log.info(">> 비밀번호 만료 예정 알림: userId={}, email={}, 만료일={}", 
-                    user.getUserId(), user.getEmail(), user.getPasswordExpiredAt());
-            // TODO: 이메일 알림 발송 로직 구현
-        }
-        
-        log.info(">> 비밀번호 만료 확인 작업 완료");
     }
 }
