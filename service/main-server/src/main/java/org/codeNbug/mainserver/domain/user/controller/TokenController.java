@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.domain.user.controller;
 
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codenbug.common.util.CookieUtil;
+import org.codenbug.logging.ControllerLogging;
 import org.codenbug.user.redis.service.TokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@ControllerLogging
 public class TokenController {
 
 	private final TokenService tokenService;

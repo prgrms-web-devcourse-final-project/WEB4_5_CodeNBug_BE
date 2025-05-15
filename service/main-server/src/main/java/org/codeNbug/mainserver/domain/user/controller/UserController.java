@@ -13,9 +13,8 @@ import org.codeNbug.mainserver.domain.user.service.UserService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.codenbug.common.util.CookieUtil;
-import org.codenbug.user.domain.user.constant.UserRole;
+import org.codenbug.logging.ControllerLogging;
 import org.codenbug.user.redis.service.TokenService;
-import org.codenbug.user.security.annotation.RoleRequired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -41,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Slf4j
+@ControllerLogging
 public class UserController {
     private final UserService userService;
     private final CookieUtil cookieUtil;

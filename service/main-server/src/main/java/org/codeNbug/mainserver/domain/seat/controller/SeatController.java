@@ -8,6 +8,7 @@ import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.Redis.entry.EntryTokenValidator;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
+import org.codenbug.logging.ControllerLogging;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/v1/event")
 @RequiredArgsConstructor
+@ControllerLogging
 public class SeatController {
 	private final SeatService seatService;
 	private final EntryTokenValidator entryTokenValidator;

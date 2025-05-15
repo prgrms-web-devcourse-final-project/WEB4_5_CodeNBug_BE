@@ -16,6 +16,7 @@ import org.codeNbug.mainserver.domain.manager.service.ManagerPurchasesService;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
+import org.codenbug.logging.ControllerLogging;
 import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.security.annotation.RoleRequired;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/manager/events")
+@ControllerLogging
 public class ManagerController {
 	private final EventRegisterService eventRegisterService;
 	private final EventEditService eventEditService;

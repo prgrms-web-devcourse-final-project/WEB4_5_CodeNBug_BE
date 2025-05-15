@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
 @EnableScheduling
-@ComponentScan(basePackages = {"org.codeNbug.queueserver", "org.codenbug.user.*", "org.codenbug.common.util"})
+@ComponentScan(basePackages = {"org.codeNbug.queueserver", "org.codenbug.user.*", "org.codenbug.common.util",
+	"org.codenbug.logging"})
 public class GlobalConfig {
 }

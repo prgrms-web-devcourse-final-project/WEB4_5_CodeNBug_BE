@@ -1,6 +1,7 @@
 package org.codeNbug.queueserver.waitingqueue.controller;
 
 import org.codeNbug.queueserver.waitingqueue.service.WaitingQueueEntryService;
+import org.codenbug.logging.ControllerLogging;
 import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.security.annotation.RoleRequired;
 import org.springframework.http.MediaType;
@@ -12,6 +13,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/v1")
+@ControllerLogging
 public class WaitingQueueController {
 
 	private final WaitingQueueEntryService waitingQueueEntryService;

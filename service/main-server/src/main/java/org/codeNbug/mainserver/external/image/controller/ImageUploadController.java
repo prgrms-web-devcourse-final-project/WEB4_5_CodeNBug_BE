@@ -1,10 +1,13 @@
 package org.codeNbug.mainserver.external.image.controller;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.codeNbug.mainserver.external.image.dto.ImageUploadRequest;
 import org.codeNbug.mainserver.external.image.dto.ImageUploadResponse;
 import org.codeNbug.mainserver.external.image.service.S3PresignedUrlService;
 import org.codeNbug.mainserver.global.dto.RsData;
+import org.codenbug.logging.ControllerLogging;
 import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.security.annotation.RoleRequired;
 import org.springframework.http.ResponseEntity;
@@ -13,12 +16,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/images")
 @RequiredArgsConstructor
+@ControllerLogging
 public class ImageUploadController {
     private final S3PresignedUrlService s3PresignedUrlService;
 

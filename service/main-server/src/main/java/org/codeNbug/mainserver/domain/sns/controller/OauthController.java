@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.domain.sns.controller;
 
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codenbug.common.util.CookieUtil;
+import org.codenbug.logging.ControllerLogging;
 import org.codenbug.user.redis.service.TokenService;
 import org.codenbug.user.sns.constant.SocialLoginType;
 import org.codenbug.user.sns.dto.AdditionalInfoRequest;
@@ -26,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @RequestMapping(value = "/auth")
 @Slf4j
+@ControllerLogging
 public class OauthController {
 
     private final OauthService oauthService;
