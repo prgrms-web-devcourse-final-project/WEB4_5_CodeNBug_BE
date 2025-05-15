@@ -104,7 +104,7 @@ class SeatIntegrationTest {
 
 	private static User testUser;
 	private static String testToken;
-	private static Event testEvent;
+	private static Event SelecatbleTestEvent;
 	private static Seat availableSeat;
 	private static String entryToken;
 	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
@@ -113,7 +113,7 @@ class SeatIntegrationTest {
 	public void setUpAll() throws JSONException {
 		testUser = baseTestUtil.setUpUser();
 		testToken = baseTestUtil.setUpToken();
-		testEvent = baseTestUtil.setUpEvent();
+		SelecatbleTestEvent = baseTestUtil.setUpSelecatbleEvent();
 
 		redisTemplate.opsForHash().put(
 			ENTRY_TOKEN_STORAGE_KEY_NAME,
@@ -139,7 +139,7 @@ class SeatIntegrationTest {
 	@Order(1)
 	@DisplayName("좌석 조회 성공")
 	void testGetSeatLayout() throws Exception {
-		mockMvc.perform(get("/api/v1/event/{eventId}/seats", testEvent.getEventId())
+		mockMvc.perform(get("/api/v1/event/{eventId}/seats", SelecatbleTestEvent.getEventId())
 				.header("Authorization", "Bearer " + testToken))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.code").value("200"))
@@ -154,7 +154,7 @@ class SeatIntegrationTest {
 	@Order(2)
 	@DisplayName("지정석 좌석 선택 - Redis 락 획득 확인")
 	void selectSeat_withRedisLock() throws Exception {
-		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(testEvent.getEventId());
+		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(SelecatbleTestEvent.getEventId());
 		availableSeat = availableSeats.get(0);
 
 		SeatSelectRequest request = new SeatSelectRequest();
@@ -163,7 +163,7 @@ class SeatIntegrationTest {
 
 		String json = objectMapper.writeValueAsString(request);
 
-		mockMvc.perform(post("/api/v1/event/{eventId}/seats", testEvent.getEventId())
+		mockMvc.perform(post("/api/v1/event/{eventId}/seats", SelecatbleTestEvent.getEventId())
 				.header("Authorization", "Bearer " + testToken)
 				.header("entryAuthToken", entryToken)
 				.contentType(MediaType.APPLICATION_JSON)
@@ -171,7 +171,8 @@ class SeatIntegrationTest {
 			.andExpect(status().isOk());
 
 		String redisKey =
-			"seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + request.getSeatList().getFirst();
+			"seat:lock:" + testUser.getUserId() + ":" + SelecatbleTestEvent.getEventId() + ":" + request.getSeatList()
+				.getFirst();
 		String lockValue = redisLockService.getLockValue(redisKey);
 		assertThat(lockValue).isNotNull();
 	}
@@ -185,7 +186,7 @@ class SeatIntegrationTest {
 
 		String json = objectMapper.writeValueAsString(request);
 
-		mockMvc.perform(delete("/api/v1/event/{eventId}/seats", testEvent.getEventId())
+		mockMvc.perform(delete("/api/v1/event/{eventId}/seats", SelecatbleTestEvent.getEventId())
 				.header("Authorization", "Bearer " + testToken)
 				.header("entryAuthToken", entryToken)
 				.contentType(MediaType.APPLICATION_JSON)
@@ -195,7 +196,8 @@ class SeatIntegrationTest {
 			.andExpect(jsonPath("$.msg").value("좌석 취소 성공"));
 
 		String redisKey =
-			"seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + request.getSeatList().getFirst();
+			"seat:lock:" + testUser.getUserId() + ":" + SelecatbleTestEvent.getEventId() + ":" + request.getSeatList()
+				.getFirst();
 		String lockValue = redisLockService.getLockValue(redisKey);
 		assertThat(lockValue).isNull();
 	}

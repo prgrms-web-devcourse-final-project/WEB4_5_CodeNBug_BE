@@ -159,7 +159,8 @@ class PurchaseIntegrationTest {
 
 	private User testUser;
 	private String testToken;
-	private Event testEvent;
+	private Event SelecatbleTestEvent;
+	private Event NonSelecatbleTestEvent;
 	private Long purchaseId;
 	private String entryToken;
 	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
@@ -179,11 +180,11 @@ class PurchaseIntegrationTest {
 
 		testUser = baseTestUtil.setUpUser();
 		testToken = baseTestUtil.setUpToken();
-		testEvent = baseTestUtil.setUpEvent();
-		System.out.println("123:: " + testEvent.getEventId());
+		SelecatbleTestEvent = baseTestUtil.setUpSelecatbleEvent();
+		NonSelecatbleTestEvent = baseTestUtil.setUpNonSelecatbleEvent();
 
 		String url = UriComponentsBuilder.fromHttpUrl("http://localhost:9001/api/v1/events/{eventId}/tickets/waiting")
-			.buildAndExpand(testEvent.getEventId())
+			.buildAndExpand(SelecatbleTestEvent.getEventId())
 			.toUriString();
 
 		mockRestServiceServer.expect(
@@ -215,8 +216,8 @@ class PurchaseIntegrationTest {
 	@Test
 	@Order(1)
 	void seatServiceIsCalledTest() {
-		System.out.println("456:: " + testEvent.getEventId());
-		List<Seat> seats = seatService.findSeatsByEventId(testEvent.getEventId());
+		System.out.println("456:: " + SelecatbleTestEvent.getEventId());
+		List<Seat> seats = seatService.findSeatsByEventId(SelecatbleTestEvent.getEventId());
 		System.out.println("조회된 좌석 수: " + seats.size());
 		assertNotNull(seats);
 	}
@@ -227,7 +228,7 @@ class PurchaseIntegrationTest {
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	@DisplayName("결제 사전 등록 성공")
 	void testInitiatePayment() throws Exception {
-		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(testEvent.getEventId());
+		List<Seat> availableSeats = seatRepository.findFirstByEventIdAndAvailableTrue(SelecatbleTestEvent.getEventId());
 		Seat seatToLock = availableSeats.get(0);
 
 		SeatSelectRequest seatSelectRequest = new SeatSelectRequest();
@@ -237,8 +238,8 @@ class PurchaseIntegrationTest {
 		String seatSelectJson = objectMapper.writeValueAsString(seatSelectRequest);
 		System.out.println(seatSelectJson);
 
-		System.out.println("testEventId: " + testEvent.getEventId());
-		mockMvc.perform(post("/api/v1/event/{eventId}/seats", testEvent.getEventId())
+		System.out.println("SelecatbleTestEventId: " + SelecatbleTestEvent.getEventId());
+		mockMvc.perform(post("/api/v1/event/{eventId}/seats", SelecatbleTestEvent.getEventId())
 				.header("Authorization", "Bearer " + testToken)
 				.header("entryAuthToken", entryToken)
 				.contentType(MediaType.APPLICATION_JSON)
@@ -248,12 +249,13 @@ class PurchaseIntegrationTest {
 			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"));
 
 		System.out.println("token:: " + testToken);
-		String redisKey = "seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + seatToLock.getId();
+		String redisKey =
+			"seat:lock:" + testUser.getUserId() + ":" + SelecatbleTestEvent.getEventId() + ":" + seatToLock.getId();
 		System.out.println("redisKey:: " + redisKey);
 		String redisValue = redisTemplate.opsForValue().get(redisKey);
 		assertThat(redisValue).isNotNull();
 
-		InitiatePaymentRequest paymentRequest = new InitiatePaymentRequest(testEvent.getEventId(), 1000);
+		InitiatePaymentRequest paymentRequest = new InitiatePaymentRequest(SelecatbleTestEvent.getEventId(), 1000);
 		String paymentJson = objectMapper.writeValueAsString(paymentRequest);
 
 		MvcResult result = mockMvc.perform(post("/api/v1/payments/init")
