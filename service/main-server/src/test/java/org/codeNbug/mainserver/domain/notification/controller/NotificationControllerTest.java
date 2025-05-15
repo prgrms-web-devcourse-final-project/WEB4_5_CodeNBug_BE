@@ -3,8 +3,10 @@ package org.codeNbug.mainserver.domain.notification.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -78,6 +81,13 @@ class NotificationControllerTest {
         // SecurityUtil 모킹 시작
         securityUtilMock = Mockito.mockStatic(SecurityUtil.class);
         securityUtilMock.when(SecurityUtil::getCurrentUserId).thenReturn(1L);
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (securityUtilMock != null) {
+            securityUtilMock.close();
+        }
     }
 
     @Test
@@ -263,29 +273,46 @@ class NotificationControllerTest {
 
     @Test
     @WithMockUser
-    @DisplayName("알림 구독 테스트")
-    void subscribeNotifications() throws Exception {
+    @DisplayName("알림 구독 SSE 엔드포인트 테스트")
+    void subscribeToSSE() throws Exception {
         // given
-        SseEmitter emitter = new SseEmitter();
-        when(emitterService.createEmitter(anyLong(), any())).thenReturn(emitter);
+        SseEmitter mockEmitter = mock(SseEmitter.class);
+        when(emitterService.createEmitter(anyLong(), anyString())).thenReturn(mockEmitter);
 
         // when & then
         mockMvc.perform(get("/api/v1/notifications/subscribe")
+                        .accept(MediaType.TEXT_EVENT_STREAM_VALUE)
                         .header("Last-Event-ID", "notification-1"))
                 .andExpect(status().isOk());
 
-        verify(emitterService, times(1)).createEmitter(anyLong(), any());
+        // createEmitter 메서드 호출 검증
+        ArgumentCaptor<Long> userIdCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<String> lastEventIdCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(emitterService, times(1)).createEmitter(userIdCaptor.capture(), lastEventIdCaptor.capture());
+
+        // Last-Event-ID 헤더 값이 올바르게 전달되었는지 검증
+        String capturedLastEventId = lastEventIdCaptor.getValue();
+        org.junit.jupiter.api.Assertions.assertEquals("notification-1", capturedLastEventId);
     }
 
-    /**
-     * 테스트가 끝난 후 정적 모킹 해제
-     */
-    @AfterEach
-    void tearDown() {
-        if (securityUtilMock != null) {
-            securityUtilMock.close();
-        }
+    @Test
+    @WithMockUser
+    @DisplayName("알림 구독 SSE - Last-Event-ID 없이 요청 시 테스트")
+    void subscribeToSSEWithoutLastEventId() throws Exception {
+        // given
+        SseEmitter mockEmitter = mock(SseEmitter.class);
+        when(emitterService.createEmitter(anyLong(), eq(null))).thenReturn(mockEmitter);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/notifications/subscribe")
+                        .accept(MediaType.TEXT_EVENT_STREAM_VALUE))
+                .andExpect(status().isOk());
+
+        // createEmitter 메서드 호출 검증 - Last-Event-ID 없이 호출되었는지 확인
+        verify(emitterService, times(1)).createEmitter(anyLong(), eq(null));
     }
+
 
     /**
      * Builder 패턴을 사용하여 NotificationDto 객체 생성
