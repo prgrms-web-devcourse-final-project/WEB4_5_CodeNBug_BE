@@ -29,33 +29,6 @@ public class UserEmailService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy년 MM월 dd일");
 
     /**
-     * 계정 만료 예정 알림 이메일을 발송합니다.
-     *
-     * @param user 대상 사용자
-     * @param expirationDate 만료 예정일
-     */
-    public void sendAccountExpirationWarning(User user, LocalDateTime expirationDate) {
-        try {
-            Context context = new Context();
-            context.setVariable("userName", user.getName());
-            context.setVariable("expirationDate", expirationDate.format(DATE_FORMATTER));
-            
-            String emailContent = templateEngine.process("account-expiration-warning", context);
-            
-            sendEmail(
-                user.getEmail(),
-                "[티켓온(Ticket-On)] 계정 만료 예정 안내",
-                emailContent
-            );
-            
-            log.info(">> 계정 만료 예정 알림 이메일 발송 완료: email={}", user.getEmail());
-        } catch (Exception e) {
-            log.error(">> 계정 만료 예정 알림 이메일 발송 실패: email={}, error={}", 
-                    user.getEmail(), e.getMessage(), e);
-        }
-    }
-
-    /**
      * 비밀번호 만료 예정 알림 이메일을 발송합니다.
      *
      * @param user 대상 사용자

@@ -48,28 +48,6 @@ public class UserSchedulerService {
     }
 
     /**
-     * 만료된 계정을 확인하고 알림을 보냅니다.
-     */
-    @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행
-    @Transactional
-    public void checkExpiringAccounts() {
-        log.info(">> 계정 만료 확인 작업 시작");
-        
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime warningDate = now.plusDays(7); // 7일 후 만료 예정인 계정 확인
-        
-        List<User> expiringUsers = userRepository.findByAccountExpiredAtBetween(now, warningDate);
-        
-        for (User user : expiringUsers) {
-            log.info(">> 계정 만료 예정 알림: userId={}, email={}, 만료일={}", 
-                    user.getUserId(), user.getEmail(), user.getAccountExpiredAt());
-            userEmailService.sendAccountExpirationWarning(user, user.getAccountExpiredAt());
-        }
-        
-        log.info(">> 계정 만료 확인 작업 완료");
-    }
-
-    /**
      * 만료된 비밀번호를 확인하고 알림을 보냅니다.
      */
     @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행

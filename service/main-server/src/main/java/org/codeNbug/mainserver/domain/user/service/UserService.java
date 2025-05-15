@@ -103,11 +103,6 @@ public class UserService {
                     : "잠금 해제 시간까지 기다려주세요."));
         }
 
-        if (user.getAccountExpiredAt() != null && user.getAccountExpiredAt().isBefore(LocalDateTime.now())) {
-            log.warn(">> 로그인 실패: 만료된 계정 - 이메일={}", request.getEmail());
-            throw new AuthenticationFailedException("계정이 만료되었습니다. 계정 연장을 위해 관리자에게 문의하세요.");
-        }
-
         if (user.getPasswordExpiredAt() != null && user.getPasswordExpiredAt().isBefore(LocalDateTime.now())) {
             log.warn(">> 로그인 실패: 만료된 비밀번호 - 이메일={}", request.getEmail());
             throw new AuthenticationFailedException("비밀번호가 만료되었습니다. 비밀번호 변경 페이지로 이동하여 새로운 비밀번호를 설정해주세요.");
@@ -474,7 +469,31 @@ public class UserService {
     public void resetLoginAttemptCount(User user) {
         user.setLoginAttemptCount(0);
         user.setLastLoginAt(LocalDateTime.now());
+        
+        // 한 달에 1번 이상 로그인한 경우 비밀번호 만료일 연장
+        extendPasswordExpirationIfNeeded(user);
+        
         userRepository.save(user);
+    }
+
+    /**
+     * 한 달에 1번 이상 로그인한 경우 비밀번호 만료일을 연장합니다.
+     * 만료일을 현재로부터 3개월 후로 설정합니다.
+     *
+     * @param user 대상 사용자
+     */
+    private void extendPasswordExpirationIfNeeded(User user) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // 마지막 로그인 시간이 null이거나 한 달 이상 지난 경우에만 연장
+        if (user.getLastLoginAt() == null || 
+            user.getLastLoginAt().plusMonths(1).isBefore(now)) {
+            
+            // 비밀번호 만료일을 현재로부터 3개월 후로 설정
+            user.setPasswordExpiredAt(now.plusMonths(3));
+            log.info(">> 비밀번호 만료일 연장: userId={}, email={}, newExpirationDate={}", 
+                    user.getUserId(), user.getEmail(), user.getPasswordExpiredAt());
+        }
     }
 
     /**
