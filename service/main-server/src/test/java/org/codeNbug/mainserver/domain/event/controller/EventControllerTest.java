@@ -22,6 +22,8 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -35,7 +37,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @ExtendWith(SpringExtension.class)
 @AutoConfigureMockMvc
 @WebMvcTest(controllers = EventController.class)
-public class EventControllerTest {
+@ComponentScan(
+		excludeFilters = @ComponentScan.Filter(
+				type = FilterType.ASSIGNABLE_TYPE,
+				classes = org.codeNbug.mainserver.global.config.BatchConfig.class
+		)
+)
+class EventControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
