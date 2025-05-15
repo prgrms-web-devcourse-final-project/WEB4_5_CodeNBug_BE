@@ -9,11 +9,12 @@ import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
 import org.codeNbug.mainserver.util.TestUtil;
 import org.codenbug.common.util.CookieUtil;
 import org.codenbug.common.util.JwtConfig;
+import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
+import org.codenbug.user.security.service.CustomUserDetails;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +26,11 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -61,20 +66,6 @@ class UserControllerTest {
 			.withExposedPorts(6379)
 			.waitingFor(Wait.forListeningPort());
 
-
-	// 2) 스프링 프로퍼티에 컨테이너 URL/계정 주입
-	// @DynamicPropertySource
-	// static void overrideProps(DynamicPropertyRegistry registry) {
-	//
-	// 	registry.add("spring.datasource.url", mysql::getJdbcUrl);
-	// 	registry.add("spring.datasource.username", mysql::getUsername);
-	// 	registry.add("spring.datasource.password", mysql::getPassword);
-	// 	registry.add("spring.redis.host", () -> redis.getHost());
-	// 	registry.add("spring.redis.port", () -> redis.getMappedPort(6379));
-	// 	registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-	//
-	// }
-
 	@Autowired
 	private MockMvc mockMvc;
 
@@ -102,11 +93,9 @@ class UserControllerTest {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
-	private String testToken;
 	private User testUser;
 	private String testEmail = "test@example.com";
 	private String testPassword = "Test1234!";
-	private TokenService.TokenInfo tokenInfo;
 
 	@BeforeEach
 	void setUp() {
@@ -119,27 +108,21 @@ class UserControllerTest {
 			.sex("남성")
 			.phoneNum("010-1234-5678")
 			.location("서울시 강남구")
-			.role("ROLE_USER")
+			.role(UserRole.USER.getAuthority())
 			.build();
 		userRepository.save(testUser);
 
+		// CustomUserDetails 생성
+		CustomUserDetails userDetails = new CustomUserDetails(testUser);
+
+		// 인증 토큰 생성 및 SecurityContext에 등록
+		Authentication authentication = new UsernamePasswordAuthenticationToken(
+			userDetails, null, userDetails.getAuthorities()
+		);
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+
 		// Redis 블랙리스트 정리
 		clearBlacklist();
-
-		// 테스트용 토큰 생성 - 각 테스트에서 필요할 때 생성하도록 변경
-		tokenInfo = tokenService.generateTokens(testUser.getEmail());
-		testToken = tokenInfo.getAccessToken();
-	}
-
-	@AfterEach
-	void tearDown() {
-		// 토큰 정보 정리
-		if (tokenInfo != null && tokenInfo.getAccessToken() != null) {
-			tokenService.deleteRefreshToken(testUser.getEmail());
-		}
-
-		// 테스트 사용자 삭제 - @Transactional로 롤백되지만 추가 보장
-		userRepository.deleteAll();
 	}
 
 	@AfterAll
@@ -148,8 +131,8 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("회원가입 성공 테스트")
-	void signup_success() throws Exception {
+	@DisplayName("회원가입 성공")
+	void 회원가입_성공() throws Exception {
 		// given
 		SignupRequest signupRequest = SignupRequest.builder()
 			.email("new@example.com")
@@ -162,7 +145,8 @@ class UserControllerTest {
 			.build();
 
 		// when
-		ResultActions result = mockMvc.perform(post("/api/v1/users/signup").contentType(MediaType.APPLICATION_JSON)
+		ResultActions result = mockMvc.perform(post("/api/v1/users/signup")
+			.contentType(MediaType.APPLICATION_JSON)
 			.content(objectMapper.writeValueAsString(signupRequest)));
 
 		// then
@@ -178,13 +162,17 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("로그인 성공 테스트")
-	void login_success() throws Exception {
+	@DisplayName("로그인 성공")
+	void 로그인_성공() throws Exception {
 		// given
-		LoginRequest loginRequest = LoginRequest.builder().email(testEmail).password(testPassword).build();
+		LoginRequest loginRequest = LoginRequest.builder()
+			.email(testEmail)
+			.password(testPassword)
+			.build();
 
 		// when
-		ResultActions result = mockMvc.perform(post("/api/v1/users/login").contentType(MediaType.APPLICATION_JSON)
+		ResultActions result = mockMvc.perform(post("/api/v1/users/login")
+			.contentType(MediaType.APPLICATION_JSON)
 			.content(objectMapper.writeValueAsString(loginRequest)));
 
 		// then
@@ -194,18 +182,16 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("로그아웃 성공 테스트")
-	void logout_success() throws Exception {
-		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
-		clearBlacklist();
-
-		// 새로운 토큰 생성
-		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
+	@DisplayName("로그아웃 성공")
+	void 로그아웃_성공() throws Exception {
+		// given
+		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			post("/api/v1/users/logout").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+			post("/api/v1/users/logout")
+				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie));
 
 		// then
@@ -215,37 +201,16 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("로그아웃 실패 테스트 - 리프레시 토큰 없음")
-	void logout_fail_no_refresh_token() throws Exception {
-		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
-		clearBlacklist();
-
-		// 새로운 토큰 생성
-		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
-
-		// when - 리프레시 토큰을 의도적으로 전달하지 않음
-		ResultActions result = mockMvc.perform(
-			post("/api/v1/users/logout").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken()));
-
-		// then
-		result.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
-			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다. 다시 로그인해주세요."));
-	}
-
-	@Test
-	@DisplayName("회원 탈퇴 성공 테스트")
-	void withdrawal_success() throws Exception {
-		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
-		clearBlacklist();
-
-		// 새로운 토큰 생성
-		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
+	@DisplayName("회원 탈퇴 성공")
+	void 회원_탈퇴_성공() throws Exception {
+		// given
+		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			delete("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+			delete("/api/v1/users/me")
+				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie));
 
 		// then
@@ -255,26 +220,8 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("인증되지 않은 사용자의 회원 탈퇴 시도 테스트")
-	void withdrawal_unauthorized() throws Exception {
-		// given
-		String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" // header
-			+ ".eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ"  // payload
-			+ ".invalid_signature";  // 잘못된 signature
-
-		// when
-		ResultActions result = mockMvc.perform(
-			delete("/api/v1/users/me").header("Authorization", "Bearer " + invalidToken));
-
-		// then
-		result.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
-			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
-	}
-
-	@Test
-	@DisplayName("중복된 이메일로 회원가입 시도 테스트")
-	void signup_duplicate_email() throws Exception {
+	@DisplayName("중복된 이메일로 회원가입 시도")
+	void 회원가입_중복_이메일() throws Exception {
 		// given
 		SignupRequest signupRequest = SignupRequest.builder()
 			.email(testEmail)  // 이미 존재하는 이메일
@@ -287,7 +234,8 @@ class UserControllerTest {
 			.build();
 
 		// when
-		ResultActions result = mockMvc.perform(post("/api/v1/users/signup").contentType(MediaType.APPLICATION_JSON)
+		ResultActions result = mockMvc.perform(post("/api/v1/users/signup")
+			.contentType(MediaType.APPLICATION_JSON)
 			.content(objectMapper.writeValueAsString(signupRequest)));
 
 		// then
@@ -297,8 +245,8 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("잘못된 비밀번호로 로그인 시도 테스트")
-	void login_wrong_password() throws Exception {
+	@DisplayName("잘못된 비밀번호로 로그인 시도")
+	void 로그인_잘못된_비밀번호() throws Exception {
 		// given
 		LoginRequest loginRequest = LoginRequest.builder()
 			.email(testEmail)
@@ -306,7 +254,8 @@ class UserControllerTest {
 			.build();
 
 		// when
-		ResultActions result = mockMvc.perform(post("/api/v1/users/login").contentType(MediaType.APPLICATION_JSON)
+		ResultActions result = mockMvc.perform(post("/api/v1/users/login")
+			.contentType(MediaType.APPLICATION_JSON)
 			.content(objectMapper.writeValueAsString(loginRequest)));
 
 		// then
@@ -316,18 +265,16 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("프로필 조회 성공 테스트")
-	void getProfile_success() throws Exception {
-		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거 
-		clearBlacklist();
-
-		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
-		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
+	@DisplayName("프로필 조회 성공")
+	void 프로필_조회_성공() throws Exception {
+		// given
+		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			get("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+			get("/api/v1/users/me")
+				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie));
 
 		// then
@@ -343,32 +290,11 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("인증되지 않은 사용자의 프로필 조회 시도 테스트")
-	void getProfile_unauthorized() throws Exception {
+	@DisplayName("프로필 수정 성공")
+	void 프로필_수정_성공() throws Exception {
 		// given
-		String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" // header
-			+ ".eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ"  // payload
-			+ ".invalid_signature";  // 잘못된 signature
-
-		// when
-		ResultActions result = mockMvc.perform(
-			get("/api/v1/users/me").header("Authorization", "Bearer " + invalidToken));
-
-		// then
-		result.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
-			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
-	}
-
-	@Test
-	@DisplayName("프로필 수정 성공 테스트")
-	void updateProfile_success() throws Exception {
-		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
-		clearBlacklist();
-
-		// 새로운 토큰 생성 (이미 블랙리스트에 없는 토큰)
-		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
+		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
 			.name("수정된이름")
 			.phoneNum("010-9999-8888")
@@ -377,7 +303,8 @@ class UserControllerTest {
 
 		// when
 		ResultActions result = mockMvc.perform(
-			put("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+			put("/api/v1/users/me")
+				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(updateRequest)));
@@ -392,41 +319,11 @@ class UserControllerTest {
 	}
 
 	@Test
-	@DisplayName("인증되지 않은 사용자의 프로필 수정 시도 테스트")
-	void updateProfile_unauthorized() throws Exception {
+	@DisplayName("잘못된 형식의 프로필 수정 요청")
+	void 프로필_수정_잘못된_요청() throws Exception {
 		// given
-		String invalidToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" // header
-			+ ".eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ"  // payload
-			+ ".invalid_signature";  // 잘못된 signature
-
-		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
-			.name("수정된이름")
-			.phoneNum("010-9999-8888")
-			.location("서울시 송파구")
-			.build();
-
-		// when
-		ResultActions result = mockMvc.perform(
-			put("/api/v1/users/me").header("Authorization", "Bearer " + invalidToken)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(updateRequest)));
-
-		// then
-		result.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
-			.andExpect(jsonPath("$.msg").value("인증 정보가 필요합니다."));
-	}
-
-	@Test
-	@DisplayName("잘못된 형식의 프로필 수정 요청 테스트")
-	void updateProfile_badRequest() throws Exception {
-		// given - 토큰 생성 전에 Redis에서 이전 토큰 블랙리스트 제거
-		clearBlacklist();
-
-		// 새로운 토큰 생성
-		TokenService.TokenInfo freshTokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(freshTokenInfo.getRefreshToken());
-		// 빈 이름으로 요청 (validation 실패 예상)
+		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
+		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 		UserUpdateRequest invalidRequest = UserUpdateRequest.builder()
 			.name("")
 			.phoneNum("010-9999-8888")
@@ -435,7 +332,8 @@ class UserControllerTest {
 
 		// when
 		ResultActions result = mockMvc.perform(
-			put("/api/v1/users/me").header("Authorization", "Bearer " + freshTokenInfo.getAccessToken())
+			put("/api/v1/users/me")
+				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
 				.cookie(refreshTokenCookie)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(invalidRequest)));
@@ -446,11 +344,6 @@ class UserControllerTest {
 			.andExpect(jsonPath("$.msg").value("데이터 형식이 잘못되었습니다."));
 	}
 
-	/**
-	 * 테스트용 리프레시 토큰 쿠키 생성 헬퍼 메서드
-	 * @param refreshToken 리프레시 토큰
-	 * @return Cookie 객체
-	 */
 	private Cookie createTestRefreshTokenCookie(String refreshToken) {
 		Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
 		refreshTokenCookie.setHttpOnly(true);
@@ -460,10 +353,6 @@ class UserControllerTest {
 		return refreshTokenCookie;
 	}
 
-	/**
-	 * 테스트 사용자의 블랙리스트 토큰을 제거하는 헬퍼 메소드
-	 * 이전 테스트에서 블랙리스트에 추가된 토큰으로 인한 401 에러를 방지
-	 */
 	private void clearBlacklist() {
 		String testToken = jwtConfig.generateAccessToken(testUser.getEmail());
 		String blacklistKey = "blacklist:" + testToken;

@@ -83,6 +83,7 @@ jobs:
         uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: 'master,main,develop'
         continue-on-error: true
 
       - name: Create Release
@@ -175,7 +176,7 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
-        run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
+        run: echo "$APPLICATION_SECRET" > service/queue-server/src/main/resources/application-secret.yml
       - name: set lower case owner name
         id: export_owner
         run: |
@@ -184,16 +185,16 @@ jobs:
 
       - name: export image name
         id: export_image
-        run: echo "image_name=backend-main-deploy" >> $GITHUB_OUTPUT
-      - name: 메인 서버 모듈 빌드 앤 푸시
+        run: echo "image_name=backend-queue-deploy" >> $GITHUB_OUTPUT
+      - name: 큐 서버 모듈 빌드 앤 푸시
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: service/main-server/Dockerfile
+          file: service/queue-server/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest
   
 
   buildImageAndPushDispatch:
@@ -224,7 +225,7 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
-        run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
+        run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
       - name: set lower case owner name
         id: export_owner
         run: |
@@ -233,16 +234,16 @@ jobs:
 
       - name: export image name
         id: export_image
-        run: echo "image_name=backend-main-deploy" >> $GITHUB_OUTPUT
-      - name: 메인 서버 모듈 빌드 앤 푸시
+        run: echo "image_name=backend-dispatcher-deploy" >> $GITHUB_OUTPUT
+      - name: 디스패치 서버 모듈 빌드 앤 푸시
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: service/main-server/Dockerfile
+          file: service/message-dispatcher/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
-            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
+            ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:latest
   
   
 
@@ -376,8 +377,8 @@ jobs:
           working-directory: /
           comment: Deploy
           command: |
-            docker pull ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:latest && \
+            docker pull ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:latest && \
             docker stop dispatch-server 2>/dev/null || true && \
             docker rm dispatch-server 2>/dev/null || true && \
-            docker run -d --name dispatch-server --network env_common -p 9002:9002 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatch-deploy:latest && \
+            docker run -d --name dispatch-server --network env_common -p 9002:9002 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:latest && \
             docker rmi $(docker images -f "dangling=true" -q) || true

@@ -6,7 +6,13 @@ on:
       - "service/main-server/**"
       - "service/common/**"
       - "service/user/**"
-
+  push:
+    branches:
+      - develop
+    paths:
+      - "service/main-server/**"
+      - "service/common/**"
+      - "service/user/**"
 jobs:
   test:
     services:
@@ -53,11 +59,12 @@ jobs:
         run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
 
       - name: Run Tests
-        run: ./gradlew test
+        run: ./gradlew test --info
 
 
   makeTagAndReleaseServer:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
     needs: test
     outputs:
       tag_name: ${{ steps.create_tag.outputs.new_tag }}
@@ -68,6 +75,7 @@ jobs:
         uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: 'master,main,develop'
         continue-on-error: true
 
       - name: Create Release
@@ -85,6 +93,8 @@ jobs:
 
 
   buildImageAndPushMain:
+    if: ${{ github.event_name == 'push' }}
+
     permissions:
       contents: read
       packages: write

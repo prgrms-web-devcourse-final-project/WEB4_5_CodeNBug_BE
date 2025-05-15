@@ -8,6 +8,7 @@ import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.purchase.entity.PaymentStatusEnum;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
+import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.domain.user.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,6 +52,7 @@ class ManagerPurchasesServiceTest {
                 .build();
 
         Event event = new Event();
+
         ReflectionTestUtils.setField(event, "eventId", eventId);
 
         List<TicketDto> dummyTickets = List.of(

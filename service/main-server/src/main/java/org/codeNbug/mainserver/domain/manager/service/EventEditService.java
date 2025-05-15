@@ -32,7 +32,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class EventEditService {
 
-	private final EventRepository eventRepository;
 	private final SeatLayoutRepository seatLayoutRepository;
 	private final SeatGradeRepository seatGradeRepository;
 	private final SeatRepository seatRepository;

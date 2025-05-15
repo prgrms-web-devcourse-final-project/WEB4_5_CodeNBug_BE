@@ -39,15 +39,17 @@ class EventRegisterServiceTest {
     private EventRepository eventRepository;
     @Mock
     private SeatLayoutRepository seatLayoutRepository;
-    @Mock
-    private ManagerEventRepository managerEventRepository;
+
     @Mock
     private UserRepository userRepository;
+
     @Mock
-    private SeatGradeRepository seatGradeRepository;
+    private ManagerEventRepository managerEventRepository;
 
     @InjectMocks
     private EventRegisterService eventRegisterService;
+
+
 
     @DisplayName("이벤트 등록 성공 테스트")
     @Test
@@ -105,9 +107,7 @@ class EventRegisterServiceTest {
         assertEquals("Seoul", response.getLocation());
     }
 
-    // ================================
-    // ✅ 더미 요청 생성 메서드
-    // ================================
+    // 더미 요청 생성 메서드
     private EventRegisterRequest createDummyRequest() {
         return EventRegisterRequest.builder()
                 .title("Test Event")
@@ -131,9 +131,7 @@ class EventRegisterServiceTest {
                 .build();
     }
 
-    // ================================
-    // ✅ 더미 응답 생성 메서드
-    // ================================
+    // 더미 응답 생성 메서드
     private EventRegisterResponse createDummyResponse() {
         return EventRegisterResponse.builder()
                 .eventId(1L)
