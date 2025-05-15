@@ -9,6 +9,7 @@ import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.service.CommonEventService;
 import org.codeNbug.mainserver.domain.event.service.EventViewCountUpdateScheduler;
 import org.codeNbug.mainserver.global.dto.RsData;
+import org.codenbug.logging.ControllerLogging;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1")
+@ControllerLogging
 public class EventController {
 
 	private final CommonEventService commonEventService;
