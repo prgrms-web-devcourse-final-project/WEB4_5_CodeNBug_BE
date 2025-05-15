@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -582,5 +583,66 @@ public class AdminService {
         }
 
         log.info(">> 이벤트 삭제 처리 완료: eventId={}", eventId);
+    }
+
+    /**
+     * 계정 만료일을 연장합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void extendAccountExpiry(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setAccountExpiredAt(LocalDateTime.now().plusMonths(6));
+        userRepository.save(user);
+    }
+
+    /**
+     * 비밀번호 만료일을 연장합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void extendPasswordExpiry(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setPasswordExpiredAt(LocalDateTime.now().plusMonths(3));
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정을 비활성화합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void disableAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setEnabled(false);
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정을 활성화합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void enableAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setEnabled(true);
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정 잠금을 해제합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void unlockAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setAccountLocked(false);
+        user.setLoginAttemptCount(0);
+        userRepository.save(user);
     }
 } 

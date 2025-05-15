@@ -516,4 +516,59 @@ public class AdminController {
         model.addAttribute("currentPage", "monitoring");
         return "admin/monitoring";
     }
+
+    /**
+     * 계정 만료일 연장 API
+     */
+    @PutMapping("/api/users/{userId}/extend-account")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> extendAccountExpiry(@PathVariable Long userId) {
+        log.info(">> 계정 만료일 연장 요청: userId={}", userId);
+        adminService.extendAccountExpiry(userId);
+        return ResponseEntity.ok(RsData.success("계정 만료일이 성공적으로 연장되었습니다."));
+    }
+
+    /**
+     * 비밀번호 만료일 연장 API
+     */
+    @PutMapping("/api/users/{userId}/extend-password")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> extendPasswordExpiry(@PathVariable Long userId) {
+        log.info(">> 비밀번호 만료일 연장 요청: userId={}", userId);
+        adminService.extendPasswordExpiry(userId);
+        return ResponseEntity.ok(RsData.success("비밀번호 만료일이 성공적으로 연장되었습니다."));
+    }
+
+    /**
+     * 계정 비활성화 API
+     */
+    @PutMapping("/api/users/{userId}/disable")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> disableAccount(@PathVariable Long userId) {
+        log.info(">> 계정 비활성화 요청: userId={}", userId);
+        adminService.disableAccount(userId);
+        return ResponseEntity.ok(RsData.success("계정이 성공적으로 비활성화되었습니다."));
+    }
+
+    /**
+     * 계정 활성화 API
+     */
+    @PutMapping("/api/users/{userId}/enable")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> enableAccount(@PathVariable Long userId) {
+        log.info(">> 계정 활성화 요청: userId={}", userId);
+        adminService.enableAccount(userId);
+        return ResponseEntity.ok(RsData.success("계정이 성공적으로 활성화되었습니다."));
+    }
+
+    /**
+     * 계정 잠금 해제 API
+     */
+    @PutMapping("/api/users/{userId}/unlock")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> unlockAccount(@PathVariable Long userId) {
+        log.info(">> 계정 잠금 해제 요청: userId={}", userId);
+        adminService.unlockAccount(userId);
+        return ResponseEntity.ok(RsData.success("계정이 성공적으로 잠금 해제되었습니다."));
+    }
 }

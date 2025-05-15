@@ -1,5 +1,7 @@
 package org.codenbug.user.domain.user.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.codenbug.user.domain.user.entity.User;
@@ -28,4 +30,35 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.location WHERE u.email = :email")
     Optional<User> findByEmailWithAddresses(@Param("email") String email);
+
+    /**
+     * 잠긴 계정 목록을 조회합니다.
+     *
+     * @return 잠긴 계정 목록
+     */
+    List<User> findByAccountLockedTrue();
+
+    /**
+     * 계정 만료일이 지정된 기간 내에 있는 사용자 목록을 조회합니다.
+     *
+     * @param start 시작일
+     * @param end 종료일
+     * @return 만료 예정인 계정 목록
+     */
+    @Query("SELECT u FROM User u WHERE u.accountExpiredAt BETWEEN :start AND :end")
+    List<User> findByAccountExpiredAtBetween(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    /**
+     * 비밀번호 만료일이 지정된 기간 내에 있는 사용자 목록을 조회합니다.
+     *
+     * @param start 시작일
+     * @param end 종료일
+     * @return 만료 예정인 비밀번호를 가진 계정 목록
+     */
+    @Query("SELECT u FROM User u WHERE u.passwordExpiredAt BETWEEN :start AND :end")
+    List<User> findByPasswordExpiredAtBetween(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 }

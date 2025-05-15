@@ -67,6 +67,40 @@ public class User {
     @Column(name = "thumbnail_url", length = 255)
     private String thumbnailUrl;
 
+    @Column(name = "account_expired_at")
+    private LocalDateTime accountExpiredAt;
+
+    @Column(name = "account_locked")
+    private boolean accountLocked;
+
+    @Column(name = "enabled")
+    private boolean enabled;
+
+    @Column(name = "password_expired_at")
+    private LocalDateTime passwordExpiredAt;
+
+    @Column(name = "login_attempt_count")
+    private int loginAttemptCount;
+
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
+    @Builder.Default
+    @Column(name = "max_login_attempts")
+    private int maxLoginAttempts = 5;
+
+    @Builder.Default
+    @Column(name = "account_lock_duration_minutes")
+    private int accountLockDurationMinutes = 30;
+
+    @Builder.Default
+    @Column(name = "password_expiry_days")
+    private int passwordExpiryDays = 90;
+
+    @Builder.Default
+    @Column(name = "account_expiry_days")
+    private int accountExpiryDays = 365;
+
     /*@Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Notification> notifications = new ArrayList<>();*/
@@ -87,6 +121,30 @@ public class User {
      */
     public void updateRole(String role) {
         this.role = role;
+    }
+
+    public void setLoginAttemptCount(int loginAttemptCount) {
+        this.loginAttemptCount = loginAttemptCount;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public void setAccountLocked(boolean accountLocked) {
+        this.accountLocked = accountLocked;
+    }
+
+    public void setAccountExpiredAt(LocalDateTime accountExpiredAt) {
+        this.accountExpiredAt = accountExpiredAt;
+    }
+
+    public void setPasswordExpiredAt(LocalDateTime passwordExpiredAt) {
+        this.passwordExpiredAt = passwordExpiredAt;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }
 //

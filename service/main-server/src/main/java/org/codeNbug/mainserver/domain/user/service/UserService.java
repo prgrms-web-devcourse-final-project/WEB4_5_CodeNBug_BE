@@ -19,11 +19,14 @@ import org.codenbug.user.sns.util.KakaoOauth;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 사용자 관련 서비스
@@ -84,12 +87,36 @@ public class UserService {
                     return new AuthenticationFailedException("이메일 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요.");
                 });
 
+        // 계정 상태 확인
+        if (!user.isEnabled()) {
+            log.warn(">> 로그인 실패: 비활성화된 계정 - 이메일={}", request.getEmail());
+            throw new AuthenticationFailedException("비활성화된 계정입니다. 관리자에게 문의하세요.");
+        }
+
+        if (user.isAccountLocked()) {
+            log.warn(">> 로그인 실패: 잠긴 계정 - 이메일={}", request.getEmail());
+            throw new AuthenticationFailedException("계정이 잠겨있습니다. 잠금 해제 시간까지 기다려주세요.");
+        }
+
+        if (user.getAccountExpiredAt() != null && user.getAccountExpiredAt().isBefore(LocalDateTime.now())) {
+            log.warn(">> 로그인 실패: 만료된 계정 - 이메일={}", request.getEmail());
+            throw new AuthenticationFailedException("만료된 계정입니다. 계정을 연장해주세요.");
+        }
+
+        if (user.getPasswordExpiredAt() != null && user.getPasswordExpiredAt().isBefore(LocalDateTime.now())) {
+            log.warn(">> 로그인 실패: 만료된 비밀번호 - 이메일={}", request.getEmail());
+            throw new AuthenticationFailedException("비밀번호가 만료되었습니다. 비밀번호를 변경해주세요.");
+        }
+
         // 비밀번호 검증
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             log.warn(">> 로그인 실패: 잘못된 비밀번호 - 이메일={}", request.getEmail());
+            incrementLoginAttemptCount(user);
             throw new AuthenticationFailedException("이메일 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요.");
         }
 
+        // 로그인 성공 처리
+        resetLoginAttemptCount(user);
         log.info(">> 인증 성공: 이메일={}, userId={}", user.getEmail(), user.getUserId());
         
         // 토큰 생성
@@ -407,5 +434,123 @@ public class UserService {
             log.error(">> 프로필 수정 중 오류 발생: {}", e.getMessage(), e);
             throw new AuthenticationFailedException("프로필 수정 중 오류가 발생했습니다: " + e.getMessage());
         }
+    }
+
+    /**
+     * 로그인 시도 횟수를 증가시키고 필요한 경우 계정을 잠급니다.
+     *
+     * @param user 대상 사용자
+     */
+    @Transactional
+    public void incrementLoginAttemptCount(User user) {
+        user.setLoginAttemptCount(user.getLoginAttemptCount() + 1);
+        
+        if (user.getLoginAttemptCount() >= user.getMaxLoginAttempts()) {
+            lockAccount(user);
+        }
+        
+        userRepository.save(user);
+    }
+
+    /**
+     * 로그인 성공 시 로그인 시도 횟수를 초기화하고 마지막 로그인 시간을 업데이트합니다.
+     *
+     * @param user 대상 사용자
+     */
+    @Transactional
+    public void resetLoginAttemptCount(User user) {
+        user.setLoginAttemptCount(0);
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정을 잠급니다.
+     *
+     * @param user 대상 사용자
+     */
+    @Transactional
+    public void lockAccount(User user) {
+        user.setAccountLocked(true);
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정 잠금을 해제합니다.
+     *
+     * @param user 대상 사용자
+     */
+    @Transactional
+    public void unlockAccount(User user) {
+        user.setAccountLocked(false);
+        user.setLoginAttemptCount(0);
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정 잠금을 자동으로 해제합니다.
+     * 잠금 시간이 지난 계정들의 잠금을 해제합니다.
+     */
+    @Scheduled(fixedRate = 300000) // 5분마다 실행
+    @Transactional
+    public void autoUnlockAccounts() {
+        log.info(">> 계정 잠금 자동 해제 작업 시작");
+        
+        List<User> lockedUsers = userRepository.findByAccountLockedTrue();
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (User user : lockedUsers) {
+            if (user.getLastLoginAt() != null && 
+                user.getLastLoginAt().plusMinutes(user.getAccountLockDurationMinutes()).isBefore(now)) {
+                log.info(">> 계정 잠금 해제: userId={}, email={}", user.getUserId(), user.getEmail());
+                unlockAccount(user);
+            }
+        }
+        
+        log.info(">> 계정 잠금 자동 해제 작업 완료");
+    }
+
+    /**
+     * 만료된 계정을 확인하고 알림을 보냅니다.
+     */
+    @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행
+    @Transactional
+    public void checkExpiringAccounts() {
+        log.info(">> 계정 만료 확인 작업 시작");
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime warningDate = now.plusDays(7); // 7일 후 만료 예정인 계정 확인
+        
+        List<User> expiringUsers = userRepository.findByAccountExpiredAtBetween(now, warningDate);
+        
+        for (User user : expiringUsers) {
+            log.info(">> 계정 만료 예정 알림: userId={}, email={}, 만료일={}", 
+                    user.getUserId(), user.getEmail(), user.getAccountExpiredAt());
+            // TODO: 이메일 알림 발송 로직 구현
+        }
+        
+        log.info(">> 계정 만료 확인 작업 완료");
+    }
+
+    /**
+     * 만료된 비밀번호를 확인하고 알림을 보냅니다.
+     */
+    @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행
+    @Transactional
+    public void checkExpiringPasswords() {
+        log.info(">> 비밀번호 만료 확인 작업 시작");
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime warningDate = now.plusDays(7); // 7일 후 만료 예정인 비밀번호 확인
+        
+        List<User> expiringUsers = userRepository.findByPasswordExpiredAtBetween(now, warningDate);
+        
+        for (User user : expiringUsers) {
+            log.info(">> 비밀번호 만료 예정 알림: userId={}, email={}, 만료일={}", 
+                    user.getUserId(), user.getEmail(), user.getPasswordExpiredAt());
+            // TODO: 이메일 알림 발송 로직 구현
+        }
+        
+        log.info(">> 비밀번호 만료 확인 작업 완료");
     }
 }
