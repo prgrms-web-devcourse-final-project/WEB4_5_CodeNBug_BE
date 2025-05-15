@@ -104,7 +104,7 @@ public class SeatService {
 			if (selectedSeats != null && !selectedSeats.isEmpty()) {
 				throw new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
 			}
-			reservedSeatIds = selectSeats(null, userId, eventId, true, seatSelectRequest.getTicketCount());
+			reservedSeatIds = selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
 		}
 
 		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
