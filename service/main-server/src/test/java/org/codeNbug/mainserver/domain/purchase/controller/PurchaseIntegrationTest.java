@@ -29,13 +29,13 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.domain.seat.service.RedisLockService;
+import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.codeNbug.mainserver.external.toss.service.TossPaymentServiceImpl;
 import org.codeNbug.mainserver.util.BaseTestUtil;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +44,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -133,6 +132,9 @@ class PurchaseIntegrationTest {
 	private TicketRepository ticketRepository;
 
 	@Autowired
+	private SeatService seatService;
+
+	@Autowired
 	private RedisLockService redisLockService;
 
 	@Autowired
@@ -155,17 +157,15 @@ class PurchaseIntegrationTest {
 
 	private MockRestServiceServer mockRestServiceServer;
 
-	private static User testUser;
-	private static String testToken;
-	private static Event testEvent;
-	private static Long purchaseId;
-	private static String entryToken;
+	private User testUser;
+	private String testToken;
+	private Event testEvent;
+	private Long purchaseId;
+	private String entryToken;
 	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
 
 	@BeforeEach
 	void setUp() {
-		MockitoAnnotations.initMocks(this);
-
 		tossPaymentServiceImpl = new TossPaymentServiceImpl(
 			restTemplate,
 			"test_sk_xxx",
@@ -180,9 +180,10 @@ class PurchaseIntegrationTest {
 		testUser = baseTestUtil.setUpUser();
 		testToken = baseTestUtil.setUpToken();
 		testEvent = baseTestUtil.setUpEvent();
+		System.out.println("123:: " + testEvent.getEventId());
 
 		String url = UriComponentsBuilder.fromHttpUrl("http://localhost:9001/api/v1/events/{eventId}/tickets/waiting")
-			.buildAndExpand(testEvent.getEventId())  // {eventId}에 실제 값 삽입
+			.buildAndExpand(testEvent.getEventId())
 			.toUriString();
 
 		mockRestServiceServer.expect(
@@ -199,16 +200,25 @@ class PurchaseIntegrationTest {
 		entryToken = "testToken";
 	}
 
-	@AfterAll
-	void tearDown() {
-		seatRepository.deleteAll();
-		seatGradeRepository.deleteAll();
-		ticketRepository.deleteAll();
-		seatLayoutRepository.deleteAll();
-		purchaseCancelRepository.deleteAll();
-		purchaseRepository.deleteAll();
-		eventRepository.deleteAll();
-		userRepository.deleteAll();
+	// @AfterAll
+	// void tearDown() {
+	// 	seatRepository.deleteAll();
+	// 	seatGradeRepository.deleteAll();
+	// 	ticketRepository.deleteAll();
+	// 	seatLayoutRepository.deleteAll();
+	// 	purchaseCancelRepository.deleteAll();
+	// 	purchaseRepository.deleteAll();
+	// 	eventRepository.deleteAll();
+	// 	userRepository.deleteAll();
+	// }
+
+	@Test
+	@Order(1)
+	void seatServiceIsCalledTest() {
+		System.out.println("456:: " + testEvent.getEventId());
+		List<Seat> seats = seatService.findSeatsByEventId(testEvent.getEventId());
+		System.out.println("조회된 좌석 수: " + seats.size());
+		assertNotNull(seats);
 	}
 
 	@Test
@@ -227,6 +237,7 @@ class PurchaseIntegrationTest {
 		String seatSelectJson = objectMapper.writeValueAsString(seatSelectRequest);
 		System.out.println(seatSelectJson);
 
+		System.out.println("testEventId: " + testEvent.getEventId());
 		mockMvc.perform(post("/api/v1/event/{eventId}/seats", testEvent.getEventId())
 				.header("Authorization", "Bearer " + testToken)
 				.header("entryAuthToken", entryToken)
@@ -236,7 +247,9 @@ class PurchaseIntegrationTest {
 			.andExpect(jsonPath("$.code").value("200"))
 			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"));
 
+		System.out.println("token:: " + testToken);
 		String redisKey = "seat:lock:" + testUser.getUserId() + ":" + testEvent.getEventId() + ":" + seatToLock.getId();
+		System.out.println("redisKey:: " + redisKey);
 		String redisValue = redisTemplate.opsForValue().get(redisKey);
 		assertThat(redisValue).isNotNull();
 
