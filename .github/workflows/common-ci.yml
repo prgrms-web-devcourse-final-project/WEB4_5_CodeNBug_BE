@@ -176,7 +176,7 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
-        run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
+        run: echo "$APPLICATION_SECRET" > service/queue-server/src/main/resources/application-secret.yml
       - name: set lower case owner name
         id: export_owner
         run: |
@@ -190,7 +190,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: service/main-server/Dockerfile
+          file: service/queue-server/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
@@ -225,7 +225,7 @@ jobs:
         env:
           ACTIONS_STEP_DEBUG: true
           APPLICATION_SECRET: ${{ secrets.MAIN_APPLICATION_SECRET }}
-        run: echo "$APPLICATION_SECRET" > service/main-server/src/main/resources/application-secret.yml
+        run: echo "$APPLICATION_SECRET" > service/message-dispatcher/src/main/resources/application-secret.yml
       - name: set lower case owner name
         id: export_owner
         run: |
@@ -239,7 +239,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: service/main-server/Dockerfile
+          file: service/message-dispatcher/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:${{ needs.makeTagAndReleaseServer.outputs.tag_name }}
