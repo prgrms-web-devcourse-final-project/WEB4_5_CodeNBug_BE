@@ -22,6 +22,7 @@ public class UserSchedulerService {
 
     private final UserRepository userRepository;
     private final UserService userService;
+    private final UserEmailService userEmailService;
 
     /**
      * 계정 잠금을 자동으로 해제합니다.
@@ -62,7 +63,7 @@ public class UserSchedulerService {
         for (User user : expiringUsers) {
             log.info(">> 계정 만료 예정 알림: userId={}, email={}, 만료일={}", 
                     user.getUserId(), user.getEmail(), user.getAccountExpiredAt());
-            // TODO: 이메일 알림 발송 로직 구현
+            userEmailService.sendAccountExpirationWarning(user, user.getAccountExpiredAt());
         }
         
         log.info(">> 계정 만료 확인 작업 완료");
@@ -84,7 +85,7 @@ public class UserSchedulerService {
         for (User user : expiringUsers) {
             log.info(">> 비밀번호 만료 예정 알림: userId={}, email={}, 만료일={}", 
                     user.getUserId(), user.getEmail(), user.getPasswordExpiredAt());
-            // TODO: 이메일 알림 발송 로직 구현
+            userEmailService.sendPasswordExpirationWarning(user, user.getPasswordExpiredAt());
         }
         
         log.info(">> 비밀번호 만료 확인 작업 완료");
