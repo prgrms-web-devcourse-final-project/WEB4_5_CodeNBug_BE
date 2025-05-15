@@ -61,10 +61,13 @@ public class SeatController {
 		@PathVariable("event-id") Long eventId,
 		@RequestBody SeatSelectRequest seatSelectRequest,
 		@RequestHeader("entryAuthToken") String entryAuthToken) {
+		log.info("✅ 컨트롤러 도착: entryAuthToken={}, eventId={}", entryAuthToken, eventId);
 		Long userId = SecurityUtil.getCurrentUserId();
-
 		entryTokenValidator.validate(userId, entryAuthToken);
+		log.info("1");
 		SeatSelectResponse seatSelectResponse = seatService.selectSeat(eventId, seatSelectRequest, userId);
+		log.info("2");
+		log.info("✅ 서비스 응답 완료");
 		return ResponseEntity.ok(new RsData<>(
 			"200",
 			"좌석 선택 성공",

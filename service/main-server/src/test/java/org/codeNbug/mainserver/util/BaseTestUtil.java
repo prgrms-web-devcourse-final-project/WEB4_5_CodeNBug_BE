@@ -86,6 +86,7 @@ public class BaseTestUtil {
 			.role("ROLE_USER")
 			.build();
 		userRepository.save(testUser);
+		userRepository.flush();
 
 		return testUser;
 	}
@@ -132,6 +133,7 @@ public class BaseTestUtil {
 			null
 		);
 		eventRepository.save(testEvent);
+		eventRepository.flush();
 
 		// 테스트용 좌석 레이아웃 생성
 		String layoutJson = """
@@ -170,9 +172,11 @@ public class BaseTestUtil {
 			.event(testEvent)
 			.build();
 		seatLayoutRepository.save(seatLayout);
+		seatLayoutRepository.flush();
 
 		testEvent.setSeatLayout(seatLayout);
 		eventRepository.save(testEvent);
+		eventRepository.flush();
 
 		// 좌석 등급 및 좌석 생성
 		createSeatGradesAndSeats(layoutJson);
@@ -193,6 +197,7 @@ public class BaseTestUtil {
 				.event(testEvent)
 				.build();
 			seatGradeRepository.save(seatGrade);
+			seatGradeRepository.flush();
 			gradeMap.put(gradeEnum, seatGrade);
 		}
 
@@ -218,6 +223,7 @@ public class BaseTestUtil {
 					.build();
 
 				seatRepository.save(testSeat);
+				seatRepository.flush();
 			}
 		}
 	}
