@@ -125,7 +125,7 @@ jobs:
 
       - name: export image name
         id: export_image
-        run: echo "image_name=backend-dispatch-deploy" >> $GITHUB_OUTPUT
+        run: echo "image_name=backend-dispatcher-deploy" >> $GITHUB_OUTPUT
       - name: 디스패치 서버 모듈 빌드 앤 푸시
         uses: docker/build-push-action@v6
         with:
