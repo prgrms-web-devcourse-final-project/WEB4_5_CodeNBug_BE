@@ -388,12 +388,35 @@ public class AdminController {
         return "admin/events";
     }
 
+    // === ExceptionHandler 분리 ===
+    // 뷰 반환용 (페이지 요청에서만 동작)
     @ExceptionHandler(Exception.class)
-    public String handleException(Exception e, RedirectAttributes redirectAttributes) {
-        log.error(">> 예외 발생: {}", e.getMessage(), e);
-        redirectAttributes.addFlashAttribute("errorMessage", "요청 처리 중 오류가 발생했습니다: " + e.getMessage());
-        return "redirect:/admin/login";
+    public String handleViewException(Exception e, RedirectAttributes redirectAttributes, HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        // API 요청이 아닌 경우에만 동작
+        if (!uri.contains("/api/")) {
+            log.error(">> 예외 발생(뷰): {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "요청 처리 중 오류가 발생했습니다: " + e.getMessage());
+            return "redirect:/admin/login";
+        }
+        // API 요청이면 null 반환해서 아래 API용 핸들러로 위임
+        return null;
     }
+
+    // API용 (RestController, @ResponseBody에서만 동작)
+    @ExceptionHandler(Exception.class)
+    @ResponseBody
+    public ResponseEntity<RsData<Void>> handleApiException(Exception e, HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        if (uri.contains("/api/")) {
+            log.error(">> 예외 발생(API): {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "요청 처리 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+        // 뷰 요청이면 null 반환해서 위 핸들러로 위임
+        return null;
+    }
+
     /**
      * 이벤트 상세 정보 페이지
      */
@@ -438,13 +461,6 @@ public class AdminController {
         adminService.deleteEvent(eventId);
         log.info(">> 이벤트 삭제 완료: eventId={}", eventId);
         return ResponseEntity.ok(RsData.success("이벤트가 성공적으로 삭제되었습니다."));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<RsData<Void>> handleException(Exception e) {
-        log.error(">> 예외 발생: {}", e.getMessage(), e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(RsData.error("500-INTERNAL_SERVER_ERROR", "요청 처리 중 오류가 발생했습니다: " + e.getMessage()));
     }
 
     /**
@@ -568,5 +584,23 @@ public class AdminController {
         log.info(">> 계정 잠금 해제 요청: userId={}", userId);
         adminService.unlockAccount(userId);
         return ResponseEntity.ok(RsData.success("계정이 성공적으로 잠금 해제되었습니다."));
+    }
+
+    /**
+     * 관리자 설정 페이지
+     */
+    @RoleRequired(UserRole.ADMIN)
+    @GetMapping("/settings")
+    public String settingsPage(Model model) {
+        log.info(">> 관리자 설정 페이지 요청");
+        try {
+            Map<String, Object> usersData = adminService.getAllUsers();
+            model.addAttribute("regularUsers", usersData.get("regularUsers"));
+            model.addAttribute("snsUsers", usersData.get("snsUsers"));
+        } catch (Exception e) {
+            log.error(">> 설정 페이지 사용자 목록 조회 실패: {}", e.getMessage(), e);
+            model.addAttribute("errorMessage", "사용자 목록을 불러오는 데 실패했습니다.");
+        }
+        return "admin/settings";
     }
 }

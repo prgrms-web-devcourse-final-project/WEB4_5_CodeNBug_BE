@@ -62,6 +62,7 @@ public class AdminSignupRequest {
                 .phoneNum(this.phoneNum)
                 .location(this.location)
                 .role("ROLE_ADMIN") // 관리자 권한 부여
+                .accountLocked(false)
                 .build();
     }
 } 

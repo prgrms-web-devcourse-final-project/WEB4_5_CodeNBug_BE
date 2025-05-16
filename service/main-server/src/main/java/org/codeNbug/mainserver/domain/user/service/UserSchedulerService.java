@@ -28,7 +28,7 @@ public class UserSchedulerService {
      * 계정 잠금을 자동으로 해제합니다.
      * 잠금 시간이 지난 계정들의 잠금을 해제합니다.
      */
-    @Scheduled(fixedRate = 30000) // 3분마다 실행
+    @Scheduled(fixedRate = 180000) // 3분마다 실행
     @Transactional
     public void autoUnlockAccounts() {
         log.info(">> 계정 잠금 자동 해제 작업 시작");

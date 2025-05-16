@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="admin/fragments/layout :: head('설정')"></head>
+<body>
+    <!-- 사이드바 -->
+    <div th:replace="admin/fragments/layout :: sidebar" th:with="currentPage='settings'"></div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="content">
+        <div class="dashboard-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">설정</h4>
+        </div>
+
+        <!-- 오류 메시지 표시 -->
+        <div th:if="${errorMessage}" class="alert alert-danger mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <span th:text="${errorMessage}">오류 메시지</span>
+        </div>
+        <div th:if="${successMessage}" class="alert alert-success mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <span th:text="${successMessage}">성공 메시지</span>
+        </div>
+
+        <!-- 일반 사용자 -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">일반 사용자</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>이메일</th>
+                                <th>이름</th>
+                                <th>계정 만료일</th>
+                                <th>비밀번호 만료일</th>
+                                <th>상태</th>
+                                <th>잠금</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${regularUsers == null || regularUsers.isEmpty()}">
+                                <td colspan="8" class="text-center py-4 text-muted">
+                                    등록된 일반 사용자가 없습니다.
+                                </td>
+                            </tr>
+                            <tr th:each="user : ${regularUsers}">
+                                <td th:text="${user.userId}">1</td>
+                                <td th:text="${user.email}">user@example.com</td>
+                                <td th:text="${user.name}">홍길동</td>
+                                <td th:text="${#temporals.format(user.accountExpiredAt, 'yyyy-MM-dd HH:mm')}">-</td>
+                                <td th:text="${#temporals.format(user.passwordExpiredAt, 'yyyy-MM-dd HH:mm')}">-</td>
+                                <td>
+                                    <span th:if="${user.enabled}" class="badge bg-success">활성</span>
+                                    <span th:if="${user.enabled == false}" class="badge bg-secondary">비활성</span>
+                                </td>
+                                <td>
+                                    <span th:if="${user.accountLocked == true}" class="badge bg-danger">잠금</span>
+                                    <span th:if="${user.accountLocked == false}" class="badge bg-success">정상</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-primary" th:onclick="'extendAccountExpiry(' + ${user.userId} + ')'"><i class="bi bi-calendar-plus"></i> 계정 연장</button>
+                                        <button class="btn btn-outline-info" th:onclick="'extendPasswordExpiry(' + ${user.userId} + ')'"><i class="bi bi-key"></i> 비번 연장</button>
+                                        <button class="btn btn-outline-warning" th:if="${user.enabled}" th:onclick="'disableAccount(' + ${user.userId} + ')'"><i class="bi bi-person-x"></i> 비활성화</button>
+                                        <button class="btn btn-outline-success" th:if="${user.enabled == false}" th:onclick="'enableAccount(' + ${user.userId} + ')'"><i class="bi bi-person-check"></i> 활성화</button>
+                                        <button class="btn btn-outline-danger" th:if="${user.accountLocked == true}" th:onclick="'unlockAccount(' + ${user.userId} + ')'"><i class="bi bi-unlock"></i> 잠금 해제</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SNS 사용자 -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">SNS 사용자</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>소셜 ID</th>
+                                <th>제공자</th>
+                                <th>이메일</th>
+                                <th>이름</th>
+                                <th>계정 만료일</th>
+                                <th>비밀번호 만료일</th>
+                                <th>상태</th>
+                                <th>잠금</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${snsUsers == null || snsUsers.isEmpty()}">
+                                <td colspan="10" class="text-center py-4 text-muted">
+                                    등록된 SNS 사용자가 없습니다.
+                                </td>
+                            </tr>
+                            <tr th:each="user : ${snsUsers}">
+                                <td th:text="${user.id}">1</td>
+                                <td th:text="${user.socialId}">social_id</td>
+                                <td th:text="${user.provider}">KAKAO</td>
+                                <td th:text="${user.email}">user@example.com</td>
+                                <td th:text="${user.name}">홍길동</td>
+                                <td th:text="${#temporals.format(user.accountExpiredAt, 'yyyy-MM-dd HH:mm')}">-</td>
+                                <td th:text="${#temporals.format(user.passwordExpiredAt, 'yyyy-MM-dd HH:mm')}">-</td>
+                                <td>
+                                    <span th:if="${user.enabled}" class="badge bg-success">활성</span>
+                                    <span th:if="${user.enabled == false}" class="badge bg-secondary">비활성</span>
+                                </td>
+                                <td>
+                                    <span th:if="${user.accountLocked == true}" class="badge bg-danger">잠금</span>
+                                    <span th:if="${user.accountLocked == false}" class="badge bg-success">정상</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button class="btn btn-outline-primary" th:onclick="'extendAccountExpiry(' + ${user.id} + ')'"><i class="bi bi-calendar-plus"></i> 계정 연장</button>
+                                        <button class="btn btn-outline-info" th:onclick="'extendPasswordExpiry(' + ${user.id} + ')'"><i class="bi bi-key"></i> 비번 연장</button>
+                                        <button class="btn btn-outline-warning" th:if="${user.enabled}" th:onclick="'disableAccount(' + ${user.id} + ')'"><i class="bi bi-person-x"></i> 비활성화</button>
+                                        <button class="btn btn-outline-success" th:if="${user.enabled == false}" th:onclick="'enableAccount(' + ${user.id} + ')'"><i class="bi bi-person-check"></i> 활성화</button>
+                                        <button class="btn btn-outline-danger" th:if="${user.accountLocked == true}" th:onclick="'unlockAccount(' + ${user.id} + ')'"><i class="bi bi-unlock"></i> 잠금 해제</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="admin/fragments/layout :: scripts"></div>
+    <script>
+        function showAlert(msg, isSuccess) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-danger') + ' mt-3';
+            alertDiv.innerHTML = msg;
+            document.querySelector('.content').prepend(alertDiv);
+            setTimeout(() => alertDiv.remove(), 3000);
+        }
+        function ajaxAction(url, method, userId, successMsg) {
+            fetch(url.replace('{userId}', userId), {
+                method: method,
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => {
+                if (res.ok) {
+                    showAlert(successMsg, true);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    res.json().then(data => showAlert(data.msg || '실패했습니다.', false));
+                }
+            })
+            .catch(() => showAlert('요청 중 오류가 발생했습니다.', false));
+        }
+        function extendAccountExpiry(userId) {
+            ajaxAction('/admin/api/users/' + userId + '/extend-account', 'PUT', userId, '계정 만료일이 연장되었습니다.');
+        }
+        function extendPasswordExpiry(userId) {
+            ajaxAction('/admin/api/users/' + userId + '/extend-password', 'PUT', userId, '비밀번호 만료일이 연장되었습니다.');
+        }
+        function disableAccount(userId) {
+            ajaxAction('/admin/api/users/' + userId + '/disable', 'PUT', userId, '계정이 비활성화되었습니다.');
+        }
+        function enableAccount(userId) {
+            ajaxAction('/admin/api/users/' + userId + '/enable', 'PUT', userId, '계정이 활성화되었습니다.');
+        }
+        function unlockAccount(userId) {
+            ajaxAction('/admin/api/users/' + userId + '/unlock', 'PUT', userId, '계정 잠금이 해제되었습니다.');
+        }
+    </script>
+</body>
+</html> 
