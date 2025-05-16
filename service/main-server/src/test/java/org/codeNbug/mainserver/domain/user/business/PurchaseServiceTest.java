@@ -16,6 +16,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,12 +49,14 @@ class PurchaseServiceTest {
             Long userId = 1L;
             List<PaymentStatusEnum> statuses = Arrays.asList(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED);
             List<Purchase> purchases = createTestPurchases();
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Purchase> purchasePage = new PageImpl<>(purchases, pageable, purchases.size());
 
-            when(purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(userId, statuses))
-                .thenReturn(purchases);
+            when(purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(userId, statuses, pageable))
+                .thenReturn(purchasePage);
 
             // when
-            PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
+            PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId, pageable);
 
             // then
             assertNotNull(response);
@@ -63,12 +69,14 @@ class PurchaseServiceTest {
             // given
             Long userId = 1L;
             List<PaymentStatusEnum> statuses = Arrays.asList(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED);
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<Purchase> emptyPage = new PageImpl<>(List.of(), pageable, 0);
 
-            when(purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(userId, statuses))
-                .thenReturn(List.of());
+            when(purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(userId, statuses, pageable))
+                .thenReturn(emptyPage);
 
             // when
-            PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
+            PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId, pageable);
 
             // then
             assertNotNull(response);
