@@ -455,13 +455,12 @@ public class AdminService {
      * 삭제된 이벤트를 복구합니다.
      * 
      * @param eventId 복구할 이벤트 ID
-     * @param status 복구 후 설정할 이벤트 상태
      * @return 복구된 이벤트 정보
      * @throws IllegalAccessException 이벤트가 삭제되지 않은 경우
      */
     @Transactional
-    public EventAdminDto restoreEvent(Long eventId, EventStatusEnum status) throws IllegalAccessException {
-        log.info(">> 이벤트 복구 처리 시작: eventId={}, status={}", eventId, status);
+    public EventAdminDto restoreEvent(Long eventId) throws IllegalAccessException {
+        log.info(">> 이벤트 복구 처리 시작: eventId={}", eventId);
         
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> {
@@ -477,8 +476,20 @@ public class AdminService {
 
         // 이벤트 상태 변경
         event.setIsDeleted(false);
-        event.setStatus(status);
-        log.info(">> 이벤트 상태 변경 완료: eventId={}, status={}", eventId, status);
+        
+        // 예매 시작일과 종료일을 기준으로 상태 설정
+        LocalDateTime now = LocalDateTime.now();
+        if (event.getBookingStart() != null && event.getBookingEnd() != null) {
+            if (!now.isBefore(event.getBookingStart()) && !now.isAfter(event.getBookingEnd())) {
+                event.setStatus(EventStatusEnum.OPEN); // 예매 중
+            } else {
+                event.setStatus(EventStatusEnum.CLOSED); // 예매 종료
+            }
+        } else {
+            event.setStatus(EventStatusEnum.CLOSED); // 날짜 미입력 → CLOSED
+        }
+        
+        log.info(">> 이벤트 상태 변경 완료: eventId={}, status={}", eventId, event.getStatus());
 
         // 알림 처리는 메인 로직과 분리하여 예외 처리
         try {

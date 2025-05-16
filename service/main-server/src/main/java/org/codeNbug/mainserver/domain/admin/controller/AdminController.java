@@ -470,19 +470,17 @@ public class AdminController {
      * 삭제된 이벤트를 복구합니다.
      * 
      * @param eventId 복구할 이벤트 ID
-     * @param status 복구 후 설정할 이벤트 상태
      * @return 복구된 이벤트 정보
      */
     @PostMapping("/api/events/{eventId}/restore")
     @RoleRequired(UserRole.ADMIN)
     public ResponseEntity<RsData<EventAdminDto>> restoreEvent(
-            @PathVariable Long eventId,
-            @RequestParam EventStatusEnum status) {
-        log.info(">> 이벤트 복구 요청: eventId={}, status={}", eventId, status);
+            @PathVariable Long eventId) {
+        log.info(">> 이벤트 복구 요청: eventId={}", eventId);
         
         try {
-            EventAdminDto event = adminService.restoreEvent(eventId, status);
-            log.info(">> 이벤트 복구 성공: eventId={}, status={}", eventId, status);
+            EventAdminDto event = adminService.restoreEvent(eventId);
+            log.info(">> 이벤트 복구 성공: eventId={}", eventId);
             return ResponseEntity.ok(RsData.success("이벤트가 성공적으로 복구되었습니다.", event));
         } catch (IllegalAccessException e) {
             log.error(">> 이벤트 복구 실패: {}", e.getMessage());
