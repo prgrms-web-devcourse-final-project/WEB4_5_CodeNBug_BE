@@ -203,7 +203,7 @@
         // 복구 함수
         function restoreEvent(eventId) {
             if (confirm('이 이벤트를 복구하시겠습니까?')) {
-                fetch(`/admin/api/events/${eventId}/restore?status=OPEN`, {
+                fetch(`/admin/api/events/${eventId}/restore`, {
                     method: 'POST'
                 })
                 .then(response => {
