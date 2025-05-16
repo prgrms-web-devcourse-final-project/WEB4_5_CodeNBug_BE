@@ -1,5 +1,10 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryDetailResponse;
 import org.codeNbug.mainserver.domain.purchase.dto.PurchaseHistoryListResponse;
 import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
@@ -13,26 +18,14 @@ import org.codeNbug.mainserver.domain.user.service.UserService;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.codenbug.common.util.CookieUtil;
-import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.redis.service.TokenService;
-import org.codenbug.user.security.annotation.RoleRequired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 사용자 관련 컨트롤러
@@ -268,17 +261,22 @@ public class UserController {
      * 사용자의 구매 이력 목록을 조회합니다.
      * 일반 사용자와 SNS 사용자 모두 지원합니다.
      *
+     * @param page 페이지 번호 (0부터 시작)
+     * @param size 페이지 크기
      * @return ResponseEntity<RsData<PurchaseHistoryListResponse>> 구매 이력 목록 응답
      */
     @GetMapping("/me/purchases")
-    public ResponseEntity<RsData<PurchaseHistoryListResponse>> getPurchaseHistoryList() {
-        log.info(">> 사용자 구매 이력 조회 요청");
+    public ResponseEntity<RsData<PurchaseHistoryListResponse>> getPurchaseHistoryList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        log.info(">> 사용자 구매 이력 조회 요청: page={}, size={}", page, size);
 
         Long userId = SecurityUtil.getCurrentUserId();
-        PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("purchaseDate").descending());
+        PurchaseHistoryListResponse response = purchaseService.getPurchaseHistoryList(userId, pageable);
 
-        log.info(">> 구매 이력 조회 성공: userId={}, 조회된 건수={}",
-                userId, response.getPurchases().size());
+        log.info(">> 구매 이력 조회 성공: userId={}, 조회된 건수={}, 전체 건수={}",
+                userId, response.getPurchases().size(), response.getTotalElements());
 
         return ResponseEntity.ok(
                 new RsData<>("200-SUCCESS", "구매 이력 조회 성공", response));

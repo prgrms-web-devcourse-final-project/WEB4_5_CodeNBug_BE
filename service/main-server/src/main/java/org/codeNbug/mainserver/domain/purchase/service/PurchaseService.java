@@ -41,6 +41,8 @@ import org.codeNbug.mainserver.external.toss.service.TossPaymentService;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -186,28 +188,28 @@ public class PurchaseService {
 	 * 사용자의 구매 이력 목록을 조회합니다.
 	 *
 	 * @param userId 사용자 ID
+	 * @param pageable 페이지네이션 정보
 	 * @return 구매 이력 목록 응답 DTO
 	 */
-	public PurchaseHistoryListResponse getPurchaseHistoryList(Long userId) {
-		List<Purchase> purchases = purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(
+	public PurchaseHistoryListResponse getPurchaseHistoryList(Long userId, Pageable pageable) {
+		Page<Purchase> purchases = purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(
 			userId,
-			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED)
+			List.of(PaymentStatusEnum.DONE, PaymentStatusEnum.EXPIRED),
+			pageable
 		);
 
-		List<PurchaseHistoryListResponse.PurchaseSummaryDto> purchaseDtos = purchases.stream()
-			.map(purchase -> PurchaseHistoryListResponse.PurchaseSummaryDto.builder()
+		Page<PurchaseHistoryListResponse.PurchaseSummaryDto> purchaseDtos = purchases.map(purchase -> 
+			PurchaseHistoryListResponse.PurchaseSummaryDto.builder()
 				.purchaseId(purchase.getId())
 				.itemName(purchase.getOrderName())
 				.amount(purchase.getAmount())
 				.purchaseDate(purchase.getPurchaseDate())
 				.paymentMethod(purchase.getPaymentMethod().name())
 				.paymentStatus(purchase.getPaymentStatus().name())
-				.build())
-			.toList();
+				.build()
+		);
 
-		return PurchaseHistoryListResponse.builder()
-			.purchases(purchaseDtos)
-			.build();
+		return PurchaseHistoryListResponse.of(purchaseDtos);
 	}
 
 	/**
