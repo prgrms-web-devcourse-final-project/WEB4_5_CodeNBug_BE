@@ -104,13 +104,10 @@ public class NotificationService {
         // DTO로 변환
         NotificationDto notificationDto = NotificationDto.from(savedNotification);
 
-        // 이벤트 발행 (트랜잭션 커밋 후 처리됨)
-        eventPublisher.publishEvent(new NotificationEventDto(
-                savedNotification.getId(),
-                userId,
-                type,
-                content
-        ));
+        // 확장된 이벤트 DTO 생성 및 발행
+        NotificationEventDto eventDto = NotificationEventDto.from(savedNotification);
+        eventPublisher.publishEvent(eventDto);
+
         log.debug("알림 이벤트 발행 완료: notificationId={}", savedNotification.getId());
 
         return notificationDto;
@@ -176,12 +173,8 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         // 이벤트 재발행
-        eventPublisher.publishEvent(new NotificationEventDto(
-                notification.getId(),
-                notification.getUserId(),
-                notification.getType(),
-                notification.getContent()
-        ));
+        NotificationEventDto eventDto = NotificationEventDto.from(notification);
+        eventPublisher.publishEvent(eventDto);
 
         return true;
     }
