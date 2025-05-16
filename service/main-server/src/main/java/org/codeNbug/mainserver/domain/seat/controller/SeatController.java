@@ -61,7 +61,6 @@ public class SeatController {
 		@PathVariable("event-id") Long eventId,
 		@RequestBody SeatSelectRequest seatSelectRequest,
 		@RequestHeader("entryAuthToken") String entryAuthToken) {
-		log.info("✅ 컨트롤러 도착: entryAuthToken={}, eventId={}", entryAuthToken, eventId);
 		Long userId = SecurityUtil.getCurrentUserId();
 		entryTokenValidator.validate(userId, entryAuthToken);
 
