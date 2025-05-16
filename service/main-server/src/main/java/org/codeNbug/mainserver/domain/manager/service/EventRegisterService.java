@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
@@ -81,13 +82,29 @@ public class EventRegisterService {
 			0, // viewCount 기본값
 			null, // createdAt
 			null, // modifiedAt
-			EventStatusEnum.OPEN,
+			determineInitialEventStatus(request.getBookingStart(), request.getBookingEnd()),
 			true,
 			false,
 			null
 		);
 
 		return eventRepository.save(event);
+	}
+
+	/**
+	 * bookingStart, bookingEnd, 현재시간(now)을 비교하여 초기 상태를 결정
+	 */
+	private EventStatusEnum determineInitialEventStatus(LocalDateTime bookingStart, LocalDateTime bookingEnd) {
+		LocalDateTime now = LocalDateTime.now();
+
+		if (bookingStart != null && bookingEnd != null) {
+			if (!now.isBefore(bookingStart) && !now.isAfter(bookingEnd)) {
+				return EventStatusEnum.OPEN; // 예매 중
+			} else {
+				return EventStatusEnum.CLOSED; // 예매 종료
+			}
+		}
+		return EventStatusEnum.CLOSED; // 날짜 미입력 → CLOSED
 	}
 
 	/**
