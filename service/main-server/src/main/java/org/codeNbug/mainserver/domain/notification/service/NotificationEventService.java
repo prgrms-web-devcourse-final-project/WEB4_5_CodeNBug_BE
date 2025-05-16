@@ -5,9 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.codeNbug.mainserver.domain.notification.entity.NotificationStatus;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationEventDto;
-import org.codeNbug.mainserver.domain.notification.entity.Notification;
 import org.codeNbug.mainserver.domain.notification.repository.NotificationRepository;
-import org.codeNbug.mainserver.domain.notification.service.NotificationEmitterService;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,37 +33,30 @@ public class NotificationEventService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleNotificationCreatedEvent(NotificationEventDto event) {
         Long userId = event.getUserId();
+        Long notificationId = event.getNotificationId();
 
-        log.debug("알림 이벤트 처리 시작: notificationId={}, userId={}", event.getNotificationId(), userId);
+        log.debug("알림 이벤트 처리 시작: notificationId={}, userId={}", notificationId, userId);
 
-        try {
-            // DB에서 알림 조회 (트랜잭션이 완료되었으므로 조회 가능)
-            Notification notification = notificationRepository
-                    .findById(event.getNotificationId())
-                    .orElse(null);
-
-            if (notification == null) {
-                log.warn("알림을 찾을 수 없음: notificationId={}", event.getNotificationId());
-                return;
-            }
+        try{
 
             // 사용자가 연결되어 있는 경우에만 알림 전송
             if (emitterService.isConnected(userId)) {
                 log.debug("사용자 연결 확인됨, 알림 전송 시작: userId={}", userId);
-                NotificationDto dto = NotificationDto.from(notification);
+
+                // 이벤트에서 직접 DTO 생성 (DB 조회 제거)
+                NotificationDto dto = event.toNotificationDto();
                 emitterService.sendNotification(userId, dto);
 
-                // 알림 상태 업데이트 (SENT로 변경)
-                updateNotificationStatus(notification.getId(), NotificationStatus.SENT);
-                log.debug("알림 전송 완료: notificationId={}", notification.getId());
+                // 상태 업데이트만 DB 호출 (벌크 업데이트 사용)
+                updateNotificationStatus(notificationId, NotificationStatus.SENT);
+                log.debug("알림 전송 완료: notificationId={}", notificationId);
             } else {
                 log.debug("사용자가 연결되어 있지 않음, 알림 미전송: userId={}", userId);
-                // 연결되지 않은 경우에도 PENDING 상태로 유지 (추후 연결 시 전송 가능하도록)
+                // PENDING 상태 유지 (별도 업데이트 필요 없음)
             }
         } catch (Exception e) {
-            log.error("알림 전송 중 오류 발생: notificationId={}, error={}", event.getNotificationId(), e.getMessage(), e);
-            // 실패한 경우 상태 업데이트 (FAILED로 변경)
-            updateNotificationStatus(event.getNotificationId(), NotificationStatus.FAILED);
+            log.error("알림 전송 중 오류 발생: notificationId={}, error={}", notificationId, e.getMessage(), e);
+            updateNotificationStatus(notificationId, NotificationStatus.FAILED);
         }
     }
 
@@ -78,13 +69,13 @@ public class NotificationEventService {
     @Transactional
     public void updateNotificationStatus(Long notificationId, NotificationStatus status) {
         try {
-            Notification notification = notificationRepository.findById(notificationId)
-                    .orElse(null);
+            // 직접 UPDATE 쿼리 실행 (엔티티 조회 없음)
+            int updatedCount = notificationRepository.updateStatus(notificationId, status);
 
-            if (notification != null) {
-                notification.updateStatus(status);
-                notificationRepository.save(notification);
+            if (updatedCount > 0) {
                 log.debug("알림 상태 업데이트: notificationId={}, status={}", notificationId, status);
+            } else {
+                log.warn("알림 상태 업데이트 실패: 대상 알림이 없음. notificationId={}", notificationId);
             }
         } catch (Exception e) {
             log.error("알림 상태 업데이트 실패: notificationId={}, status={}, error={}",
