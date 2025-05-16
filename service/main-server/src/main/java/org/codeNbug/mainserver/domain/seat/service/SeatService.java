@@ -18,6 +18,8 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codeNbug.mainserver.global.exception.globalException.ConflictException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -59,11 +61,6 @@ public class SeatService {
 		return new SeatLayoutResponse(seatList, seatLayout);
 	}
 
-	public List<Seat> findSeatsByEventId(Long eventId) {
-		log.info("💺 SeatService - findSeatsByEventId 호출됨, eventId: {}", eventId);
-		return seatRepository.findAvailableSeatsByEventId(eventId);
-	}
-
 	/**
 	 * 좌석 선택 요청에 따라 Redis 락을 걸고, DB에 좌석 상태 반영
 	 *
@@ -75,15 +72,9 @@ public class SeatService {
 	 */
 	@Transactional
 	public SeatSelectResponse selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) {
-		log.info("✅ selectSeat 진입 성공");
-
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
-
-		log.info("eventId: {}", eventId);
-		Event event1 = eventRepository.findById(eventId).orElse(null);
-		System.out.println("📌 테스트에서 조회된 event: " + event1);
 
 		Event event = eventRepository.findById(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
@@ -92,7 +83,6 @@ public class SeatService {
 		List<Long> reservedSeatIds;
 
 		if (event.getSeatSelectable()) {
-			log.info("3");
 			// 지정석 예매 처리
 			if (selectedSeats != null && selectedSeats.size() > 4) {
 				throw new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다.");
@@ -100,7 +90,6 @@ public class SeatService {
 			reservedSeatIds = selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
 		} else {
 			// 미지정석 예매 처리
-			log.info("4");
 			if (selectedSeats != null && !selectedSeats.isEmpty()) {
 				throw new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
 			}
@@ -169,9 +158,7 @@ public class SeatService {
 		String lockKey = SEAT_LOCK_KEY_PREFIX + userId + ":" + eventId + ":" + seatId;
 		String lockValue = UUID.randomUUID().toString();
 
-		log.info("Trying to acquire lock for seat {} with key {}", seatId, lockKey);
 		boolean lockSuccess = redisLockService.tryLock(lockKey, lockValue, Duration.ofMinutes(5));
-		log.info("Lock result for {} = {}", seatId, lockSuccess);
 		if (!lockSuccess) {
 			throw new BadRequestException("[reserveSeat] 이미 선택된 좌석이 있습니다.");
 		}
@@ -179,8 +166,21 @@ public class SeatService {
 		try {
 			seat.reserve();
 			seatRepository.save(seat);
-		} finally {
+
+			// 트랜잭션 성공 후에만 락 해제 등록
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCompletion(int status) {
+					// COMMITTED 상태일 때만 해제
+					if (status == STATUS_COMMITTED) {
+						redisLockService.unlock(lockKey, lockValue);
+					}
+				}
+			});
+
+		} catch (Exception e) {
 			redisLockService.unlock(lockKey, lockValue);
+			throw e;
 		}
 	}
 
@@ -203,14 +203,14 @@ public class SeatService {
 
 			String lockValue = redisLockService.getLockValue(lockKey);
 
-			if (!redisLockService.unlock(lockKey, lockValue)) {
-				throw new BadRequestException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
-			}
-
 			Seat seat = seatRepository.findById(seatId)
 				.orElseThrow(() -> new IllegalArgumentException("[cancelSeat] 좌석을 찾을 수 없습니다. seatId: " + seatId));
+			boolean unlockSuccess = redisLockService.unlock(lockKey, lockValue);
+
+			if (!unlockSuccess) {
+				throw new BadRequestException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
+			}
 			seat.cancelReserve();
-			redisLockService.unlock(lockKey, lockValue);
 		}
 	}
 }
