@@ -3,7 +3,6 @@ package org.codeNbug.mainserver.domain.seat.service;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.seat.entity.Seat;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.stereotype.Service;
@@ -19,9 +18,7 @@ public class RedisListenerService implements MessageListener {
 
 	private final SeatRepository seatRepository;
 	private final EventRepository eventRepository;
-
-	@Value("${spring.redis.prefix:seat:lock:}")
-	private String lockKeyPrefix;
+	private static final String lockKeyPrefix = "seat:lock:";
 
 	/**
 	 * Redis에서 TTL 만료된 키 이벤트를 수신하여,
