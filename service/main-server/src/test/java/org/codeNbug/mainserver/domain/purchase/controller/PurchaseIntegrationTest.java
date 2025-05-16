@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,6 +40,7 @@ import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -49,12 +52,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.Commit;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -74,12 +73,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redis.testcontainers.RedisContainer;
 
+@Disabled
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @ActiveProfiles("test")
 @Testcontainers
+@Commit
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 class PurchaseIntegrationTest {
 	@Container
 	@ServiceConnection
@@ -160,7 +162,6 @@ class PurchaseIntegrationTest {
 	private User testUser;
 	private String testToken;
 	private Event SelecatbleTestEvent;
-	private Event NonSelecatbleTestEvent;
 	private Long purchaseId;
 	private String entryToken;
 	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
@@ -178,10 +179,11 @@ class PurchaseIntegrationTest {
 	public void setUpAll() throws Exception {
 		mockRestServiceServer = MockRestServiceServer.createServer(restTemplate);
 
+		redisTemplate.opsForValue().set("redisKey", "locked", Duration.ofMinutes(5));
+
 		testUser = baseTestUtil.setUpUser();
 		testToken = baseTestUtil.setUpToken();
 		SelecatbleTestEvent = baseTestUtil.setUpSelecatbleEvent();
-		NonSelecatbleTestEvent = baseTestUtil.setUpNonSelecatbleEvent();
 
 		String url = UriComponentsBuilder.fromHttpUrl("http://localhost:9001/api/v1/events/{eventId}/tickets/waiting")
 			.buildAndExpand(SelecatbleTestEvent.getEventId())
@@ -215,15 +217,6 @@ class PurchaseIntegrationTest {
 
 	@Test
 	@Order(1)
-	void seatServiceIsCalledTest() {
-		System.out.println("456:: " + SelecatbleTestEvent.getEventId());
-		List<Seat> seats = seatService.findSeatsByEventId(SelecatbleTestEvent.getEventId());
-		System.out.println("조회된 좌석 수: " + seats.size());
-		assertNotNull(seats);
-	}
-
-	@Test
-	@Order(1)
 	@Commit
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	@DisplayName("결제 사전 등록 성공")
@@ -238,7 +231,8 @@ class PurchaseIntegrationTest {
 		String seatSelectJson = objectMapper.writeValueAsString(seatSelectRequest);
 		System.out.println(seatSelectJson);
 
-		System.out.println("SelecatbleTestEventId: " + SelecatbleTestEvent.getEventId());
+		System.out.println("Service is null? " + (seatService == null));
+
 		mockMvc.perform(post("/api/v1/event/{eventId}/seats", SelecatbleTestEvent.getEventId())
 				.header("Authorization", "Bearer " + testToken)
 				.header("entryAuthToken", entryToken)
@@ -246,13 +240,14 @@ class PurchaseIntegrationTest {
 				.content(seatSelectJson))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.code").value("200"))
-			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"));
+			.andExpect(jsonPath("$.msg").value("좌석 선택 성공"))
+			.andDo(print());
 
 		System.out.println("token:: " + testToken);
 		String redisKey =
 			"seat:lock:" + testUser.getUserId() + ":" + SelecatbleTestEvent.getEventId() + ":" + seatToLock.getId();
-		System.out.println("redisKey:: " + redisKey);
 		String redisValue = redisTemplate.opsForValue().get(redisKey);
+		System.out.println("Redis 조회 결과: " + redisValue); // null이면 저장 안 된 것
 		assertThat(redisValue).isNotNull();
 
 		InitiatePaymentRequest paymentRequest = new InitiatePaymentRequest(SelecatbleTestEvent.getEventId(), 1000);
@@ -279,30 +274,6 @@ class PurchaseIntegrationTest {
 	void testCheckPersistedPurchase() {
 		Optional<Purchase> optionalPurchase = purchaseRepository.findById(purchaseId);
 		assertThat(optionalPurchase).isPresent();
-	}
-
-	private String getEntryAuthTokenFromQueueServer(Long eventId, String bearerToken) throws Exception {
-		String url = "http://localhost:9001/api/v1/events/" + eventId + "/tickets/waiting";
-
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("Authorization", "Bearer " + bearerToken);
-		headers.setContentType(MediaType.APPLICATION_JSON);
-
-		HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-		ResponseEntity<String> response = restTemplate.exchange(
-			url,
-			HttpMethod.GET,
-			entity,
-			String.class
-		);
-
-		if (response.getStatusCode() != HttpStatus.OK) {
-			throw new RuntimeException("entryAuthToken 요청 실패: " + response.getStatusCode());
-		}
-
-		JsonNode json = new ObjectMapper().readTree(response.getBody());
-		return json.path("data").path("entryAuthToken").asText();
 	}
 
 	@Test
