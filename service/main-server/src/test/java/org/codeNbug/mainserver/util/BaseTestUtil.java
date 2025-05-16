@@ -70,7 +70,6 @@ public class BaseTestUtil {
 	public String testToken;
 	public User testUser;
 	public Event testSelectableEvent;
-	public Event testNonSelectableEvent;
 
 	public User setUpUser() {
 		// 테스트용 사용자 생성
@@ -131,21 +130,8 @@ public class BaseTestUtil {
 			false,
 			null
 		);
-		testNonSelectableEvent = new Event(
-			EventCategoryEnum.CONCERT,
-			info,
-			LocalDateTime.now().plusDays(1),
-			LocalDateTime.now().plusDays(2),
-			0,
-			LocalDateTime.now(),
-			LocalDateTime.now(),
-			EventStatusEnum.OPEN,
-			false,
-			false,
-			null
-		);
+
 		eventRepository.save(testSelectableEvent);
-		eventRepository.save(testNonSelectableEvent);
 		eventRepository.flush();
 
 		// 테스트용 좌석 레이아웃 생성
@@ -184,104 +170,17 @@ public class BaseTestUtil {
 			.layout(layoutJson)
 			.event(testSelectableEvent)
 			.build();
-		SeatLayout seatLayout1 = SeatLayout.builder()
-			.layout(layoutJson)
-			.event(testNonSelectableEvent)
-			.build();
 		seatLayoutRepository.save(seatLayout);
-		seatLayoutRepository.save(seatLayout1);
 		seatLayoutRepository.flush();
 
 		testSelectableEvent.setSeatLayout(seatLayout);
 		eventRepository.save(testSelectableEvent);
-		testNonSelectableEvent.setSeatLayout(seatLayout1);
-		eventRepository.save(testNonSelectableEvent);
 		eventRepository.flush();
 
 		// 좌석 등급 및 좌석 생성
 		createSeatGradesAndSeats(layoutJson);
 
 		return testSelectableEvent;
-	}
-
-	public Event setUpNonSelecatbleEvent() throws JSONException {
-		// 테스트용 행사 생성
-		EventInformation info = EventInformation.builder()
-			.title("테스트 공연")
-			.thumbnailUrl("https://example.com/thumbnail.jpg")
-			.description("이것은 테스트 공연입니다.")
-			.ageLimit(15)
-			.restrictions("음식물 반입 금지")
-			.location("서울 강남구 공연장")
-			.hallName("테스트홀")
-			.eventStart(LocalDateTime.now().plusDays(1))
-			.eventEnd(LocalDateTime.now().plusDays(2))
-			.seatCount(200)
-			.build();
-
-		testNonSelectableEvent = new Event(
-			EventCategoryEnum.CONCERT,
-			info,
-			LocalDateTime.now().plusDays(1),
-			LocalDateTime.now().plusDays(2),
-			0,
-			LocalDateTime.now(),
-			LocalDateTime.now(),
-			EventStatusEnum.OPEN,
-			false,
-			false,
-			null
-		);
-		eventRepository.save(testNonSelectableEvent);
-		eventRepository.flush();
-
-		// 테스트용 좌석 레이아웃 생성
-		String layoutJson = """
-			{
-			  "layout": [
-			    ["A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "A10"],
-			    ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9", "B10"]
-			  ],
-			  "seat": {
-			    "A1": { "grade": "VIP" },
-			    "A2": { "grade": "VIP" },
-			    "A3": { "grade": "VIP" },
-			    "A4": { "grade": "VIP" },
-			    "A5": { "grade": "VIP" },
-			    "A6": { "grade": "VIP" },
-			    "A7": { "grade": "VIP" },
-			    "A8": { "grade": "VIP" },
-			    "A9": { "grade": "VIP" },
-			    "A10": { "grade": "VIP" },
-			    "B1": { "grade": "R" },
-			    "B2": { "grade": "R" },
-			    "B3": { "grade": "R" },
-			    "B4": { "grade": "R" },
-			    "B5": { "grade": "R" },
-			    "B6": { "grade": "R" },
-			    "B7": { "grade": "R" },
-			    "B8": { "grade": "R" },
-			    "B9": { "grade": "R" },
-			    "B10": { "grade": "R" }
-			  }
-			}
-			""";
-
-		SeatLayout seatLayout = SeatLayout.builder()
-			.layout(layoutJson)
-			.event(testNonSelectableEvent)
-			.build();
-		seatLayoutRepository.save(seatLayout);
-		seatLayoutRepository.flush();
-
-		testNonSelectableEvent.setSeatLayout(seatLayout);
-		eventRepository.save(testNonSelectableEvent);
-		eventRepository.flush();
-
-		// 좌석 등급 및 좌석 생성
-		createNonSelectableSeatGradesAndSeats(layoutJson);
-
-		return testNonSelectableEvent;
 	}
 
 	private void createSeatGradesAndSeats(String layoutJson) throws JSONException {
@@ -319,50 +218,6 @@ public class BaseTestUtil {
 					.grade(seatGrade)
 					.layout(testSelectableEvent.getSeatLayout())
 					.event(testSelectableEvent)
-					.available(true)
-					.build();
-
-				seatRepository.save(testSeat);
-				seatRepository.flush();
-			}
-		}
-	}
-
-	private void createNonSelectableSeatGradesAndSeats(String layoutJson) throws JSONException {
-		JSONObject fullJson = new JSONObject(layoutJson);
-		JSONArray rows = fullJson.getJSONArray("layout");
-		JSONObject seatDetails = fullJson.getJSONObject("seat");
-
-		Map<SeatGradeEnum, SeatGrade> gradeMap = new HashMap<>();
-		for (SeatGradeEnum gradeEnum : SeatGradeEnum.values()) {
-			SeatGrade seatGrade = SeatGrade.builder()
-				.grade(gradeEnum)
-				.amount(getSeatGradeAmount(gradeEnum))
-				.event(testNonSelectableEvent)
-				.build();
-			seatGradeRepository.save(seatGrade);
-			seatGradeRepository.flush();
-			gradeMap.put(gradeEnum, seatGrade);
-		}
-
-		// 좌석 생성
-		for (int i = 0; i < rows.length(); i++) {
-			JSONArray row = rows.optJSONArray(i);
-			if (row == null)
-				continue;
-
-			for (int j = 0; j < row.length(); j++) {
-				String seatName = row.getString(j);
-				String grade = seatDetails.getJSONObject(seatName).getString("grade");
-
-				SeatGradeEnum gradeEnum = SeatGradeEnum.fromString(grade);
-				SeatGrade seatGrade = gradeMap.get(gradeEnum);
-
-				Seat testSeat = Seat.builder()
-					.location(seatName)
-					.grade(seatGrade)
-					.layout(testNonSelectableEvent.getSeatLayout())
-					.event(testNonSelectableEvent)
 					.available(true)
 					.build();
 
