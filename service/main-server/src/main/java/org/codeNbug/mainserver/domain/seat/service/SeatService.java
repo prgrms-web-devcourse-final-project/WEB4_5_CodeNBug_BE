@@ -17,6 +17,8 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codeNbug.mainserver.global.exception.globalException.ConflictException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -37,7 +39,9 @@ public class SeatService {
 	private final SeatRepository seatRepository;
 	private final EventRepository eventRepository;
 	private final SeatLayoutRepository seatLayoutRepository;
+	private final RedisTemplate<String, Object> redisTemplate;
 
+	private static final String SEAT_CACHE_KEY_PREFIX = "seatLayout:";
 	private static final String SEAT_LOCK_KEY_PREFIX = "seat:lock:";
 
 	/**
@@ -52,13 +56,25 @@ public class SeatService {
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
+
+		String cacheKey = SEAT_CACHE_KEY_PREFIX + eventId;
+
+		SeatLayoutResponse cached = (SeatLayoutResponse)redisTemplate.opsForValue().get(cacheKey);
+		if (cached != null) {
+			return cached;
+		}
+
 		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("해당 이벤트에 좌석 레이아웃이 존재하지 않습니다."));
 
 		log.info("SeatLayout ID: {}", seatLayout.getId());
 
 		List<Seat> seatList = seatRepository.findAllByLayoutIdWithGrade(seatLayout.getId());
-		return new SeatLayoutResponse(seatList, seatLayout);
+
+		SeatLayoutResponse response = new SeatLayoutResponse(seatList, seatLayout);
+		redisTemplate.opsForValue().set(cacheKey, response, Duration.ofHours(6));
+
+		return response;
 	}
 
 	/**
@@ -212,5 +228,17 @@ public class SeatService {
 			}
 			seat.cancelReserve();
 		}
+	}
+
+	/**
+	 * Redis 캐시에서 이벤트의 좌석 레이아웃 정보 삭제
+	 *
+	 * @param eventId
+	 */
+	@CacheEvict(value = "seatLayoutCache", key = "#eventId")
+	public void evictSeatLayoutCache(Long eventId) {
+		String cacheKey = SEAT_CACHE_KEY_PREFIX + eventId;
+		log.info("[evictSeatLayoutCache] 캐시 제거 - eventId: {}", eventId);
+		redisTemplate.delete(cacheKey);
 	}
 }
