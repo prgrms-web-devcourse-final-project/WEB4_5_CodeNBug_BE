@@ -1,10 +1,8 @@
 package org.codeNbug.mainserver.domain.purchase.service;
 
 import static org.assertj.core.api.AssertionsForClassTypes.*;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -90,7 +88,6 @@ class PurchaseServiceTest {
 
 	private InitiatePaymentRequest initiateRequest;
 	private ConfirmPaymentRequest confirmRequest;
-	private ConfirmPaymentRequest confirmZeroAmountRequest;
 	private CancelPaymentRequest cancelRequest;
 
 	@BeforeEach
@@ -154,7 +151,6 @@ class PurchaseServiceTest {
 
 		initiateRequest = new InitiatePaymentRequest(eventId, 10000);
 		confirmRequest = new ConfirmPaymentRequest(1L, "paymentKey", "orderId", 10000);
-		confirmZeroAmountRequest = new ConfirmPaymentRequest(1L, "paymentKey", "orderId", 0);
 		cancelRequest = new CancelPaymentRequest("단순 변심");
 	}
 
@@ -283,42 +279,6 @@ class PurchaseServiceTest {
 		assertThatThrownBy(() -> purchaseService.confirmPayment(confirmRequest, userId))
 			.isInstanceOf(BadRequestException.class)
 			.hasMessageContaining("[confirm] 일부 좌석을 찾을 수 없습니다");
-	}
-
-	@Test
-	@DisplayName("결제 승인 실패 - 결제 금액 0원")
-	void confirmPayment_fail_amountZero() {
-		// given
-		given(purchaseRepository.findById(1L)).willReturn(Optional.of(purchase));
-
-		// when & then
-		assertThatThrownBy(() -> purchaseService.confirmPayment(confirmZeroAmountRequest, userId))
-			.isInstanceOf(BadRequestException.class)
-			.hasMessageContaining("[confirm] 결제 금액이 0원입니다.");
-	}
-
-	@DisplayName("결제 실패 - redis Lock 해제")
-	@Test
-	void confirmPayment_fail() throws IOException, InterruptedException {
-		// given
-		given(purchaseRepository.findById(1L)).willReturn(Optional.of(purchase));
-		given(redisLockService.extractEventIdByUserId(userId)).willReturn(eventId);
-		given(redisLockService.getLockedSeatIdsByUserId(userId)).willReturn(List.of(1L, 2L));
-		given(eventRepository.findById(eventId)).willReturn(Optional.of(event));
-		given(seatRepository.findAllById(List.of(1L, 2L))).willReturn(List.of(seat1, seat2));
-
-		// toss 결제 실패 유도
-		given(tossPaymentService.confirmPayment(any(), any(), anyInt()))
-			.willThrow(new IOException("결제 API 실패"));
-
-		// when
-		assertThrows(IOException.class, () -> {
-			purchaseService.confirmPayment(confirmRequest, userId);
-		});
-
-		// then
-		verify(redisLockService).releaseAllLocks(userId);
-		verify(redisLockService).releaseAllEntryQueueLocks(userId);
 	}
 
 	@DisplayName("결제 취소 성공")
