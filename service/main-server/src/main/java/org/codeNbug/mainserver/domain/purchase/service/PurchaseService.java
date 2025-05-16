@@ -102,96 +102,86 @@ public class PurchaseService {
 	 */
 	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId) throws
 		IOException, InterruptedException {
-		try {
-			Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
-				.orElseThrow(() -> new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
+		Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
+			.orElseThrow(() -> new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
 
-			if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
-				throw new BadRequestException("[confirm] 결제 금액이 일치하지 않습니다.");
-			}
-
-			Long eventId = redisLockService.extractEventIdByUserId(userId);
-			List<Long> seatIds = redisLockService.getLockedSeatIdsByUserId(userId);
-
-			Event event = eventRepository.findById(eventId)
-				.orElseThrow(() -> new IllegalArgumentException("[confirm] 이벤트 정보를 찾을 수 없습니다."));
-
-			List<Seat> seats = seatRepository.findAllById(seatIds);
-			if (seats.size() != seatIds.size()) {
-				throw new BadRequestException("[confirm] 일부 좌석을 찾을 수 없습니다.");
-			}
-			seats.forEach(seat -> seat.setAvailable(false));
-
-			ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
-				request.getPaymentKey(), request.getOrderId(), request.getAmount()
-			);
-
-			PaymentMethodEnum methodEnum = PaymentMethodEnum.from(info.getMethod());
-
-			LocalDateTime localDateTime = OffsetDateTime.parse(info.getApprovedAt())
-				.atZoneSameInstant(ZoneId.of("Asia/Seoul"))
-				.toLocalDateTime();
-
-			purchase.updatePaymentInfo(
-				info.getPaymentKey(),
-				info.getOrderId(),
-				info.getTotalAmount(),
-				methodEnum,
-				event.getSeatSelectable() ? "지정석 %d매".formatted(seatIds.size()) :
-					"미지정석 %d매".formatted(seatIds.size()),
-				localDateTime
-			);
-
-			List<Ticket> tickets = seats.stream()
-				.map(seat -> {
-					seat.reserve();
-					Ticket ticket = new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase);
-					seat.setTicket(ticket);
-					return ticket;
-				})
-				.toList();
-
-			ticketRepository.saveAll(tickets);
-			seatRepository.saveAll(seats);
-			purchaseRepository.save(purchase);
-
-			redisLockService.releaseAllLocks(userId);
-			redisLockService.releaseAllEntryQueueLocks(userId);
-
-			// 결제 완료 알림 생성
-			try {
-				String notificationContent = String.format(
-					"[%s] 결제가 완료되었습니다. 금액: %d원, 결제수단: %s",
-					purchase.getOrderName(),
-					purchase.getAmount(),
-					methodEnum.name()
-				);
-				notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
-			} catch (Exception e) {
-				log.error("결제 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
-					userId, purchase.getId(), e.getMessage(), e);
-				// 알림 발송 실패는 결제 성공에 영향을 주지 않도록 예외를 무시함
-			}
-
-			return new ConfirmPaymentResponse(
-				info.getPaymentKey(),
-				info.getOrderId(),
-				purchase.getOrderName(),
-				info.getTotalAmount(),
-				info.getStatus(),
-				methodEnum,
-				localDateTime,
-				new ConfirmPaymentResponse.Receipt(info.getReceipt().getUrl())
-			);
-		} catch (Exception e) {
-			log.error("[confirmPayment] 결제 처리 중 예외 발생 - userId: {}, 오류: {}", userId, e.getMessage(), e);
-			e.printStackTrace();
-		} finally {
-			redisLockService.releaseAllLocks(userId);
-			redisLockService.releaseAllEntryQueueLocks(userId);
+		if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
+			throw new BadRequestException("[confirm] 결제 금액이 일치하지 않습니다.");
 		}
 
-		return null;
+		Long eventId = redisLockService.extractEventIdByUserId(userId);
+		List<Long> seatIds = redisLockService.getLockedSeatIdsByUserId(userId);
+
+		Event event = eventRepository.findById(eventId)
+			.orElseThrow(() -> new IllegalArgumentException("[confirm] 이벤트 정보를 찾을 수 없습니다."));
+
+		List<Seat> seats = seatRepository.findAllById(seatIds);
+		if (seats.size() != seatIds.size()) {
+			throw new BadRequestException("[confirm] 일부 좌석을 찾을 수 없습니다.");
+		}
+		seats.forEach(seat -> seat.setAvailable(false));
+
+		ConfirmedPaymentInfo info = tossPaymentService.confirmPayment(
+			request.getPaymentKey(), request.getOrderId(), request.getAmount()
+		);
+
+		PaymentMethodEnum methodEnum = PaymentMethodEnum.from(info.getMethod());
+
+		LocalDateTime localDateTime = OffsetDateTime.parse(info.getApprovedAt())
+			.atZoneSameInstant(ZoneId.of("Asia/Seoul"))
+			.toLocalDateTime();
+
+		purchase.updatePaymentInfo(
+			info.getPaymentKey(),
+			info.getOrderId(),
+			info.getTotalAmount(),
+			methodEnum,
+			event.getSeatSelectable() ? "지정석 %d매".formatted(seatIds.size()) :
+				"미지정석 %d매".formatted(seatIds.size()),
+			localDateTime
+		);
+
+		List<Ticket> tickets = seats.stream()
+			.map(seat -> {
+				seat.reserve();
+				Ticket ticket = new Ticket(null, seat.getLocation(), LocalDateTime.now(), event, purchase);
+				seat.setTicket(ticket);
+				return ticket;
+			})
+			.toList();
+
+		ticketRepository.saveAll(tickets);
+		seatRepository.saveAll(seats);
+		purchaseRepository.save(purchase);
+
+		redisLockService.releaseAllLocks(userId);
+		redisLockService.releaseAllEntryQueueLocks(userId);
+
+		// 결제 완료 알림 생성
+		try {
+			String notificationContent = String.format(
+				"[%s] 결제가 완료되었습니다. 금액: %d원, 결제수단: %s",
+				purchase.getOrderName(),
+				purchase.getAmount(),
+				methodEnum.name()
+			);
+			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
+		} catch (Exception e) {
+			log.error("결제 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
+				userId, purchase.getId(), e.getMessage(), e);
+			// 알림 발송 실패는 결제 성공에 영향을 주지 않도록 예외를 무시함
+		}
+
+		return new ConfirmPaymentResponse(
+			info.getPaymentKey(),
+			info.getOrderId(),
+			purchase.getOrderName(),
+			info.getTotalAmount(),
+			info.getStatus(),
+			methodEnum,
+			localDateTime,
+			new ConfirmPaymentResponse.Receipt(info.getReceipt().getUrl())
+		);
 	}
 
 	/**
