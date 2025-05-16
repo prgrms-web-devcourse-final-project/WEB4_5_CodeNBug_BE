@@ -6,7 +6,9 @@ cookie:
   secure: true  # HTTPS 필수
 
 spring:
-
+  batch:
+    job:
+      enabled: false
   jpa:
     show-sql: true
     properties:
