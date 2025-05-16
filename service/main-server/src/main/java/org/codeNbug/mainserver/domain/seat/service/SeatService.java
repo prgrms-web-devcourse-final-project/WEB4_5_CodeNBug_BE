@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.domain.seat.service;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +17,11 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codeNbug.mainserver.global.exception.globalException.ConflictException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +39,9 @@ public class SeatService {
 	private final SeatRepository seatRepository;
 	private final EventRepository eventRepository;
 	private final SeatLayoutRepository seatLayoutRepository;
+	private final RedisTemplate<String, Object> redisTemplate;
 
+	private static final String SEAT_CACHE_KEY_PREFIX = "seatLayout:";
 	private static final String SEAT_LOCK_KEY_PREFIX = "seat:lock:";
 
 	/**
@@ -49,13 +56,25 @@ public class SeatService {
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
+
+		String cacheKey = SEAT_CACHE_KEY_PREFIX + eventId;
+
+		SeatLayoutResponse cached = (SeatLayoutResponse)redisTemplate.opsForValue().get(cacheKey);
+		if (cached != null) {
+			return cached;
+		}
+
 		SeatLayout seatLayout = seatLayoutRepository.findByEvent_EventId(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("해당 이벤트에 좌석 레이아웃이 존재하지 않습니다."));
 
 		log.info("SeatLayout ID: {}", seatLayout.getId());
 
 		List<Seat> seatList = seatRepository.findAllByLayoutIdWithGrade(seatLayout.getId());
-		return new SeatLayoutResponse(seatList, seatLayout);
+
+		SeatLayoutResponse response = new SeatLayoutResponse(seatList, seatLayout);
+		redisTemplate.opsForValue().set(cacheKey, response, Duration.ofHours(6));
+
+		return response;
 	}
 
 	/**
@@ -77,23 +96,24 @@ public class SeatService {
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
 		List<Long> selectedSeats = seatSelectRequest.getSeatList();
+		List<Long> reservedSeatIds;
 
 		if (event.getSeatSelectable()) {
 			// 지정석 예매 처리
 			if (selectedSeats != null && selectedSeats.size() > 4) {
 				throw new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다.");
 			}
-			selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
+			reservedSeatIds = selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
 		} else {
 			// 미지정석 예매 처리
 			if (selectedSeats != null && !selectedSeats.isEmpty()) {
 				throw new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
 			}
-			selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
+			reservedSeatIds = selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
 		}
 
 		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
-		seatSelectResponse.setSeatList(selectedSeats);
+		seatSelectResponse.setSeatList(reservedSeatIds);
 		return seatSelectResponse;
 	}
 
@@ -106,8 +126,10 @@ public class SeatService {
 	 * @param isDesignated  지정석 여부
 	 * @param ticketCount   예매할 좌석 수 (미지정석 예매 시 사용)
 	 */
-	private void selectSeats(List<Long> selectedSeats, Long userId, Long eventId, boolean isDesignated,
+	private List<Long> selectSeats(List<Long> selectedSeats, Long userId, Long eventId, boolean isDesignated,
 		int ticketCount) {
+		List<Long> reservedSeatIds = new ArrayList<>();
+		log.info("selectedSeats: {}", selectedSeats);
 		if (isDesignated) {
 			// 지정석 예매 처리
 			for (Long seatId : selectedSeats) {
@@ -119,6 +141,7 @@ public class SeatService {
 				}
 
 				reserveSeat(seat, userId, eventId, seatId);
+				reservedSeatIds.add(seatId);
 			}
 		} else {
 			// 미지정석 예매 처리
@@ -133,8 +156,10 @@ public class SeatService {
 
 			for (Seat seat : availableSeats) {
 				reserveSeat(seat, userId, eventId, seat.getId());
+				reservedSeatIds.add(seat.getId());
 			}
 		}
+		return reservedSeatIds;
 	}
 
 	/**
@@ -154,8 +179,25 @@ public class SeatService {
 			throw new BadRequestException("[reserveSeat] 이미 선택된 좌석이 있습니다.");
 		}
 
-		seat.reserve();
-		seatRepository.save(seat);
+		try {
+			seat.reserve();
+			seatRepository.save(seat);
+
+			// 트랜잭션 성공 후에만 락 해제 등록
+			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+				@Override
+				public void afterCompletion(int status) {
+					// COMMITTED 상태일 때만 해제
+					if (status == STATUS_COMMITTED) {
+						redisLockService.unlock(lockKey, lockValue);
+					}
+				}
+			});
+
+		} catch (Exception e) {
+			redisLockService.unlock(lockKey, lockValue);
+			throw e;
+		}
 	}
 
 	/**
@@ -177,14 +219,26 @@ public class SeatService {
 
 			String lockValue = redisLockService.getLockValue(lockKey);
 
-			if (!redisLockService.unlock(lockKey, lockValue)) {
-				throw new BadRequestException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
-			}
-
 			Seat seat = seatRepository.findById(seatId)
 				.orElseThrow(() -> new IllegalArgumentException("[cancelSeat] 좌석을 찾을 수 없습니다. seatId: " + seatId));
+			boolean unlockSuccess = redisLockService.unlock(lockKey, lockValue);
+
+			if (!unlockSuccess) {
+				throw new BadRequestException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
+			}
 			seat.cancelReserve();
-			redisLockService.unlock(lockKey, null);
 		}
+	}
+
+	/**
+	 * Redis 캐시에서 이벤트의 좌석 레이아웃 정보 삭제
+	 *
+	 * @param eventId
+	 */
+	@CacheEvict(value = "seatLayoutCache", key = "#eventId")
+	public void evictSeatLayoutCache(Long eventId) {
+		String cacheKey = SEAT_CACHE_KEY_PREFIX + eventId;
+		log.info("[evictSeatLayoutCache] 캐시 제거 - eventId: {}", eventId);
+		redisTemplate.delete(cacheKey);
 	}
 }

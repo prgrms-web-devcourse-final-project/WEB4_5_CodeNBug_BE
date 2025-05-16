@@ -19,12 +19,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 좌석 도메인 관련 요청을 처리하는 컨트롤러
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/v1/event")
 @RequiredArgsConstructor
@@ -62,8 +60,8 @@ public class SeatController {
 		@RequestBody SeatSelectRequest seatSelectRequest,
 		@RequestHeader("entryAuthToken") String entryAuthToken) {
 		Long userId = SecurityUtil.getCurrentUserId();
-
 		entryTokenValidator.validate(userId, entryAuthToken);
+
 		SeatSelectResponse seatSelectResponse = seatService.selectSeat(eventId, seatSelectRequest, userId);
 		return ResponseEntity.ok(new RsData<>(
 			"200",
