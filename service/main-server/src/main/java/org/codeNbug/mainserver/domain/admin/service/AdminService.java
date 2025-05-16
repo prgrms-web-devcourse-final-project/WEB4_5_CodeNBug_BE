@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -328,16 +329,15 @@ public class AdminService {
     }
 
     /**
-     * 모든 이벤트 목록을 조회하고 각 이벤트의 티켓 정보를 포함하여 반환합니다.
-     * 
-     * @return 이벤트 관리자 DTO 목록
+     * 모든 이벤트 목록을 조회합니다.
+     * 배치 작업에 의해 자동으로 업데이트된 상태 값을 조회합니다.
      */
     @Transactional(readOnly = true)
     public List<EventAdminDto> getAllEvents() {
         log.info(">> 모든 이벤트 목록 조회");
         
         try {
-            // 삭제되지 않은 이벤트만 조회
+            // 삭제되지 않은 이벤트 조회
             List<Event> events = eventRepository.findAllByIsDeletedFalse();
             log.debug(">> 이벤트 목록 조회 완료: {} 개", events.size());
             
@@ -418,9 +418,8 @@ public class AdminService {
     }
 
     /**
-     * 삭제 대기 중인 이벤트 목록을 조회합니다.
-     * 
-     * @return 삭제 대기 중인 이벤트 목록
+     * 삭제된 이벤트 목록을 조회합니다.
+     * 삭제된 이벤트는 CANCELLED 상태를 유지합니다.
      */
     @Transactional(readOnly = true)
     public List<EventAdminDto> getDeletedEvents() {
