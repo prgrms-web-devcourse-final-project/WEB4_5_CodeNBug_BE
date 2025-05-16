@@ -1,9 +1,11 @@
 package org.codeNbug.mainserver.domain.notification.repository;
 
 import org.codeNbug.mainserver.domain.notification.entity.Notification;
+import org.codeNbug.mainserver.domain.notification.entity.NotificationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -78,4 +80,28 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
      * @return 조회된 알림 목록
      */
     List<Notification> findAllByUserIdAndIdIn(Long userId, List<Long> notificationIds);
+
+
+    /**
+     * 알림 상태를 직접 업데이트하는 쿼리 메서드
+     *
+     * @param notificationId 알림 ID
+     * @param status 업데이트할 상태
+     * @return 업데이트된 레코드 수
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.status = :status WHERE n.id = :notificationId")
+    int updateStatus(@Param("notificationId") Long notificationId, @Param("status") NotificationStatus status);
+
+    /**
+     * 배치 알림 상태 업데이트 (대량 알림 처리용)
+     *
+     * @param notificationIds 알림 ID 목록
+     * @param status 업데이트할 상태
+     * @return 업데이트된 레코드 수
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.status = :status WHERE n.id IN :notificationIds")
+    int updateStatusBatch(@Param("notificationIds") List<Long> notificationIds, @Param("status") NotificationStatus status);
+
 }
