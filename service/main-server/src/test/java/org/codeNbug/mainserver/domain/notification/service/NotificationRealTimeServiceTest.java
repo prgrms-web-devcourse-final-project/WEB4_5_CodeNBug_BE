@@ -177,7 +177,7 @@ class NotificationRealTimeServiceTest {
         NotificationEnum type = NotificationEnum.SYSTEM;
         String content = "테스트 알림";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content);
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content, LocalDateTime.now(), false, NotificationStatus.PENDING);
 
         // emitterService 설정 - 사용자가 연결되어 있음
         SseEmitter mockEmitter = mock(SseEmitter.class);
@@ -191,20 +191,15 @@ class NotificationRealTimeServiceTest {
         NotificationSseConnection connection = new NotificationSseConnection(userId, mockEmitter, null);
         map.put(userId, new CopyOnWriteArrayList<>(Arrays.asList(connection)));
 
-        // 알림 조회 결과 모킹
-        Notification notification = createNotification(notificationId, userId, type, content);
-        when(notificationRepository.findById(eq(notificationId))).thenReturn(Optional.of(notification));
+        // updateStatus 메서드 호출 모킹
+        when(notificationRepository.updateStatus(eq(notificationId), eq(NotificationStatus.SENT))).thenReturn(1);
 
-        // 알림 상태 업데이트를 mock으로 대체
-        NotificationEventService spyEventService = org.mockito.Mockito.spy(notificationEventService);
-        doNothing().when(spyEventService).updateNotificationStatus(anyLong(), any(NotificationStatus.class));
 
         // when
-        spyEventService.handleNotificationCreatedEvent(eventDto);
+        notificationEventService.handleNotificationCreatedEvent(eventDto);
 
-        // then
-        verify(notificationRepository, times(1)).findById(eq(notificationId));
-        verify(spyEventService, times(1)).updateNotificationStatus(eq(notificationId), eq(NotificationStatus.SENT));
+        // updateStatus가 호출되었는지 확인
+        verify(notificationRepository, times(1)).updateStatus(eq(notificationId), eq(NotificationStatus.SENT));
 
         // 알림이 전송되었는지 확인 (mockEmitter.send가 호출되었는지)
         verify(mockEmitter, times(1)).send(any(SseEventBuilder.class));
@@ -219,11 +214,7 @@ class NotificationRealTimeServiceTest {
         NotificationEnum type = NotificationEnum.SYSTEM;
         String content = "테스트 알림";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content);
-
-        // 알림 조회 결과 모킹
-        Notification notification = createNotification(notificationId, userId, type, content);
-        when(notificationRepository.findById(eq(notificationId))).thenReturn(Optional.of(notification));
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content, LocalDateTime.now(), false, NotificationStatus.PENDING);
 
         // userConnectionsMap은 비어있으므로 사용자가 연결되어 있지 않음
 
@@ -232,10 +223,8 @@ class NotificationRealTimeServiceTest {
         notificationEventService.handleNotificationCreatedEvent(eventDto);
 
         // then
-        verify(notificationRepository, times(1)).findById(eq(notificationId));
-
-        // 연결되지 않았으므로 상태 업데이트 호출되지 않아야 함
-        verify(notificationRepository, never()).save(any(Notification.class));
+        // 연결되지 않았으므로 updateStatus 호출되지 않아야 함
+        verify(notificationRepository, never()).updateStatus(any(Long.class), any(NotificationStatus.class));
     }
 
     @Test
@@ -247,7 +236,7 @@ class NotificationRealTimeServiceTest {
         NotificationEnum type = NotificationEnum.SYSTEM;
         String content = "테스트 알림";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content);
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content, LocalDateTime.now(), false, NotificationStatus.PENDING);
 
         // 직접적인 예외 발생 시나리오 구성
         NotificationEmitterService mockEmitterService = mock(NotificationEmitterService.class);
@@ -261,21 +250,15 @@ class NotificationRealTimeServiceTest {
         // emitterService.isConnected를 목킹하여 true 반환하도록 설정
         when(mockEmitterService.isConnected(eq(userId))).thenReturn(true);
 
-        // 알림 조회 결과 모킹
-        Notification notification = createNotification(notificationId, userId, type, content);
-        when(notificationRepository.findById(eq(notificationId))).thenReturn(Optional.of(notification));
+        // updateStatus 메서드 호출 모킹
+        when(notificationRepository.updateStatus(eq(notificationId), eq(NotificationStatus.FAILED))).thenReturn(1);
 
         // when
         notificationEventService.handleNotificationCreatedEvent(eventDto);
 
         // then
-        // 알림 상태가 FAILED로 변경되었는지 확인
-        verify(notificationRepository, times(2)).findById(eq(notificationId));
-
-        // FAILED 상태로 업데이트 호출 확인
-        ArgumentCaptor<Notification> notificationCaptor = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository, times(1)).save(notificationCaptor.capture());
-        assertEquals(NotificationStatus.FAILED, notificationCaptor.getValue().getStatus());
+        // FAILED 상태로 updateStatus 호출 확인
+        verify(notificationRepository, times(1)).updateStatus(eq(notificationId), eq(NotificationStatus.FAILED));
     }
 
     @Test
@@ -285,17 +268,15 @@ class NotificationRealTimeServiceTest {
         Long notificationId = 1L;
         NotificationStatus status = NotificationStatus.SENT;
 
-        Notification notification = createNotification(notificationId, 1L, NotificationEnum.SYSTEM, "테스트 알림");
-        when(notificationRepository.findById(eq(notificationId))).thenReturn(Optional.of(notification));
+        // 새로운 updateStatus 메서드 모킹
+        when(notificationRepository.updateStatus(eq(notificationId), eq(status))).thenReturn(1);
 
         // when
         notificationEventService.updateNotificationStatus(notificationId, status);
 
         // then
-        verify(notificationRepository, times(1)).findById(eq(notificationId));
-        verify(notificationRepository, times(1)).save(any(Notification.class));
-
-        // 상태가 업데이트되었는지 확인 (리플렉션으로 확인이 어려울 수 있음)
+        // 직접 updateStatus 메서드 호출 확인
+        verify(notificationRepository, times(1)).updateStatus(eq(notificationId), eq(status));
     }
 
     /**
