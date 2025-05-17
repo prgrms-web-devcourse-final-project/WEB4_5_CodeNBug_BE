@@ -152,7 +152,7 @@ public class UserService {
                 log.info(">> 최종 시도 횟수: userId={}, count={}", userId, afterCount);
                 
                 // 최대 시도 횟수 초과 시 계정 잠금 추가 확인
-                if (afterCount != null && afterCount >= 5) {
+                if (afterCount != null && afterCount >= user.getMaxLoginAttempts()) {
                     loginAttemptService.lockAccount(userId);
                     isLocked = true;
                     log.info(">> 백업 방법으로 계정 잠금 처리: userId={}", userId);

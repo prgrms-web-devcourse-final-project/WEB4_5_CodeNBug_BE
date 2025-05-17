@@ -60,10 +60,16 @@ public class LoginAttemptService {
             Integer currentAttempts = getCurrentAttemptCount(userId);
             log.info(">> 로그인 시도 횟수 업데이트 성공: userId={}, 현재 시도 횟수={}", userId, currentAttempts);
             
+            // 사용자의 최대 시도 횟수 조회
+            Integer maxAttempts = getUserMaxLoginAttempts(userId);
+            if (maxAttempts == null) {
+                maxAttempts = MAX_ATTEMPTS; // 기본값 사용
+            }
+            
             // 최대 시도 횟수 초과 시 계정 잠금
-            if (currentAttempts != null && currentAttempts >= MAX_ATTEMPTS) {
+            if (currentAttempts != null && currentAttempts >= maxAttempts) {
                 lockAccount(userId);
-                log.info(">> 계정이 잠겼습니다: userId={}, 시도 횟수={}/{}", userId, currentAttempts, MAX_ATTEMPTS);
+                log.info(">> 계정이 잠겼습니다: userId={}, 시도 횟수={}/{}", userId, currentAttempts, maxAttempts);
                 return true;
             }
             
@@ -244,6 +250,22 @@ public class LoginAttemptService {
         } catch (Exception e) {
             log.error(">> 오래된 계정 잠금 자동 해제 중 오류 발생: {}", e.getMessage(), e);
             return 0;
+        }
+    }
+
+    /**
+     * 사용자의 최대 로그인 시도 횟수 조회
+     *
+     * @param userId 사용자 ID
+     * @return 사용자의 최대 로그인 시도 횟수, 조회 실패 시 null
+     */
+    public Integer getUserMaxLoginAttempts(Long userId) {
+        try {
+            String sql = "SELECT max_login_attempts FROM users WHERE user_id = ?";
+            return jdbcTemplate.queryForObject(sql, Integer.class, userId);
+        } catch (Exception e) {
+            log.warn(">> 최대 로그인 시도 횟수 조회 중 오류 발생: {}", e.getMessage());
+            return null;
         }
     }
 } 
