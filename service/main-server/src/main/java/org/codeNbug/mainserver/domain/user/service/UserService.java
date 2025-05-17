@@ -568,8 +568,6 @@ public class UserService {
      * 매일 새벽 2시에 실행되며, 다음 작업을 수행합니다:
      * 1. null인 login_attempt_count 필드를 0으로 초기화
      * 2. 계정 잠금 시간이 경과한 사용자의 계정 잠금 해제
-     * 
-     * 주의: 스케줄 실행을 위해서는 메인 애플리케이션 클래스에 @EnableScheduling을 추가해야 합니다.
      */
     @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시에 실행
     @Transactional
