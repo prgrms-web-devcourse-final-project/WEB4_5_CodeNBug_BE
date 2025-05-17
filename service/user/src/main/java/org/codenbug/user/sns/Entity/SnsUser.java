@@ -70,10 +70,37 @@ public class SnsUser {
     @Column(name = "is_additional_info_completed")
     private Boolean isAdditionalInfoCompleted;
 
+    @Column(name = "account_expired_at")
+    private Timestamp accountExpiredAt;
+
+    @Column(name = "account_locked")
+    private boolean accountLocked;
+
+    @Column(name = "enabled")
+    private boolean enabled;
+
+    @Column(name = "last_login_at")
+    private Timestamp lastLoginAt;
+
+    @Builder.Default
+    @Column(name = "max_login_attempts")
+    private int maxLoginAttempts = 5;
+
+    @Builder.Default
+    @Column(name = "account_lock_duration_minutes")
+    private int accountLockDurationMinutes = 30;
+
+    @Builder.Default
+    @Column(name = "account_expiry_days")
+    private int accountExpiryDays = 365;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = new Timestamp(System.currentTimeMillis());
         this.isAdditionalInfoCompleted = false;
+        this.enabled = true;
+        this.accountLocked = false;
+        this.accountExpiredAt = new Timestamp(System.currentTimeMillis() + (accountExpiryDays * 24L * 60 * 60 * 1000));
     }
     
     /**

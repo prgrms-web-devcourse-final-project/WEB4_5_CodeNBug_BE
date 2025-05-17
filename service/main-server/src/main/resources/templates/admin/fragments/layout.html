@@ -113,7 +113,7 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" th:classappend="${currentPage == 'settings' ? 'active' : ''}" href="#">
+            <a class="nav-link" th:classappend="${currentPage == 'settings' ? 'active' : ''}" th:href="@{/admin/settings}">
                 <i class="bi bi-gear"></i> 설정
             </a>
         </li>

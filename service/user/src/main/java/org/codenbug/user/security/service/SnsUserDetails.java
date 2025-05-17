@@ -2,6 +2,7 @@ package org.codenbug.user.security.service;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.sql.Timestamp;
 
 import org.codenbug.user.sns.Entity.SnsUser;
 import org.springframework.security.core.GrantedAuthority;
@@ -48,21 +49,23 @@ public class SnsUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true;
+        return snsUser.getAccountExpiredAt() == null || 
+               snsUser.getAccountExpiredAt().after(new Timestamp(System.currentTimeMillis()));
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !snsUser.isAccountLocked();
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
+        // SNS 로그인의 경우 항상 true 반환
         return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return snsUser.isEnabled();
     }
 } 

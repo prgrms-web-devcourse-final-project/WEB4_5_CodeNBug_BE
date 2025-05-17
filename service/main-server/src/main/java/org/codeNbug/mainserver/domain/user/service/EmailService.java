@@ -26,7 +26,7 @@ public class EmailService {
 
     private final JavaMailSender javaMailSender;
     private final RedisRepository redisRepository;
-    private static final String senderEmail = "jounghyeon123@gmail.com"; // 발신자 이메일
+    private static final String senderEmail = "티켓온(Ticket-On)";
 
     private String createCode() {
         SecureRandom random = new SecureRandom();

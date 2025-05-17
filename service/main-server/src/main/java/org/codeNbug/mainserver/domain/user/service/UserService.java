@@ -19,11 +19,14 @@ import org.codenbug.user.sns.util.KakaoOauth;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 사용자 관련 서비스
@@ -38,6 +41,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final KakaoOauth kakaoOauth;
+    private final LoginAttemptService loginAttemptService;
 
     /**
      * 회원가입 서비스
@@ -73,7 +77,7 @@ public class UserService {
      * @return 로그인 응답 정보 (JWT 토큰 포함)
      * @throws AuthenticationFailedException 인증 실패 시 발생하는 예외
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         log.info(">> 로그인 서비스 호출: 이메일={}", request.getEmail());
         
@@ -84,19 +88,95 @@ public class UserService {
                     return new AuthenticationFailedException("이메일 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요.");
                 });
 
+        Long userId = user.getUserId();
+        log.info(">> 사용자 조회 성공: userId={}, email={}", userId, user.getEmail());
+
+        // 계정 상태 확인
+        if (!user.isEnabled()) {
+            log.warn(">> 로그인 실패: 비활성화된 계정 - 이메일={}", request.getEmail());
+            throw new AuthenticationFailedException("비활성화된 계정입니다. 관리자에게 문의하세요.");
+        }
+
+        // 계정 잠금 상태 확인 (Redis에서 확인)
+        if (loginAttemptService.isAccountLocked(request.getEmail())) {
+            // 잠금 시간이 남아있는지 확인
+            long remainingMinutes = loginAttemptService.getRemainingLockTime(userId);
+            
+            log.warn(">> 로그인 실패: 잠긴 계정 - 이메일={}, 남은 시간={}분", request.getEmail(), remainingMinutes);
+            throw new AuthenticationFailedException(String.format(
+                "계정이 잠겨있습니다. 잠금 해제까지 %d분 남았습니다.", remainingMinutes));
+        }
+
+        // 비밀번호 만료 확인
+        if (user.getPasswordExpiredAt() != null && user.getPasswordExpiredAt().isBefore(LocalDateTime.now())) {
+            log.warn(">> 로그인 실패: 만료된 비밀번호 - 이메일={}", request.getEmail());
+            throw new AuthenticationFailedException("비밀번호가 만료되었습니다. 비밀번호 변경 페이지로 이동하여 새로운 비밀번호를 설정해주세요.");
+        }
+
         // 비밀번호 검증
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             log.warn(">> 로그인 실패: 잘못된 비밀번호 - 이메일={}", request.getEmail());
-            throw new AuthenticationFailedException("이메일 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요.");
+            
+            // 현재 로그인 시도 횟수 조회 (증가 전)
+            Integer beforeCount = loginAttemptService.getCurrentAttemptCount(userId);
+            log.info(">> 현재 시도 횟수(증가 전): userId={}, count={}", userId, beforeCount);
+            
+            // 로그인 시도 횟수 증가
+            boolean isLocked = loginAttemptService.incrementAttempt(userId);
+            
+            // 확인을 위해 증가 후 시도 횟수 다시 조회
+            Integer afterCount = loginAttemptService.getCurrentAttemptCount(userId);
+            log.info(">> 현재 시도 횟수(증가 후): userId={}, count={}, 잠금={}", userId, afterCount, isLocked);
+            
+            // 캐시 문제로 업데이트가 안 된 경우를 대비해 직접 강제 설정
+            if (afterCount == null || afterCount.equals(beforeCount)) {
+                int newCount = (beforeCount == null ? 0 : beforeCount) + 1;
+                int updated = userRepository.forceSetLoginAttemptCount(userId, newCount);
+                log.info(">> 백업 방법으로 시도 횟수 증가: userId={}, 이전={}, 이후={}, 성공={}", 
+                        userId, beforeCount, newCount, updated > 0);
+                
+                // 업데이트 후 다시 확인
+                afterCount = loginAttemptService.getCurrentAttemptCount(userId);
+                log.info(">> 최종 시도 횟수: userId={}, count={}", userId, afterCount);
+            }
+            
+            int maxAttempts = user.getMaxLoginAttempts();
+            int remainingAttempts = Math.max(0, maxAttempts - (afterCount != null ? afterCount : 0));
+            
+            if (isLocked || remainingAttempts <= 0) {
+                // 계정 잠금 상태가 확인되면 User 엔티티의 accountLocked 필드도 업데이트
+                if (!isLocked) {
+                    // 이미 잠겨있지 않은 경우에만 업데이트 (중복 방지)
+                    try {
+                        user.setAccountLocked(true);
+                        userRepository.save(user);
+                        log.info(">> 계정 잠금 상태 DB 업데이트 완료: userId={}", userId);
+                    } catch (Exception e) {
+                        log.error(">> 계정 잠금 상태 DB 업데이트 실패: {}", e.getMessage(), e);
+                    }
+                }
+                
+                throw new AuthenticationFailedException("로그인 시도 횟수가 초과되어 계정이 잠겼습니다. " + 
+                    user.getAccountLockDurationMinutes() + "분 후에 다시 시도해주세요.");
+            } else {
+                throw new AuthenticationFailedException(String.format(
+                    "비밀번호가 일치하지 않습니다. 남은 시도 횟수: %d회", remainingAttempts));
+            }
         }
 
-        log.info(">> 인증 성공: 이메일={}, userId={}", user.getEmail(), user.getUserId());
+        // 로그인 성공 처리
+        boolean resetSuccess = loginAttemptService.resetAttempt(userId);
+        log.info(">> 로그인 성공: 시도 횟수 초기화 성공={}", resetSuccess);
+        
+        // 한 달에 1번 이상 로그인한 경우 비밀번호 만료일 연장
+        extendPasswordExpirationIfNeeded(user);
+        userRepository.save(user);
+        
+        log.info(">> 인증 성공: 이메일={}, userId={}", user.getEmail(), userId);
         
         // 토큰 생성
         TokenService.TokenInfo tokenInfo = tokenService.generateTokens(user.getEmail());
         log.info(">> 토큰 생성 완료: 이메일={}", user.getEmail());
-        log.debug(">> 생성된 액세스 토큰: {}", tokenInfo.getAccessToken());
-        log.debug(">> 생성된 리프레시 토큰: {}", tokenInfo.getRefreshToken());
 
         // 응답 반환
         return LoginResponse.of(tokenInfo.getAccessToken(), tokenInfo.getRefreshToken());
@@ -407,5 +487,77 @@ public class UserService {
             log.error(">> 프로필 수정 중 오류 발생: {}", e.getMessage(), e);
             throw new AuthenticationFailedException("프로필 수정 중 오류가 발생했습니다: " + e.getMessage());
         }
+    }
+
+    /**
+     * 한 달에 1번 이상 로그인한 경우 비밀번호 만료일을 연장합니다.
+     * 만료일을 현재로부터 3개월 후로 설정합니다.
+     *
+     * @param user 대상 사용자
+     */
+    private void extendPasswordExpirationIfNeeded(User user) {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // 마지막 로그인 시간이 null이거나 한 달 이상 지난 경우에만 연장
+        if (user.getLastLoginAt() == null || 
+            user.getLastLoginAt().plusMonths(1).isBefore(now)) {
+            
+            // 비밀번호 만료일을 현재로부터 3개월 후로 설정
+            user.setPasswordExpiredAt(now.plusMonths(3));
+            log.info(">> 비밀번호 만료일 연장: userId={}, email={}, newExpirationDate={}", 
+                    user.getUserId(), user.getEmail(), user.getPasswordExpiredAt());
+        }
+    }
+
+    /**
+     * 계정을 잠급니다.
+     *
+     * @param user 대상 사용자
+     */
+    @Transactional
+    public void lockAccount(User user) {
+        user.setAccountLocked(true);
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정 자동 점검 스케줄 작업
+     * 매일 새벽 2시에 실행되며, 다음 작업을 수행합니다:
+     * 1. null인 login_attempt_count 필드를 0으로 초기화
+     */
+    @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시에 실행
+    @Transactional
+    public void maintainUserAccounts() {
+        log.info(">> 사용자 계정 자동 유지보수 작업 시작");
+        
+        try {
+            // 1. null인 login_attempt_count 필드를 0으로 초기화
+            List<User> usersWithNullCount = userRepository.findByLoginAttemptCountIsNull();
+            log.info(">> login_attempt_count가 null인 사용자 수: {}", usersWithNullCount.size());
+            
+            int updatedCount = 0;
+            for (User user : usersWithNullCount) {
+                user.setLoginAttemptCount(0);
+                userRepository.save(user);
+                updatedCount++;
+            }
+            log.info(">> login_attempt_count 초기화 완료: {}개 계정 업데이트됨", updatedCount);
+            
+            log.info(">> 사용자 계정 자동 유지보수 작업 완료");
+        } catch (Exception e) {
+            log.error(">> 사용자 계정 자동 유지보수 작업 중 오류 발생: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 모든 사용자의 로그인 시도 횟수를 초기화하는 관리자용 메서드
+     * 주의: 관리자 권한으로만 실행되어야 합니다.
+     *
+     * @return 초기화된 사용자 수
+     */
+    @Transactional
+    public int resetAllLoginAttemptCounts() {
+        log.info(">> 모든 사용자 로그인 시도 횟수 초기화 시작");
+        return loginAttemptService.resetAllLoginAttempts();
     }
 }
