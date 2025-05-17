@@ -14,4 +14,6 @@ public interface CommonEventRepository {
 	Page<Tuple> findAllByFilterAndKeyword(String keyword, EventListFilter filter, Pageable pageable);
 
 	Integer countAvailableSeat(Long id);
+
+	Page<Tuple> findByIsDeletedFalse(Pageable pageable);
 }
