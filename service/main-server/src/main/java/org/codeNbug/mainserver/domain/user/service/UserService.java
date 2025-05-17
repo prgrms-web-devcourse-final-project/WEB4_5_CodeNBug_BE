@@ -94,13 +94,12 @@ public class UserService {
         }
 
         if (user.isAccountLocked()) {
-            log.warn(">> 로그인 실패: 잠긴 계정 - 이메일={}", request.getEmail());
-            throw new AuthenticationFailedException("계정이 잠겨있습니다. " + 
-                (user.getLastLoginAt() != null ? 
-                    String.format("잠금 해제까지 %d분 남았습니다.", 
-                        user.getAccountLockDurationMinutes() - 
-                        java.time.Duration.between(user.getLastLoginAt(), LocalDateTime.now()).toMinutes()) 
-                    : "잠금 해제 시간까지 기다려주세요."));
+            LocalDateTime lockExpiryTime = user.getLastLoginAt().plusMinutes(user.getAccountLockDurationMinutes());
+            long remainingMinutes = java.time.Duration.between(LocalDateTime.now(), lockExpiryTime).toMinutes();
+            
+            log.warn(">> 로그인 실패: 잠긴 계정 - 이메일={}, 남은 시간={}분", user.getEmail(), remainingMinutes);
+            throw new AuthenticationFailedException(String.format(
+                "계정이 잠겨있습니다. 잠금 해제까지 %d분 남았습니다.", remainingMinutes));
         }
 
         if (user.getPasswordExpiredAt() != null && user.getPasswordExpiredAt().isBefore(LocalDateTime.now())) {
@@ -455,13 +454,21 @@ public class UserService {
         if (currentCount == null) {
             currentCount = 0;
         }
-        user.setLoginAttemptCount(currentCount + 1);
         
-        if (user.getLoginAttemptCount() >= user.getMaxLoginAttempts()) {
-            lockAccount(user);
+        // 로그인 시도 횟수 증가
+        currentCount++;
+        user.setLoginAttemptCount(currentCount);
+        user.setLastLoginAt(LocalDateTime.now());
+        
+        // 최대 시도 횟수에 도달하면 계정 잠금
+        if (currentCount >= user.getMaxLoginAttempts()) {
+            user.setAccountLocked(true);
+            log.info(">> 계정 잠금: 이메일={}, 시도 횟수={}", user.getEmail(), currentCount);
         }
         
+        // 변경사항 저장
         userRepository.save(user);
+        log.info(">> 로그인 시도 횟수 증가: 이메일={}, 현재 시도 횟수={}", user.getEmail(), currentCount);
     }
 
     /**

@@ -82,7 +82,7 @@ public class User {
     private LocalDateTime passwordExpiredAt;
 
     @Builder.Default
-    @Column(name = "login_attempt_count")
+    @Column(name = "login_attempt_count", nullable = false)
     private Integer loginAttemptCount = 0;
 
     @Column(name = "last_login_at")
@@ -151,7 +151,17 @@ public class User {
     }
 
     public boolean isAccountLocked() {
-        return accountLocked != null && accountLocked;
+        if (accountLocked == null || !accountLocked) {
+            return false;
+        }
+        
+        if (lastLoginAt == null) {
+            return true;
+        }
+        
+        // 마지막 로그인 시도로부터 accountLockDurationMinutes가 지났는지 확인
+        LocalDateTime lockExpiryTime = lastLoginAt.plusMinutes(accountLockDurationMinutes);
+        return LocalDateTime.now().isBefore(lockExpiryTime);
     }
 
     public boolean isEnabled() {
