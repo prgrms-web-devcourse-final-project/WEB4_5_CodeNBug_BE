@@ -24,6 +24,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -64,7 +65,7 @@ class EventControllerTest {
 		Pageable pageable = PageRequest.of(0, 10);
 
 		Mockito.when(commonEventService.getEvents(null, null, pageable))
-			.thenReturn(List.of(new EventListResponse()));
+			.thenReturn(new PageImpl<>(List.of(new EventListResponse()), Pageable.ofSize(10), 1));
 
 		mockMvc.perform(post("/api/v1/events")
 				.with(csrf()))
@@ -83,7 +84,7 @@ class EventControllerTest {
 			.costRange(new CostRange(-1, -1))
 			.build();
 		Mockito.when(commonEventService.getEvents(null, filter, pageable))
-			.thenReturn(List.of(new EventListResponse()));
+			.thenReturn(new PageImpl<>(List.of(new EventListResponse()), Pageable.ofSize(10), 1));
 
 		mockMvc.perform(post("/api/v1/events")
 				.contentType(MediaType.APPLICATION_JSON)
@@ -104,7 +105,7 @@ class EventControllerTest {
 		LocalDateTime endDate = LocalDateTime.now();
 
 		Mockito.when(commonEventService.getEvents(Mockito.any(), Mockito.any(), eq(pageable)))
-			.thenReturn(List.of(new EventListResponse()));
+			.thenReturn(new PageImpl<>(List.of(new EventListResponse()), Pageable.ofSize(10), 1));
 
 		mockMvc.perform(post("/api/v1/events")
 				.contentType(MediaType.APPLICATION_JSON)
