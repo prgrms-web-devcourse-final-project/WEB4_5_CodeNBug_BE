@@ -37,21 +37,21 @@ class CommonEventServiceTest {
 	private CommonEventService commonEventService;
 
 	@Test
-	@DisplayName("filter와 keyword가 모두 비어있을 때 jpaCommonEventRepository.findByIsDeletedFalse가 호출되어야 한다.")
+	@DisplayName("filter와 keyword가 모두 비어있을 때 commonEventRepository.findByIsDeletedFalse가 호출되어야 한다.")
 	void getEvents() {
 		// given
 		String keyword = null;
 		EventListFilter filter = null;
 		PageRequest pageable = PageRequest.of(0, 10);
 
-		when(jpaCommonEventRepository.findByIsDeletedFalse(pageable))
-			.thenReturn(List.of());
+		when(commonEventRepository.findByIsDeletedFalse(pageable))
+			.thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
 		// when
 		Page<EventListResponse> result = commonEventService.getEvents(keyword, filter, pageable);
 
 		// then
-		verify(jpaCommonEventRepository).findByIsDeletedFalse(pageable);
+		verify(commonEventRepository).findByIsDeletedFalse(pageable);
 		assertEquals(0, result.getContent().size());
 	}
 
