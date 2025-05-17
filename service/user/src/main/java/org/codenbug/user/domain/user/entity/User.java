@@ -70,36 +70,39 @@ public class User {
     @Column(name = "account_expired_at")
     private LocalDateTime accountExpiredAt;
 
+    @Builder.Default
     @Column(name = "account_locked")
-    private boolean accountLocked;
+    private Boolean accountLocked = false;
 
+    @Builder.Default
     @Column(name = "enabled")
-    private boolean enabled;
+    private Boolean enabled = true;
 
     @Column(name = "password_expired_at")
     private LocalDateTime passwordExpiredAt;
 
+    @Builder.Default
     @Column(name = "login_attempt_count")
-    private int loginAttemptCount;
+    private Integer loginAttemptCount = 0;
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 
     @Builder.Default
     @Column(name = "max_login_attempts")
-    private int maxLoginAttempts = 5;
+    private Integer maxLoginAttempts = 5;
 
     @Builder.Default
     @Column(name = "account_lock_duration_minutes")
-    private int accountLockDurationMinutes = 5;
+    private Integer accountLockDurationMinutes = 5;
 
     @Builder.Default
     @Column(name = "password_expiry_days")
-    private int passwordExpiryDays = 90;
+    private Integer passwordExpiryDays = 90;
 
     @Builder.Default
     @Column(name = "account_expiry_days")
-    private int accountExpiryDays = 365;
+    private Integer accountExpiryDays = 365;
 
     /*@Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -145,6 +148,14 @@ public class User {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isAccountLocked() {
+        return accountLocked != null && accountLocked;
+    }
+
+    public boolean isEnabled() {
+        return enabled != null && enabled;
     }
 }
 //

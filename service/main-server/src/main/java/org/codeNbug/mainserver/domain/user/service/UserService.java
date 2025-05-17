@@ -451,7 +451,11 @@ public class UserService {
      */
     @Transactional
     public void incrementLoginAttemptCount(User user) {
-        user.setLoginAttemptCount(user.getLoginAttemptCount() + 1);
+        Integer currentCount = user.getLoginAttemptCount();
+        if (currentCount == null) {
+            currentCount = 0;
+        }
+        user.setLoginAttemptCount(currentCount + 1);
         
         if (user.getLoginAttemptCount() >= user.getMaxLoginAttempts()) {
             lockAccount(user);
