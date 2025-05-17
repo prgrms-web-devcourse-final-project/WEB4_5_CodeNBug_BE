@@ -144,6 +144,18 @@ public class UserService {
             int remainingAttempts = Math.max(0, maxAttempts - (afterCount != null ? afterCount : 0));
             
             if (isLocked || remainingAttempts <= 0) {
+                // 계정 잠금 상태가 확인되면 User 엔티티의 accountLocked 필드도 업데이트
+                if (!isLocked) {
+                    // 이미 잠겨있지 않은 경우에만 업데이트 (중복 방지)
+                    try {
+                        user.setAccountLocked(true);
+                        userRepository.save(user);
+                        log.info(">> 계정 잠금 상태 DB 업데이트 완료: userId={}", userId);
+                    } catch (Exception e) {
+                        log.error(">> 계정 잠금 상태 DB 업데이트 실패: {}", e.getMessage(), e);
+                    }
+                }
+                
                 throw new AuthenticationFailedException("로그인 시도 횟수가 초과되어 계정이 잠겼습니다. " + 
                     user.getAccountLockDurationMinutes() + "분 후에 다시 시도해주세요.");
             } else {

@@ -152,15 +152,14 @@ public class User {
 
     /**
      * 계정 잠금 상태를 확인합니다.
-     * 참고: 계정 잠금 상태는 Redis에서 관리되므로 이 메서드는 더 이상 사용되지 않습니다.
-     * 올바른 계정 잠금 확인은 LoginAttemptService.isAccountLocked()를 사용하세요.
+     * 실제 계정 잠금 상태는 Redis와 데이터베이스 모두에서 관리됩니다.
+     * 이 메서드는 데이터베이스의 accountLocked 필드 상태만 반환합니다.
      * 
-     * @deprecated Redis 기반 계정 잠금으로 대체됨
+     * 참고: 완전한 계정 잠금 상태 확인은 LoginAttemptService.isAccountLocked()를 사용하세요.
+     * 이 메서드는 DB의 상태만 확인하며, UI 표시 등의 목적으로 사용됩니다.
      */
-    @Deprecated
     public boolean isAccountLocked() {
-        // Redis에서 관리되므로 항상 false 반환
-        return false;
+        return accountLocked != null && accountLocked;
     }
 
     public boolean isEnabled() {

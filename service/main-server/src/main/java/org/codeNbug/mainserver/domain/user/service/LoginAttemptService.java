@@ -109,6 +109,16 @@ public class LoginAttemptService {
                                       LOCK_DURATION_MINUTES, 
                                       TimeUnit.MINUTES);
         log.info(">> Redis에 계정 잠금 설정 완료: email={}, 잠금시간={}분", email, LOCK_DURATION_MINUTES);
+        
+        // 데이터베이스의 User 엔티티 accountLocked 필드도 업데이트
+        try {
+            String sql = "UPDATE users SET account_locked = true WHERE email = ?";
+            int updatedRows = jdbcTemplate.update(sql, email);
+            log.info(">> 데이터베이스 계정 잠금 상태 업데이트: email={}, 성공={}", 
+                    email, updatedRows > 0);
+        } catch (Exception e) {
+            log.error(">> 데이터베이스 계정 잠금 상태 업데이트 실패: {}", e.getMessage(), e);
+        }
     }
     
     /**
@@ -180,6 +190,16 @@ public class LoginAttemptService {
         Boolean deleted = redisTemplate.delete(key);
         log.info(">> Redis에서 계정 잠금 해제: email={}, 성공={}", 
                 email, deleted != null && deleted);
+        
+        // 데이터베이스의 User 엔티티 accountLocked 필드도 업데이트
+        try {
+            String sql = "UPDATE users SET account_locked = false WHERE email = ?";
+            int updatedRows = jdbcTemplate.update(sql, email);
+            log.info(">> 데이터베이스 계정 잠금 상태 해제: email={}, 성공={}", 
+                    email, updatedRows > 0);
+        } catch (Exception e) {
+            log.error(">> 데이터베이스 계정 잠금 상태 해제 실패: {}", e.getMessage(), e);
+        }
     }
     
     /**
@@ -300,8 +320,8 @@ public class LoginAttemptService {
         try {
             log.info(">> 모든 사용자 로그인 시도 횟수 초기화 시작");
             
-            // 단순 SQL 쿼리로 모든 사용자 초기화 (account_locked는 Redis로 관리하므로 업데이트 X)
-            String sql = "UPDATE users SET login_attempt_count = 0";
+            // 단순 SQL 쿼리로 모든 사용자 초기화 (account_locked도 함께 초기화)
+            String sql = "UPDATE users SET login_attempt_count = 0, account_locked = false";
             int updatedRows = jdbcTemplate.update(sql);
             
             // Redis에서 모든 계정 잠금 키 삭제
