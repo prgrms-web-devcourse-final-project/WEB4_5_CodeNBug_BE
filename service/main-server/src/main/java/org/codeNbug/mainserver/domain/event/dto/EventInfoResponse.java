@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
@@ -14,6 +15,7 @@ import org.codenbug.common.util.Util;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Value;
@@ -26,6 +28,7 @@ import lombok.Value;
 public class EventInfoResponse implements Serializable {
 
 	SeatLayoutDto seatLayout;
+	List<SeatLayoutDto.SeatDto.SeatGradeDto> prices;
 	Long eventId;
 	EventCategoryEnum category;
 	EventInformationDto information;
@@ -70,11 +73,7 @@ public class EventInfoResponse implements Serializable {
 					seat.getId(),
 					seat.getLocation(),
 					seat.isAvailable(),
-					new SeatLayoutDto.SeatDto.SeatGradeDto(
-						seat.getGrade().getId(),
-						seat.getGrade().getGrade(),
-						seat.getGrade().getAmount()
-					)
+					seat.getGrade().getGrade().name()
 				)).toList()
 		);
 	}
@@ -111,13 +110,14 @@ public class EventInfoResponse implements Serializable {
 					seat.getId(),
 					seat.getLocation(),
 					seat.isAvailable(),
-					new SeatLayoutDto.SeatDto.SeatGradeDto(
-						seat.getGrade().getId(),
-						seat.getGrade().getGrade(),
-						seat.getGrade().getAmount()
-					)
-				)).toList()
-		);
+					seat.getGrade().getGrade().name())
+				).toList());
+		this.prices = event.getSeatLayout().getSeats().stream()
+			.map(seat -> new SeatLayoutDto.SeatDto.SeatGradeDto(
+				seat.getGrade().getId(),
+				seat.getGrade().getGrade(),
+				seat.getGrade().getAmount()
+			)).collect(Collectors.toSet()).stream().toList();
 	}
 
 	/**
@@ -132,14 +132,15 @@ public class EventInfoResponse implements Serializable {
 		/**
 		 * DTO for {@link org.codeNbug.mainserver.domain.seat.entity.Seat}
 		 */
-		@Value
+		@NoArgsConstructor
+		@AllArgsConstructor
+		@Getter
 		public static class SeatDto implements Serializable {
 			Long id;
 			@NotNull
 			String location;
 			boolean available;
-			SeatGradeDto grade;
-
+			String grade;
 			/**
 			 * DTO for {@link org.codeNbug.mainserver.domain.seat.entity.SeatGrade}
 			 */
