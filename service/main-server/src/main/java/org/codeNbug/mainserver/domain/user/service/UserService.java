@@ -97,26 +97,14 @@ public class UserService {
             throw new AuthenticationFailedException("비활성화된 계정입니다. 관리자에게 문의하세요.");
         }
 
-        // 계정 잠금 상태 확인
-        if (loginAttemptService.isAccountLocked(userId)) {
+        // 계정 잠금 상태 확인 (Redis에서 확인)
+        if (loginAttemptService.isAccountLocked(request.getEmail())) {
             // 잠금 시간이 남아있는지 확인
             long remainingMinutes = loginAttemptService.getRemainingLockTime(userId);
             
-            if (remainingMinutes > 0) {
-                log.warn(">> 로그인 실패: 잠긴 계정 - 이메일={}, 남은 시간={}분", request.getEmail(), remainingMinutes);
-                throw new AuthenticationFailedException(String.format(
-                    "계정이 잠겨있습니다. 잠금 해제까지 %d분 남았습니다.", remainingMinutes));
-            } else {
-                // 잠금 시간이 지났으면 잠금 해제
-                boolean resetSuccess = loginAttemptService.resetAttempt(userId);
-                log.info(">> 계정 잠금 자동 해제: userId={}, email={}, 성공={}", userId, user.getEmail(), resetSuccess);
-                
-                if (!resetSuccess) {
-                    // 네이티브 쿼리로 강제 초기화 시도
-                    int updatedRows = userRepository.forceResetLoginAttemptCount(userId);
-                    log.info(">> 백업 방법으로 계정 잠금 해제 시도: userId={}, 성공={}", userId, updatedRows > 0);
-                }
-            }
+            log.warn(">> 로그인 실패: 잠긴 계정 - 이메일={}, 남은 시간={}분", request.getEmail(), remainingMinutes);
+            throw new AuthenticationFailedException(String.format(
+                "계정이 잠겨있습니다. 잠금 해제까지 %d분 남았습니다.", remainingMinutes));
         }
 
         // 비밀번호 만료 확인
@@ -150,13 +138,6 @@ public class UserService {
                 // 업데이트 후 다시 확인
                 afterCount = loginAttemptService.getCurrentAttemptCount(userId);
                 log.info(">> 최종 시도 횟수: userId={}, count={}", userId, afterCount);
-                
-                // 최대 시도 횟수 초과 시 계정 잠금 추가 확인
-                if (afterCount != null && afterCount >= user.getMaxLoginAttempts()) {
-                    loginAttemptService.lockAccount(userId);
-                    isLocked = true;
-                    log.info(">> 백업 방법으로 계정 잠금 처리: userId={}", userId);
-                }
             }
             
             int maxAttempts = user.getMaxLoginAttempts();
@@ -174,12 +155,6 @@ public class UserService {
         // 로그인 성공 처리
         boolean resetSuccess = loginAttemptService.resetAttempt(userId);
         log.info(">> 로그인 성공: 시도 횟수 초기화 성공={}", resetSuccess);
-        
-        // 백업 방법: 초기화 실패 시 강제 초기화
-        if (!resetSuccess) {
-            int updatedRows = userRepository.forceResetLoginAttemptCount(userId);
-            log.info(">> 백업 방법으로 시도 횟수 초기화: 성공={}", updatedRows > 0);
-        }
         
         // 한 달에 1번 이상 로그인한 경우 비밀번호 만료일 연장
         extendPasswordExpirationIfNeeded(user);
@@ -534,40 +509,9 @@ public class UserService {
     }
 
     /**
-     * 계정 잠금을 해제합니다.
-     *
-     * @param user 대상 사용자
-     */
-    @Transactional
-    public void unlockAccount(User user) {
-        if (user == null) {
-            log.warn(">> 계정 잠금 해제 실패: 사용자 객체가 null입니다.");
-            return;
-        }
-        
-        try {
-            Long userId = user.getUserId();
-            log.info(">> 계정 잠금 해제 시작: userId={}, email={}", userId, user.getEmail());
-            
-            // 현재 시간
-            LocalDateTime now = LocalDateTime.now();
-            
-            // 계정 잠금 해제 및 로그인 시도 횟수 초기화
-            int updatedRows = userRepository.resetLoginAttemptCount(userId, now);
-            log.info(">> 계정 잠금 해제 쿼리 실행 결과: 업데이트된 행 수={}", updatedRows);
-            
-            log.info(">> 계정 잠금 해제 완료: userId={}", userId);
-        } catch (Exception e) {
-            log.error(">> 계정 잠금 해제 중 오류 발생: {}", e.getMessage(), e);
-            throw new RuntimeException("계정 잠금 해제 실패: " + e.getMessage(), e);
-        }
-    }
-
-    /**
      * 계정 자동 점검 스케줄 작업
      * 매일 새벽 2시에 실행되며, 다음 작업을 수행합니다:
      * 1. null인 login_attempt_count 필드를 0으로 초기화
-     * 2. 계정 잠금 시간이 경과한 사용자의 계정 잠금 해제
      */
     @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시에 실행
     @Transactional
@@ -586,10 +530,6 @@ public class UserService {
                 updatedCount++;
             }
             log.info(">> login_attempt_count 초기화 완료: {}개 계정 업데이트됨", updatedCount);
-            
-            // 2. 계정 잠금 시간이 경과한 사용자의 계정 잠금 해제
-            int unlockedCount = loginAttemptService.unlockExpiredAccounts();
-            log.info(">> 계정 잠금 자동 해제 완료: {}개 계정 해제됨", unlockedCount);
             
             log.info(">> 사용자 계정 자동 유지보수 작업 완료");
         } catch (Exception e) {

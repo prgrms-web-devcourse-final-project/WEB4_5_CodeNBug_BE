@@ -150,18 +150,17 @@ public class User {
         this.enabled = enabled;
     }
 
+    /**
+     * 계정 잠금 상태를 확인합니다.
+     * 참고: 계정 잠금 상태는 Redis에서 관리되므로 이 메서드는 더 이상 사용되지 않습니다.
+     * 올바른 계정 잠금 확인은 LoginAttemptService.isAccountLocked()를 사용하세요.
+     * 
+     * @deprecated Redis 기반 계정 잠금으로 대체됨
+     */
+    @Deprecated
     public boolean isAccountLocked() {
-        if (accountLocked == null || !accountLocked) {
-            return false;
-        }
-        
-        if (lastLoginAt == null) {
-            return true;
-        }
-        
-        // 마지막 로그인 시도로부터 accountLockDurationMinutes가 지났는지 확인
-        LocalDateTime lockExpiryTime = lastLoginAt.plusMinutes(accountLockDurationMinutes);
-        return LocalDateTime.now().isBefore(lockExpiryTime);
+        // Redis에서 관리되므로 항상 false 반환
+        return false;
     }
 
     public boolean isEnabled() {

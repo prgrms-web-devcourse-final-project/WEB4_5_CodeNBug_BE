@@ -25,29 +25,6 @@ public class UserSchedulerService {
     private final UserEmailService userEmailService;
 
     /**
-     * 계정 잠금을 자동으로 해제합니다.
-     * 잠금 시간이 지난 계정들의 잠금을 해제합니다.
-     */
-    @Scheduled(fixedRate = 180000) // 3분마다 실행
-    @Transactional
-    public void autoUnlockAccounts() {
-        log.info(">> 계정 잠금 자동 해제 작업 시작");
-        
-        List<User> lockedUsers = userRepository.findByAccountLockedTrue();
-        LocalDateTime now = LocalDateTime.now();
-        
-        for (User user : lockedUsers) {
-            if (user.getLastLoginAt() != null && 
-                user.getLastLoginAt().plusMinutes(user.getAccountLockDurationMinutes()).isBefore(now)) {
-                log.info(">> 계정 잠금 해제: userId={}, email={}", user.getUserId(), user.getEmail());
-                userService.unlockAccount(user);
-            }
-        }
-        
-        log.info(">> 계정 잠금 자동 해제 작업 완료");
-    }
-
-    /**
      * 만료된 비밀번호를 확인하고 알림을 보냅니다.
      */
     @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시에 실행
