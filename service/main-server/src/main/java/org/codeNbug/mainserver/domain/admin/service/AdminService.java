@@ -654,4 +654,44 @@ public class AdminService {
         user.setLoginAttemptCount(0);
         userRepository.save(user);
     }
+
+    /**
+     * 모든 사용자의 로그인 시도 횟수를 초기화하는 관리자용 메서드
+     * 주의: 관리자 권한으로만 실행되어야 합니다.
+     *
+     * @return 초기화된 사용자 수
+     */
+    @Transactional
+    public int resetAllLoginAttemptCounts() {
+        log.info(">> 모든 사용자 로그인 시도 횟수 초기화 시작");
+        
+        try {
+            // 모든 사용자 조회
+            List<User> allUsers = userRepository.findAll();
+            log.info(">> 전체 사용자 수: {}", allUsers.size());
+            
+            int updatedCount = 0;
+            
+            for (User user : allUsers) {
+                // null 확인 및 로그인 시도 횟수 초기화
+                if (user.getLoginAttemptCount() == null || user.getLoginAttemptCount() > 0) {
+                    user.setLoginAttemptCount(0);
+                    // 계정이 잠겼다면 잠금 해제
+                    if (user.isAccountLocked()) {
+                        user.setAccountLocked(false);
+                    }
+                    userRepository.save(user);
+                    updatedCount++;
+                }
+            }
+            
+            userRepository.flush(); // 변경사항 즉시 적용
+            log.info(">> 로그인 시도 횟수 초기화 완료: {}개 계정 업데이트됨", updatedCount);
+            
+            return updatedCount;
+        } catch (Exception e) {
+            log.error(">> 로그인 시도 횟수 초기화 중 오류 발생: {}", e.getMessage(), e);
+            throw new RuntimeException("모든 사용자 로그인 시도 횟수 초기화 실패: " + e.getMessage(), e);
+        }
+    }
 } 

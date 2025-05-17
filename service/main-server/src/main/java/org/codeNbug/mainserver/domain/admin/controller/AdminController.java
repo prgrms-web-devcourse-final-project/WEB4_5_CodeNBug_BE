@@ -603,4 +603,28 @@ public class AdminController {
         }
         return "admin/settings";
     }
+
+    /**
+     * 모든 사용자의 로그인 시도 횟수 초기화 API
+     * 관리자만 사용 가능한 기능입니다.
+     */
+    @PostMapping("/api/users/reset-login-attempts")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Map<String, Integer>>> resetAllLoginAttemptCounts() {
+        log.info(">> 모든 사용자 로그인 시도 횟수 초기화 요청");
+        
+        try {
+            int updatedCount = adminService.resetAllLoginAttemptCounts();
+            
+            Map<String, Integer> result = new HashMap<>();
+            result.put("updatedCount", updatedCount);
+            
+            log.info(">> 로그인 시도 횟수 초기화 완료: {}개 계정", updatedCount);
+            return ResponseEntity.ok(RsData.success("모든 사용자의 로그인 시도 횟수가 초기화되었습니다.", result));
+        } catch (Exception e) {
+            log.error(">> 로그인 시도 횟수 초기화 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "로그인 시도 횟수 초기화 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
 }
