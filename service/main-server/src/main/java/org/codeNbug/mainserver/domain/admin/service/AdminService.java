@@ -16,6 +16,7 @@ import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
+import org.codeNbug.mainserver.domain.user.service.LoginAttemptService;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.user.domain.user.entity.User;
@@ -54,6 +55,7 @@ public class AdminService {
     private final TokenService tokenService;
     private final NotificationService notificationService;
     private final PurchaseRepository purchaseRepository;
+    private final LoginAttemptService loginAttemptService;
 
     /**
      * 관리자 회원가입 서비스
@@ -648,11 +650,15 @@ public class AdminService {
      * @param userId 사용자 ID
      */
     public void unlockAccount(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        user.setAccountLocked(false);
-        user.setLoginAttemptCount(0);
-        userRepository.save(user);
+        log.info(">> 관리자에 의한 계정 잠금 해제: userId={}", userId);
+        boolean success = loginAttemptService.resetAttempt(userId);
+        
+        if (success) {
+            log.info(">> 계정 잠금 해제 성공: userId={}", userId);
+        } else {
+            log.error(">> 계정 잠금 해제 실패: userId={}", userId);
+            throw new RuntimeException("계정 잠금 해제에 실패했습니다.");
+        }
     }
 
     /**
@@ -663,35 +669,7 @@ public class AdminService {
      */
     @Transactional
     public int resetAllLoginAttemptCounts() {
-        log.info(">> 모든 사용자 로그인 시도 횟수 초기화 시작");
-        
-        try {
-            // 모든 사용자 조회
-            List<User> allUsers = userRepository.findAll();
-            log.info(">> 전체 사용자 수: {}", allUsers.size());
-            
-            int updatedCount = 0;
-            
-            for (User user : allUsers) {
-                // null 확인 및 로그인 시도 횟수 초기화
-                if (user.getLoginAttemptCount() == null || user.getLoginAttemptCount() > 0) {
-                    user.setLoginAttemptCount(0);
-                    // 계정이 잠겼다면 잠금 해제
-                    if (user.isAccountLocked()) {
-                        user.setAccountLocked(false);
-                    }
-                    userRepository.save(user);
-                    updatedCount++;
-                }
-            }
-            
-            userRepository.flush(); // 변경사항 즉시 적용
-            log.info(">> 로그인 시도 횟수 초기화 완료: {}개 계정 업데이트됨", updatedCount);
-            
-            return updatedCount;
-        } catch (Exception e) {
-            log.error(">> 로그인 시도 횟수 초기화 중 오류 발생: {}", e.getMessage(), e);
-            throw new RuntimeException("모든 사용자 로그인 시도 횟수 초기화 실패: " + e.getMessage(), e);
-        }
+        log.info(">> 관리자에 의한 모든 사용자 로그인 시도 횟수 초기화 시작");
+        return loginAttemptService.resetAllLoginAttempts();
     }
 } 
