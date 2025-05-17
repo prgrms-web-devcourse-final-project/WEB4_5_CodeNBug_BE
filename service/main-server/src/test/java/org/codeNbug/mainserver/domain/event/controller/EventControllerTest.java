@@ -65,14 +65,14 @@ class EventControllerTest {
 		Pageable pageable = PageRequest.of(0, 10);
 
 		Mockito.when(commonEventService.getEvents(null, null, pageable))
-			.thenReturn(new PageImpl<>(List.of(new EventListResponse()), Pageable.ofSize(10), 1));
+			.thenReturn(new PageImpl<>(List.of(new EventListResponse()), pageable, 10));
 
-		mockMvc.perform(post("/api/v1/events")
+		mockMvc.perform(post("/api/v1/events?page=0&size=10")
 				.with(csrf()))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
 			.andExpect(jsonPath("$.msg").value("event list 조회 성공."))
-			.andExpect(jsonPath("$.data").isArray());
+			.andExpect(jsonPath("$.data").exists());
 	}
 
 	@Test
