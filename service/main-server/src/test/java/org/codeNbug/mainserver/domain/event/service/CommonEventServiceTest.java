@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -36,22 +37,22 @@ class CommonEventServiceTest {
 	private CommonEventService commonEventService;
 
 	@Test
-	@DisplayName("filter와 keyword가 모두 비어있을 때 jpaCommonEventRepository.findByIsDeletedFalse가 호출되어야 한다.")
+	@DisplayName("filter와 keyword가 모두 비어있을 때 commonEventRepository.findByIsDeletedFalse가 호출되어야 한다.")
 	void getEvents() {
 		// given
 		String keyword = null;
 		EventListFilter filter = null;
 		PageRequest pageable = PageRequest.of(0, 10);
 
-		when(jpaCommonEventRepository.findByIsDeletedFalse(pageable))
-			.thenReturn(List.of());
+		when(commonEventRepository.findByIsDeletedFalse(pageable))
+			.thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
 		// when
-		List<EventListResponse> result = commonEventService.getEvents(keyword, filter, pageable);
+		Page<EventListResponse> result = commonEventService.getEvents(keyword, filter, pageable);
 
 		// then
-		verify(jpaCommonEventRepository).findByIsDeletedFalse(pageable);
-		assertEquals(0, result.size());
+		verify(commonEventRepository).findByIsDeletedFalse(pageable);
+		assertEquals(0, result.getContent().size());
 	}
 
 	@Test
@@ -66,7 +67,7 @@ class CommonEventServiceTest {
 			.thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
 		// when
-		List<EventListResponse> result = commonEventService.getEvents(null, filter, pageable);
+		Page<EventListResponse> result = commonEventService.getEvents(null, filter, pageable);
 
 		// then
 		verify(commonEventRepository).findAllByFilter(eq(filter), eq(pageable));
@@ -85,7 +86,7 @@ class CommonEventServiceTest {
 			.thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
 		// when
-		List<EventListResponse> result = commonEventService.getEvents(keyword, filter, pageable);
+		Page<EventListResponse> result = commonEventService.getEvents(keyword, filter, pageable);
 
 		// then
 		verify(commonEventRepository).findAllByKeyword(eq(keyword), eq(pageable));
@@ -104,7 +105,7 @@ class CommonEventServiceTest {
 			.thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
 		// when
-		List<EventListResponse> result = commonEventService.getEvents(keyword, filter, pageable);
+		Page<EventListResponse> result = commonEventService.getEvents(keyword, filter, pageable);
 
 		// then
 		verify(commonEventRepository).findAllByFilterAndKeyword(eq(keyword), eq(filter), eq(pageable));

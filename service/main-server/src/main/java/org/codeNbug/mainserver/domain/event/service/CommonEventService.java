@@ -9,6 +9,7 @@ import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.repository.JpaCommonEventRepository;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -31,12 +32,11 @@ public class CommonEventService {
 		this.redisTemplate = redisTemplate;
 	}
 
-	public List<EventListResponse> getEvents(String keyword, EventListFilter filter, Pageable pageable) {
+	public Page<EventListResponse> getEvents(String keyword, EventListFilter filter, Pageable pageable) {
 		if ((keyword == null || keyword.isEmpty()) && (filter == null || !filter.canFiltered())) {
-			return jpaCommonEventRepository.findByIsDeletedFalse(pageable)
-				.stream()
-				.map(event -> new EventListResponse(event))
-				.toList();
+			return commonEventRepository.findByIsDeletedFalse(pageable)
+				.map(tuple -> new EventListResponse(tuple.get(0, Event.class), tuple.get(1, Integer.class),
+					tuple.get(2, Integer.class)));
 		}
 		if (keyword == null || keyword.isEmpty()) {
 			return getEventsOnlyFilters(filter, pageable);
@@ -47,31 +47,25 @@ public class CommonEventService {
 		}
 	}
 
-	private List<EventListResponse> getEventsWithFilterAndKeyword(String keyword, EventListFilter filter,
+	private Page<EventListResponse> getEventsWithFilterAndKeyword(String keyword, EventListFilter filter,
 		Pageable pageable) {
 		return commonEventRepository.findAllByFilterAndKeyword(keyword, filter, pageable)
-			.stream()
 			.map(event -> new EventListResponse(event.get(0, Event.class), event.get(1, Integer.class),
-				event.get(2, Integer.class)))
-			.toList();
+				event.get(2, Integer.class)));
 
 	}
 
-	private List<EventListResponse> getEventsOnlyKeyword(String keyword, Pageable pageable) {
+	private Page<EventListResponse> getEventsOnlyKeyword(String keyword, Pageable pageable) {
 		return commonEventRepository.findAllByKeyword(keyword, pageable)
-			.stream()
 			.map(event -> new EventListResponse(event.get(0, Event.class), event.get(1, Integer.class),
-				event.get(2, Integer.class)))
-			.toList();
+				event.get(2, Integer.class)));
 
 	}
 
-	private List<EventListResponse> getEventsOnlyFilters(EventListFilter filter, Pageable pageable) {
+	private Page<EventListResponse> getEventsOnlyFilters(EventListFilter filter, Pageable pageable) {
 		return commonEventRepository.findAllByFilter(filter, pageable)
-			.stream()
 			.map(event -> new EventListResponse(event.get(0, Event.class), event.get(1, Integer.class),
-				event.get(2, Integer.class)))
-			.toList();
+				event.get(2, Integer.class)));
 	}
 
 	public List<EventCategoryEnum> getEventCategories() {

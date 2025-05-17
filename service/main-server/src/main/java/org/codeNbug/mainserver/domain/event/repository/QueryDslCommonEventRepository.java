@@ -61,7 +61,6 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 		List<Tuple> data = query.offset(pageable.getOffset())
 			.limit(pageable.getPageSize()).fetch();
 
-
 		return new PageImpl<>(data, pageable, count);
 	}
 
@@ -114,6 +113,23 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 					.and(QEvent.event.information.title.like("%" + keyword + "%"))
 					.and(filterDeletedFalseExpression())
 			)
+			.groupBy(QEvent.event)
+			.orderBy(QEvent.event.createdAt.desc());
+		long count = query.fetchCount();
+		List<Tuple> data = query.offset(pageable.getOffset())
+			.limit(pageable.getPageSize()).fetch();
+		return new PageImpl<>(data, pageable, count);
+	}
+
+	@Override
+	public Page<Tuple> findByIsDeletedFalse(Pageable pageable) {
+		JPAQuery<Tuple> query = jpaQueryFactory.select(QEvent.event,
+				QSeat.seat.grade.amount.min().as("minPrice"),
+				QSeat.seat.grade.amount.max().as("maxPrice"))
+			.from(QEvent.event)
+			.leftJoin(QSeat.seat)
+			.on(QEvent.event.eventId.eq(QSeat.seat.event.eventId))
+			.where(filterDeletedFalseExpression())
 			.groupBy(QEvent.event)
 			.orderBy(QEvent.event.createdAt.desc());
 		long count = query.fetchCount();
