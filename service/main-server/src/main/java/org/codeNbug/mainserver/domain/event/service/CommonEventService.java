@@ -33,9 +33,10 @@ public class CommonEventService {
 
 	public List<EventListResponse> getEvents(String keyword, EventListFilter filter, Pageable pageable) {
 		if ((keyword == null || keyword.isEmpty()) && (filter == null || !filter.canFiltered())) {
-			return jpaCommonEventRepository.findByIsDeletedFalse(pageable)
+			return commonEventRepository.findByIsDeletedFalse(pageable)
 				.stream()
-				.map(event -> new EventListResponse(event))
+				.map(tuple -> new EventListResponse(tuple.get(0, Event.class), tuple.get(1, Integer.class),
+					tuple.get(2, Integer.class)))
 				.toList();
 		}
 		if (keyword == null || keyword.isEmpty()) {
