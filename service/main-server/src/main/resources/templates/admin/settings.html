@@ -58,7 +58,7 @@
                                     <span th:if="${user.enabled == false}" class="badge bg-secondary">비활성</span>
                                 </td>
                                 <td>
-                                    <span th:if="${user.accountLocked == true}" class="badge bg-danger">잠금</span>
+                                    <span th:if="${user.accountLocked == true}" class="badge bg-danger" data-bs-toggle="tooltip" title="계정이 잠금 상태입니다. 3분 후에 자동으로 잠금이 해제되거나 관리자가 수동으로 해제할 수 있습니다.">잠금</span>
                                     <span th:if="${user.accountLocked == false}" class="badge bg-success">정상</span>
                                 </td>
                                 <td>
@@ -118,7 +118,7 @@
                                     <span th:if="${user.enabled == false}" class="badge bg-secondary">비활성</span>
                                 </td>
                                 <td>
-                                    <span th:if="${user.accountLocked == true}" class="badge bg-danger">잠금</span>
+                                    <span th:if="${user.accountLocked == true}" class="badge bg-danger" data-bs-toggle="tooltip" title="계정이 잠금 상태입니다. 3분 후에 자동으로 잠금이 해제되거나 관리자가 수동으로 해제할 수 있습니다.">잠금</span>
                                     <span th:if="${user.accountLocked == false}" class="badge bg-success">정상</span>
                                 </td>
                                 <td>
@@ -140,6 +140,11 @@
 
     <div th:replace="admin/fragments/layout :: scripts"></div>
     <script>
+        // 툴팁 초기화
+        $(document).ready(function() {
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        });
+
         function showAlert(msg, isSuccess) {
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert ' + (isSuccess ? 'alert-success' : 'alert-danger') + ' mt-3';
@@ -175,6 +180,7 @@
             ajaxAction('/admin/api/users/' + userId + '/enable', 'PUT', userId, '계정이 활성화되었습니다.');
         }
         function unlockAccount(userId) {
+            // Redis 기반 계정 잠금: 3분 TTL로 자동 해제되며, 관리자가 수동으로 해제할 수도 있습니다.
             ajaxAction('/admin/api/users/' + userId + '/unlock', 'PUT', userId, '계정 잠금이 해제되었습니다.');
         }
     </script>

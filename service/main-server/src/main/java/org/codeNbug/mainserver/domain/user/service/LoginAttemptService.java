@@ -338,4 +338,13 @@ public class LoginAttemptService {
             return 0;
         }
     }
+
+    /**
+     * Redis 템플릿 반환 (관리자 기능에서 사용)
+     *
+     * @return RedisTemplate 객체
+     */
+    public StringRedisTemplate getRedisTemplate() {
+        return redisTemplate;
+    }
 } 
