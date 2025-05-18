@@ -9,6 +9,7 @@ import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
 import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
+import org.codeNbug.mainserver.domain.user.service.LoginAttemptService;
 import org.codeNbug.mainserver.domain.user.service.UserService;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.user.domain.user.entity.User;
@@ -47,6 +48,9 @@ class UserServiceTest {
 
     @Mock
     private TokenService tokenService;
+
+    @Mock
+    private LoginAttemptService loginAttemptService;
 
     @InjectMocks
     private UserService userService;
@@ -201,6 +205,7 @@ class UserServiceTest {
             when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(testUser));
             when(passwordEncoder.matches(request.getPassword(), testUser.getPassword())).thenReturn(true);
             when(tokenService.generateTokens(testUser.getEmail())).thenReturn(tokenInfo);
+            when(loginAttemptService.isAccountLocked(request.getEmail())).thenReturn(false);
 
             // when
             LoginResponse response = userService.login(request);
@@ -217,6 +222,7 @@ class UserServiceTest {
             // given
             LoginRequest request = new LoginRequest("nonexistent@example.com", testPassword);
             when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
+            // No need to mock loginAttemptService as it's never called when user doesn't exist
 
             // when & then
             assertThrows(AuthenticationFailedException.class, () -> userService.login(request));
@@ -229,6 +235,19 @@ class UserServiceTest {
             LoginRequest request = new LoginRequest(testEmail, "wrongPassword");
             when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(testUser));
             when(passwordEncoder.matches(request.getPassword(), testUser.getPassword())).thenReturn(false);
+            when(loginAttemptService.isAccountLocked(request.getEmail())).thenReturn(false);
+
+            // when & then
+            assertThrows(AuthenticationFailedException.class, () -> userService.login(request));
+        }
+
+        @Test
+        @DisplayName("계정이 잠긴 상태로 로그인시 실패")
+        void 로그인_계정_잠김() {
+            // given
+            LoginRequest request = new LoginRequest(testEmail, testPassword);
+            when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(testUser));
+            when(loginAttemptService.isAccountLocked(request.getEmail())).thenReturn(true);
 
             // when & then
             assertThrows(AuthenticationFailedException.class, () -> userService.login(request));
