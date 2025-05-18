@@ -87,20 +87,23 @@ public class UserController {
 
         log.info(">> 로그인 시도: 이메일={}", request.getEmail());
         
-        // 로그인 처리
-        LoginResponse loginResponse = userService.login(request);
-        log.info(">> 로그인 성공: 이메일={}, 토큰 발급 완료", request.getEmail());
-        log.debug(">> 발급된 액세스 토큰: {}", loginResponse.getAccessToken());
-        log.debug(">> 발급된 리프레시 토큰: {}", loginResponse.getRefreshToken());
-
-        // 쿠키에 토큰 설정
-        cookieUtil.setAccessTokenCookie(response, loginResponse.getAccessToken());
-        cookieUtil.setRefreshTokenCookie(response, loginResponse.getRefreshToken());
-        log.info(">> 쿠키에 토큰 설정 완료");
-
-        // 응답 본문에서는 토큰 정보 제외
-        return ResponseEntity.ok(
-                new RsData<>("200-SUCCESS", "로그인 성공", LoginResponse.ofTokenTypeOnly()));
+        try {
+            // 로그인 처리
+            LoginResponse loginResponse = userService.login(request);
+            log.info(">> 로그인 성공: 이메일={}, 토큰 발급 완료", request.getEmail());
+            
+            // 쿠키에 토큰 설정
+            cookieUtil.setAccessTokenCookie(response, loginResponse.getAccessToken());
+            cookieUtil.setRefreshTokenCookie(response, loginResponse.getRefreshToken());
+            log.info(">> 쿠키에 토큰 설정 완료");
+            
+            // 응답 본문에서는 토큰 정보 제외
+            return ResponseEntity.ok(
+                    new RsData<>("200-SUCCESS", "로그인 성공", LoginResponse.ofTokenTypeOnly()));
+        } catch (Exception e) {
+            log.error(">> 로그인 실패: 이메일={}, 오류={}", request.getEmail(), e.getMessage());
+            throw e; // 예외 다시 발생시켜 글로벌 예외 핸들러에서 처리하도록 함
+        }
     }
 
     /**

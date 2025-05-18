@@ -388,12 +388,35 @@ public class AdminController {
         return "admin/events";
     }
 
+    // === ExceptionHandler 분리 ===
+    // 뷰 반환용 (페이지 요청에서만 동작)
     @ExceptionHandler(Exception.class)
-    public String handleException(Exception e, RedirectAttributes redirectAttributes) {
-        log.error(">> 예외 발생: {}", e.getMessage(), e);
-        redirectAttributes.addFlashAttribute("errorMessage", "요청 처리 중 오류가 발생했습니다: " + e.getMessage());
-        return "redirect:/admin/login";
+    public String handleViewException(Exception e, RedirectAttributes redirectAttributes, HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        // API 요청이 아닌 경우에만 동작
+        if (!uri.contains("/api/")) {
+            log.error(">> 예외 발생(뷰): {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "요청 처리 중 오류가 발생했습니다: " + e.getMessage());
+            return "redirect:/admin/login";
+        }
+        // API 요청이면 null 반환해서 아래 API용 핸들러로 위임
+        return null;
     }
+
+    // API용 (RestController, @ResponseBody에서만 동작)
+    @ExceptionHandler(Exception.class)
+    @ResponseBody
+    public ResponseEntity<RsData<Void>> handleApiException(Exception e, HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        if (uri.contains("/api/")) {
+            log.error(">> 예외 발생(API): {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "요청 처리 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+        // 뷰 요청이면 null 반환해서 위 핸들러로 위임
+        return null;
+    }
+
     /**
      * 이벤트 상세 정보 페이지
      */
@@ -438,13 +461,6 @@ public class AdminController {
         adminService.deleteEvent(eventId);
         log.info(">> 이벤트 삭제 완료: eventId={}", eventId);
         return ResponseEntity.ok(RsData.success("이벤트가 성공적으로 삭제되었습니다."));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<RsData<Void>> handleException(Exception e) {
-        log.error(">> 예외 발생: {}", e.getMessage(), e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(RsData.error("500-INTERNAL_SERVER_ERROR", "요청 처리 중 오류가 발생했습니다: " + e.getMessage()));
     }
 
     /**
@@ -513,5 +529,102 @@ public class AdminController {
     public String monitoringPage(Model model) {
         model.addAttribute("currentPage", "monitoring");
         return "admin/monitoring";
+    }
+
+    /**
+     * 계정 만료일 연장 API
+     */
+    @PutMapping("/api/users/{userId}/extend-account")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> extendAccountExpiry(@PathVariable Long userId) {
+        log.info(">> 계정 만료일 연장 요청: userId={}", userId);
+        adminService.extendAccountExpiry(userId);
+        return ResponseEntity.ok(RsData.success("계정 만료일이 성공적으로 연장되었습니다."));
+    }
+
+    /**
+     * 비밀번호 만료일 연장 API
+     */
+    @PutMapping("/api/users/{userId}/extend-password")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> extendPasswordExpiry(@PathVariable Long userId) {
+        log.info(">> 비밀번호 만료일 연장 요청: userId={}", userId);
+        adminService.extendPasswordExpiry(userId);
+        return ResponseEntity.ok(RsData.success("비밀번호 만료일이 성공적으로 연장되었습니다."));
+    }
+
+    /**
+     * 계정 비활성화 API
+     */
+    @PutMapping("/api/users/{userId}/disable")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> disableAccount(@PathVariable Long userId) {
+        log.info(">> 계정 비활성화 요청: userId={}", userId);
+        adminService.disableAccount(userId);
+        return ResponseEntity.ok(RsData.success("계정이 성공적으로 비활성화되었습니다."));
+    }
+
+    /**
+     * 계정 활성화 API
+     */
+    @PutMapping("/api/users/{userId}/enable")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> enableAccount(@PathVariable Long userId) {
+        log.info(">> 계정 활성화 요청: userId={}", userId);
+        adminService.enableAccount(userId);
+        return ResponseEntity.ok(RsData.success("계정이 성공적으로 활성화되었습니다."));
+    }
+
+    /**
+     * 계정 잠금 해제 API
+     */
+    @PutMapping("/api/users/{userId}/unlock")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Void>> unlockAccount(@PathVariable Long userId) {
+        log.info(">> 계정 잠금 해제 요청: userId={}", userId);
+        adminService.unlockAccount(userId);
+        return ResponseEntity.ok(RsData.success("계정이 성공적으로 잠금 해제되었습니다."));
+    }
+
+    /**
+     * 관리자 설정 페이지
+     */
+    @RoleRequired(UserRole.ADMIN)
+    @GetMapping("/settings")
+    public String settingsPage(Model model) {
+        log.info(">> 관리자 설정 페이지 요청");
+        try {
+            Map<String, Object> usersData = adminService.getAllUsers();
+            model.addAttribute("regularUsers", usersData.get("regularUsers"));
+            model.addAttribute("snsUsers", usersData.get("snsUsers"));
+        } catch (Exception e) {
+            log.error(">> 설정 페이지 사용자 목록 조회 실패: {}", e.getMessage(), e);
+            model.addAttribute("errorMessage", "사용자 목록을 불러오는 데 실패했습니다.");
+        }
+        return "admin/settings";
+    }
+
+    /**
+     * 모든 사용자의 로그인 시도 횟수 초기화 API
+     * 관리자만 사용 가능한 기능입니다.
+     */
+    @PostMapping("/api/users/reset-login-attempts")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Map<String, Integer>>> resetAllLoginAttemptCounts() {
+        log.info(">> 모든 사용자 로그인 시도 횟수 초기화 요청");
+        
+        try {
+            int updatedCount = adminService.resetAllLoginAttemptCounts();
+            
+            Map<String, Integer> result = new HashMap<>();
+            result.put("updatedCount", updatedCount);
+            
+            log.info(">> 로그인 시도 횟수 초기화 완료: {}개 계정", updatedCount);
+            return ResponseEntity.ok(RsData.success("모든 사용자의 로그인 시도 횟수가 초기화되었습니다.", result));
+        } catch (Exception e) {
+            log.error(">> 로그인 시도 횟수 초기화 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "로그인 시도 횟수 초기화 중 오류가 발생했습니다: " + e.getMessage()));
+        }
     }
 }

@@ -16,6 +16,7 @@ import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
 import org.codeNbug.mainserver.domain.ticket.repository.TicketRepository;
+import org.codeNbug.mainserver.domain.user.service.LoginAttemptService;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.user.domain.user.entity.User;
@@ -54,6 +55,7 @@ public class AdminService {
     private final TokenService tokenService;
     private final NotificationService notificationService;
     private final PurchaseRepository purchaseRepository;
+    private final LoginAttemptService loginAttemptService;
 
     /**
      * 관리자 회원가입 서비스
@@ -592,5 +594,127 @@ public class AdminService {
         }
 
         log.info(">> 이벤트 삭제 처리 완료: eventId={}", eventId);
+    }
+
+    /**
+     * 계정 만료일을 연장합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void extendAccountExpiry(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setAccountExpiredAt(LocalDateTime.now().plusMonths(6));
+        userRepository.save(user);
+    }
+
+    /**
+     * 비밀번호 만료일을 연장합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void extendPasswordExpiry(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setPasswordExpiredAt(LocalDateTime.now().plusMonths(3));
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정을 비활성화합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void disableAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setEnabled(false);
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정을 활성화합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void enableAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        user.setEnabled(true);
+        userRepository.save(user);
+    }
+
+    /**
+     * 계정 잠금을 해제합니다.
+     *
+     * @param userId 사용자 ID
+     */
+    public void unlockAccount(Long userId) {
+        log.info(">> 관리자에 의한 계정 잠금 해제: userId={}", userId);
+        
+        // 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.error(">> 계정 잠금 해제 실패: 사용자를 찾을 수 없음 - userId={}", userId);
+                    return new IllegalArgumentException("사용자를 찾을 수 없습니다.");
+                });
+        
+        // 사용자 이메일 가져오기
+        String email = user.getEmail();
+        
+        // 기존 잠금 상태 확인
+        boolean isLockedInRedis = loginAttemptService.isAccountLocked(email);
+        boolean isLockedInDb = user.isAccountLocked();
+        
+        log.info(">> 계정 잠금 상태: userId={}, email={}, Redis 잠금={}, DB 잠금={}", 
+                userId, email, isLockedInRedis, isLockedInDb);
+        
+        // 계정 잠금 해제
+        boolean success = loginAttemptService.resetAttempt(userId);
+        
+        if (success) {
+            log.info(">> 계정 잠금 해제 성공: userId={}, email={}", userId, email);
+        } else {
+            // Redis에서 직접 계정 잠금 해제 시도 (백업 방법)
+            if (isLockedInRedis) {
+                try {
+                    log.info(">> 백업 방법으로 Redis 계정 잠금 해제 시도: email={}", email);
+                    String key = "accountLock:" + email;
+                    boolean deleted = loginAttemptService.getRedisTemplate().delete(key);
+                    log.info(">> Redis 직접 삭제 결과: {}", deleted);
+                    
+                    // DB에서도 잠금 상태 해제
+                    if (isLockedInDb) {
+                        user.setAccountLocked(false);
+                        userRepository.save(user);
+                        log.info(">> DB 계정 잠금 상태 직접 업데이트: userId={}", userId);
+                    }
+                } catch (Exception e) {
+                    log.error(">> Redis 계정 잠금 직접 해제 중 오류: {}", e.getMessage(), e);
+                }
+            }
+            
+            log.warn(">> 표준 방법으로 계정 잠금 해제 실패, 백업 방법 시도: userId={}", userId);
+            
+            // 여전히 잠금 상태인지 확인
+            if (loginAttemptService.isAccountLocked(email)) {
+                log.error(">> 계정 잠금 해제 최종 실패: userId={}, email={}", userId, email);
+                throw new RuntimeException("계정 잠금 해제에 실패했습니다.");
+            } else {
+                log.info(">> 백업 방법으로 계정 잠금 해제 성공: userId={}, email={}", userId, email);
+            }
+        }
+    }
+
+    /**
+     * 모든 사용자의 로그인 시도 횟수를 초기화하는 관리자용 메서드
+     * 주의: 관리자 권한으로만 실행되어야 합니다.
+     *
+     * @return 초기화된 사용자 수
+     */
+    @Transactional
+    public int resetAllLoginAttemptCounts() {
+        log.info(">> 관리자에 의한 모든 사용자 로그인 시도 횟수 초기화 시작");
+        return loginAttemptService.resetAllLoginAttempts();
     }
 } 

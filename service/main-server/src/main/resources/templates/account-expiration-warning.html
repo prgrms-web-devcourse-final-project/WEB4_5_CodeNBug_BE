@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>계정 만료 예정 안내</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #2c3e50;">계정 만료 예정 안내</h2>
+        
+        <p th:text="${'안녕하세요, ' + userName + '님,'}">안녕하세요, [사용자명]님,</p>
+        
+        <p>귀하의 CodeNBug 계정이 곧 만료될 예정입니다.</p>
+        
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>만료 예정일:</strong> <span th:text="${expirationDate}">[만료일]</span></p>
+        </div>
+        
+        <p>계정을 계속 사용하시려면 아래 안내에 따라 계정을 연장해주세요:</p>
+        
+        <ol>
+            <li>CodeNBug 웹사이트에 로그인합니다.</li>
+            <li>계정 설정 페이지로 이동합니다.</li>
+            <li>계정 연장 요청을 진행합니다.</li>
+        </ol>
+        
+        <p>계정이 만료되면 서비스 이용이 제한될 수 있으니, 반드시 만료일 전에 연장해주시기 바랍니다.</p>
+        
+        <p>문의사항이 있으시면 고객센터로 연락해주세요.</p>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <p style="color: #666; font-size: 0.9em;">
+                이 메일은 발신 전용입니다.<br>
+                © 2024 CodeNBug. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

@@ -1,5 +1,6 @@
 package org.codenbug.user.security.service;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -43,21 +44,23 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true;
+        return user.getAccountExpiredAt() == null || 
+               user.getAccountExpiredAt().isAfter(LocalDateTime.now());
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !user.isAccountLocked();
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true;
+        return user.getPasswordExpiredAt() == null || 
+               user.getPasswordExpiredAt().isAfter(LocalDateTime.now());
     }
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return user.isEnabled();
     }
 }
