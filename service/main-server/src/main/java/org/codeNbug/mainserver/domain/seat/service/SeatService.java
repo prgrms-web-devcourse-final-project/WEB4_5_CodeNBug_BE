@@ -187,7 +187,6 @@ public class SeatService {
 			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 				@Override
 				public void afterCompletion(int status) {
-					// COMMITTED 상태일 때만 해제
 					if (status == STATUS_COMMITTED) {
 						redisLockService.unlock(lockKey, lockValue);
 					}
