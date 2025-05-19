@@ -20,6 +20,7 @@ dependencies {
 
     implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-binder-logback'
 
     // aws
     implementation 'com.amazonaws:aws-java-sdk-s3:1.12.653'
@@ -38,7 +39,7 @@ dependencies {
     annotationProcessor("jakarta.annotation:jakarta.annotation-api")
 
     // APT로 생성된 소스를 컴파일에 포함
-    tasks.withType(JavaCompile) {
+    tasks.withType(JavaCompile).configureEach {
         options.annotationProcessorGeneratedSourcesDirectory = file("$buildDir/generated/querydsl")
     }
     sourceSets.main.java.srcDir("$buildDir/generated/querydsl")
@@ -46,6 +47,7 @@ dependencies {
     clean {
         delete file("$buildDir/generated/querydsl")
     }
+
 
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:mysql:1.19.0")

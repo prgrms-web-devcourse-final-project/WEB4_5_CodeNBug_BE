@@ -8,6 +8,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+        use_sql_comments: false
+
 # Cookie Configuration for Production
 cookie:
   domain: ticketone.site  # 실제 프로덕션 도메인

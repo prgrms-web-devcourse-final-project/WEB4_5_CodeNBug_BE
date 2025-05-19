@@ -119,4 +119,6 @@ management:
     metrics:
       export:
         enabled: true
+      enable:
+        logback: true
 
