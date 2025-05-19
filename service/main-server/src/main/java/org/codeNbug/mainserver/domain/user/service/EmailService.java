@@ -26,17 +26,21 @@ public class EmailService {
 
     private final JavaMailSender javaMailSender;
     private final RedisRepository redisRepository;
-    private static final String senderEmail = "티켓온(Ticket-On)";
+    @Value("${spring.mail.username}")
+    private String senderEmail;
+
+    private static final String SENDER_NAME = "티켓온(Ticket-On)";
+
 
     private String createCode() {
         SecureRandom random = new SecureRandom();
         StringBuilder code = new StringBuilder();
-        
+
         // 6자리 숫자 생성
         for (int i = 0; i < 6; i++) {
             code.append(random.nextInt(10)); // 0-9 사이의 숫자
         }
-        
+
         return code.toString();
     }
 
@@ -66,7 +70,7 @@ public class EmailService {
         MimeMessage message = javaMailSender.createMimeMessage();
         message.addRecipients(MimeMessage.RecipientType.TO, email);
         message.setSubject("안녕하세요. 인증번호입니다.");
-        message.setFrom(senderEmail);
+        message.setFrom(SENDER_NAME + " <" + senderEmail + ">");
         message.setText(setContext(authCode), "utf-8", "html");
 
         // Redis 에 해당 인증코드 인증 시간 설정
@@ -98,11 +102,11 @@ public class EmailService {
     public VerificationResult verifyEmailCode(String email, String code) {
         String codeFoundByEmail = redisRepository.getData(email);
         log.info("Verifying code for email: {}, Input code: {}, Stored code: {}", email, code, codeFoundByEmail);
-        
+
         if (codeFoundByEmail == null) {
             return VerificationResult.EXPIRED;
         }
-        
+
         return codeFoundByEmail.equals(code) ? VerificationResult.SUCCESS : VerificationResult.INVALID;
     }
 }
