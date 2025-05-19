@@ -20,42 +20,17 @@
             <i class="bi bi-check-circle-fill me-2"></i>
             <span th:text="${successMessage}">성공 메시지</span>
         </div>
-        <div th:if="${syncMessage}" class="alert alert-info mb-4" role="alert">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            <span th:text="${syncMessage}">동기화 메시지</span>
-        </div>
 
         <!-- 일반 사용자 -->
         <div class="card mb-4">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white">
                 <h5 class="mb-0">일반 사용자</h5>
-                <!-- 일괄 작업 버튼 그룹 -->
-                <div class="bulk-actions" style="display: none;">
-                    <div class="btn-group">
-                        <button class="btn btn-outline-success" onclick="bulkEnableAccounts('regular')">
-                            <i class="bi bi-check-circle"></i> 일괄 활성화
-                        </button>
-                        <button class="btn btn-outline-warning" onclick="bulkDisableAccounts('regular')">
-                            <i class="bi bi-x-circle"></i> 일괄 비활성화
-                        </button>
-                        <button class="btn btn-outline-danger" onclick="bulkLockAccounts('regular')">
-                            <i class="bi bi-lock"></i> 일괄 잠금
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="bulkUnlockAccounts('regular')">
-                            <i class="bi bi-unlock"></i> 일괄 잠금 해제
-                        </button>
-                    </div>
-                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>
-                                    <input type="checkbox" class="form-check-input select-all" data-type="regular" 
-                                           onchange="toggleSelectAll(this, 'regular')">
-                                </th>
                                 <th>ID</th>
                                 <th>이메일</th>
                                 <th>이름</th>
@@ -68,16 +43,11 @@
                         </thead>
                         <tbody>
                             <tr th:if="${regularUsers == null || regularUsers.isEmpty()}">
-                                <td colspan="9" class="text-center py-4 text-muted">
+                                <td colspan="8" class="text-center py-4 text-muted">
                                     등록된 일반 사용자가 없습니다.
                                 </td>
                             </tr>
                             <tr th:each="user : ${regularUsers}">
-                                <td>
-                                    <input type="checkbox" class="form-check-input user-checkbox" 
-                                           data-type="regular" th:data-id="${user.userId}" 
-                                           onchange="checkboxChanged('regular')">
-                                </td>
                                 <td th:text="${user.userId}">1</td>
                                 <td th:text="${user.email}">user@example.com</td>
                                 <td th:text="${user.name}">홍길동</td>
@@ -88,13 +58,8 @@
                                     <span th:if="${user.enabled == false}" class="badge bg-secondary">비활성</span>
                                 </td>
                                 <td>
-                                    <span th:if="${user.accountLocked == true || (redisLockStatus != null && redisLockStatus[user.email] == true)}" 
-                                          class="badge bg-danger" data-bs-toggle="tooltip" 
-                                          th:title="${redisLockStatus != null && redisLockStatus[user.email] == true ? 
-                                                   '계정이 잠금 상태입니다. 남은 시간: ' + redisLockRemainingTime[user.email] + '분' : 
-                                                   '계정이 잠금 상태입니다. 3분 후에 자동으로 잠금이 해제되거나 관리자가 수동으로 해제할 수 있습니다.'}">잠금</span>
-                                    <span th:if="${(user.accountLocked == null || user.accountLocked == false) && (redisLockStatus == null || redisLockStatus[user.email] != true)}" 
-                                          class="badge bg-success">정상</span>
+                                    <span th:if="${user.accountLocked == true}" class="badge bg-danger" data-bs-toggle="tooltip" title="계정이 잠금 상태입니다. 3분 후에 자동으로 잠금이 해제되거나 관리자가 수동으로 해제할 수 있습니다.">잠금</span>
+                                    <span th:if="${user.accountLocked == false}" class="badge bg-success">정상</span>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
@@ -102,8 +67,7 @@
                                         <button class="btn btn-outline-info" th:onclick="'extendPasswordExpiry(' + ${user.userId} + ')'"><i class="bi bi-key"></i> 비번 연장</button>
                                         <button class="btn btn-outline-warning" th:if="${user.enabled}" th:onclick="'disableAccount(' + ${user.userId} + ')'"><i class="bi bi-person-x"></i> 비활성화</button>
                                         <button class="btn btn-outline-success" th:if="${user.enabled == false}" th:onclick="'enableAccount(' + ${user.userId} + ')'"><i class="bi bi-person-check"></i> 활성화</button>
-                                        <button class="btn btn-outline-danger" th:if="${user.accountLocked == true || (redisLockStatus != null && redisLockStatus[user.email] == true)}" 
-                                                th:onclick="'unlockAccount(' + ${user.userId} + ')'"><i class="bi bi-unlock"></i> 잠금 해제</button>
+                                        <button class="btn btn-outline-danger" th:if="${user.accountLocked == true}" th:onclick="'unlockAccount(' + ${user.userId} + ')'"><i class="bi bi-unlock"></i> 잠금 해제</button>
                                     </div>
                                 </td>
                             </tr>
@@ -115,35 +79,14 @@
 
         <!-- SNS 사용자 -->
         <div class="card">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white">
                 <h5 class="mb-0">SNS 사용자</h5>
-                <!-- 일괄 작업 버튼 그룹 -->
-                <div class="bulk-actions" style="display: none;">
-                    <div class="btn-group">
-                        <button class="btn btn-outline-success" onclick="bulkEnableAccounts('sns')">
-                            <i class="bi bi-check-circle"></i> 일괄 활성화
-                        </button>
-                        <button class="btn btn-outline-warning" onclick="bulkDisableAccounts('sns')">
-                            <i class="bi bi-x-circle"></i> 일괄 비활성화
-                        </button>
-                        <button class="btn btn-outline-danger" onclick="bulkLockAccounts('sns')">
-                            <i class="bi bi-lock"></i> 일괄 잠금
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="bulkUnlockAccounts('sns')">
-                            <i class="bi bi-unlock"></i> 일괄 잠금 해제
-                        </button>
-                    </div>
-                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>
-                                    <input type="checkbox" class="form-check-input select-all" data-type="sns" 
-                                           onchange="toggleSelectAll(this, 'sns')">
-                                </th>
                                 <th>ID</th>
                                 <th>소셜 ID</th>
                                 <th>제공자</th>
@@ -158,16 +101,11 @@
                         </thead>
                         <tbody>
                             <tr th:if="${snsUsers == null || snsUsers.isEmpty()}">
-                                <td colspan="11" class="text-center py-4 text-muted">
+                                <td colspan="10" class="text-center py-4 text-muted">
                                     등록된 SNS 사용자가 없습니다.
                                 </td>
                             </tr>
                             <tr th:each="user : ${snsUsers}">
-                                <td>
-                                    <input type="checkbox" class="form-check-input user-checkbox" 
-                                           data-type="sns" th:data-id="${user.id}" 
-                                           onchange="checkboxChanged('sns')">
-                                </td>
                                 <td th:text="${user.id}">1</td>
                                 <td th:text="${user.socialId}">social_id</td>
                                 <td th:text="${user.provider}">KAKAO</td>
@@ -180,13 +118,8 @@
                                     <span th:if="${user.enabled == false}" class="badge bg-secondary">비활성</span>
                                 </td>
                                 <td>
-                                    <span th:if="${user.accountLocked == true || (redisLockStatus != null && redisLockStatus[user.email] == true)}" 
-                                          class="badge bg-danger" data-bs-toggle="tooltip" 
-                                          th:title="${redisLockStatus != null && redisLockStatus[user.email] == true ? 
-                                                   '계정이 잠금 상태입니다. 남은 시간: ' + redisLockRemainingTime[user.email] + '분' : 
-                                                   '계정이 잠금 상태입니다. 3분 후에 자동으로 잠금이 해제되거나 관리자가 수동으로 해제할 수 있습니다.'}">잠금</span>
-                                    <span th:if="${(user.accountLocked == null || user.accountLocked == false) && (redisLockStatus == null || redisLockStatus[user.email] != true)}" 
-                                          class="badge bg-success">정상</span>
+                                    <span th:if="${user.accountLocked == true}" class="badge bg-danger" data-bs-toggle="tooltip" title="계정이 잠금 상태입니다. 3분 후에 자동으로 잠금이 해제되거나 관리자가 수동으로 해제할 수 있습니다.">잠금</span>
+                                    <span th:if="${user.accountLocked == false}" class="badge bg-success">정상</span>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
@@ -194,8 +127,7 @@
                                         <button class="btn btn-outline-info" th:onclick="'extendPasswordExpiry(' + ${user.id} + ')'"><i class="bi bi-key"></i> 비번 연장</button>
                                         <button class="btn btn-outline-warning" th:if="${user.enabled}" th:onclick="'disableAccount(' + ${user.id} + ')'"><i class="bi bi-person-x"></i> 비활성화</button>
                                         <button class="btn btn-outline-success" th:if="${user.enabled == false}" th:onclick="'enableAccount(' + ${user.id} + ')'"><i class="bi bi-person-check"></i> 활성화</button>
-                                        <button class="btn btn-outline-danger" th:if="${user.accountLocked == true || (redisLockStatus != null && redisLockStatus[user.email] == true)}" 
-                                                th:onclick="'unlockAccount(' + ${user.id} + ')'"><i class="bi bi-unlock"></i> 잠금 해제</button>
+                                        <button class="btn btn-outline-danger" th:if="${user.accountLocked == true}" th:onclick="'unlockAccount(' + ${user.id} + ')'"><i class="bi bi-unlock"></i> 잠금 해제</button>
                                     </div>
                                 </td>
                             </tr>
@@ -250,79 +182,6 @@
         function unlockAccount(userId) {
             // Redis 기반 계정 잠금: 3분 TTL로 자동 해제되며, 관리자가 수동으로 해제할 수도 있습니다.
             ajaxAction('/admin/api/users/' + userId + '/unlock', 'PUT', userId, '계정 잠금이 해제되었습니다.');
-        }
-
-        // 일괄 처리 관련 함수
-        function checkboxChanged(type) {
-            const checkboxes = document.querySelectorAll(`.user-checkbox[data-type="${type}"]:checked`);
-            const bulkActions = document.querySelectorAll(`.card-header .bulk-actions`);
-            
-            // 체크된 박스가 있으면 일괄 작업 버튼 표시, 없으면 숨김
-            bulkActions.forEach(action => {
-                if (action.closest('.card').querySelector(`.select-all[data-type="${type}"]`)) {
-                    action.style.display = checkboxes.length > 0 ? 'block' : 'none';
-                }
-            });
-        }
-
-        function toggleSelectAll(checkbox, type) {
-            const isChecked = checkbox.checked;
-            const checkboxes = document.querySelectorAll(`.user-checkbox[data-type="${type}"]`);
-            
-            checkboxes.forEach(cb => cb.checked = isChecked);
-            checkboxChanged(type);
-        }
-
-        function getSelectedUserIds(type) {
-            const checkboxes = document.querySelectorAll(`.user-checkbox[data-type="${type}"]:checked`);
-            const userIds = Array.from(checkboxes).map(cb => cb.getAttribute('data-id'));
-            return userIds;
-        }
-
-        function bulkAction(action, type, successMsg) {
-            const userIds = getSelectedUserIds(type);
-            
-            if (userIds.length === 0) {
-                showAlert('선택된 계정이 없습니다.', false);
-                return;
-            }
-            
-            if (!confirm(`선택한 ${userIds.length}개의 계정을 ${successMsg}하시겠습니까?`)) {
-                return;
-            }
-            
-            fetch(`/admin/api/users/bulk/${action}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userIds: userIds.map(id => parseInt(id, 10)) })
-            })
-            .then(res => {
-                if (res.ok) {
-                    return res.json().then(data => {
-                        showAlert(`${data.data.processedCount}개 계정이 ${successMsg}되었습니다.`, true);
-                        setTimeout(() => location.reload(), 1000);
-                    });
-                } else {
-                    return res.json().then(data => showAlert(data.msg || '실패했습니다.', false));
-                }
-            })
-            .catch(() => showAlert('요청 중 오류가 발생했습니다.', false));
-        }
-
-        function bulkEnableAccounts(type) {
-            bulkAction('enable', type, '활성화');
-        }
-
-        function bulkDisableAccounts(type) {
-            bulkAction('disable', type, '비활성화');
-        }
-
-        function bulkLockAccounts(type) {
-            bulkAction('lock', type, '잠금');
-        }
-
-        function bulkUnlockAccounts(type) {
-            bulkAction('unlock', type, '잠금 해제');
         }
     </script>
 </body>
