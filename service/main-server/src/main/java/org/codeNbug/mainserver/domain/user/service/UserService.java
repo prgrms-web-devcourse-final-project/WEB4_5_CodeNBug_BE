@@ -100,7 +100,7 @@ public class UserService {
         // 계정 잠금 상태 확인 (Redis에서 확인)
         if (loginAttemptService.isAccountLocked(request.getEmail())) {
             // 잠금 시간이 남아있는지 확인
-            long remainingMinutes = loginAttemptService.getRemainingLockTime(userId);
+            long remainingMinutes = loginAttemptService.getRemainingLockTimeByEmail(request.getEmail());
             
             log.warn(">> 로그인 실패: 잠긴 계정 - 이메일={}, 남은 시간={}분", request.getEmail(), remainingMinutes);
             throw new AuthenticationFailedException(String.format(
@@ -515,6 +515,7 @@ public class UserService {
      * 계정 자동 점검 스케줄 작업
      * 매일 새벽 2시에 실행되며, 다음 작업을 수행합니다:
      * 1. null인 login_attempt_count 필드를 0으로 초기화
+     * 2. Redis와 DB 간의 계정 상태 동기화 확인
      */
     @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시에 실행
     @Transactional
@@ -533,6 +534,25 @@ public class UserService {
                 updatedCount++;
             }
             log.info(">> login_attempt_count 초기화 완료: {}개 계정 업데이트됨", updatedCount);
+            
+            // 2. DB에는 잠겨있지만 Redis에는 잠금 정보가 없는 계정 해제
+            List<User> lockedUsers = userRepository.findByAccountLockedTrue();
+            int unlockedCount = 0;
+            
+            for (User user : lockedUsers) {
+                String email = user.getEmail();
+                if (!loginAttemptService.isAccountLocked(email)) {
+                    // Redis에는 잠금 정보가 없는 경우, DB에서도 해제
+                    user.setAccountLocked(false);
+                    userRepository.save(user);
+                    unlockedCount++;
+                    log.info(">> 불일치 계정 잠금 상태 해제: email={}", email);
+                }
+            }
+            
+            if (unlockedCount > 0) {
+                log.info(">> 계정 잠금 상태 동기화 완료: Redis와 DB 간 불일치 {}개 계정 동기화됨", unlockedCount);
+            }
             
             log.info(">> 사용자 계정 자동 유지보수 작업 완료");
         } catch (Exception e) {

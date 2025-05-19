@@ -669,8 +669,8 @@ public class AdminService {
         log.info(">> 계정 잠금 상태: userId={}, email={}, Redis 잠금={}, DB 잠금={}", 
                 userId, email, isLockedInRedis, isLockedInDb);
         
-        // 계정 잠금 해제
-        boolean success = loginAttemptService.resetAttempt(userId);
+        // 계정 잠금 해제 - 이메일 기반 메소드 사용
+        boolean success = loginAttemptService.resetAttemptByEmail(email);
         
         if (success) {
             log.info(">> 계정 잠금 해제 성공: userId={}, email={}", userId, email);
