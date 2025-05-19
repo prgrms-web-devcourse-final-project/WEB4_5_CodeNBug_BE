@@ -118,30 +118,18 @@ public class UserService {
             log.warn(">> 로그인 실패: 잘못된 비밀번호 - 이메일={}", request.getEmail());
             
             // 현재 로그인 시도 횟수 조회 (증가 전)
-            Integer beforeCount = loginAttemptService.getCurrentAttemptCount(userId);
-            log.info(">> 현재 시도 횟수(증가 전): userId={}, count={}", userId, beforeCount);
+            Integer beforeCount = loginAttemptService.getAttemptCountByEmail(request.getEmail());
+            log.info(">> 현재 시도 횟수(증가 전): 이메일={}, count={}", request.getEmail(), beforeCount);
             
-            // 로그인 시도 횟수 증가
-            boolean isLocked = loginAttemptService.incrementAttempt(userId);
+            // 로그인 시도 횟수 증가 (이메일 기반)
+            boolean isLocked = loginAttemptService.incrementAttemptByEmail(request.getEmail(), user.getMaxLoginAttempts());
             
-            // 확인을 위해 증가 후 시도 횟수 다시 조회
-            Integer afterCount = loginAttemptService.getCurrentAttemptCount(userId);
-            log.info(">> 현재 시도 횟수(증가 후): userId={}, count={}, 잠금={}", userId, afterCount, isLocked);
-            
-            // 캐시 문제로 업데이트가 안 된 경우를 대비해 직접 강제 설정
-            if (afterCount == null || afterCount.equals(beforeCount)) {
-                int newCount = (beforeCount == null ? 0 : beforeCount) + 1;
-                int updated = userRepository.forceSetLoginAttemptCount(userId, newCount);
-                log.info(">> 백업 방법으로 시도 횟수 증가: userId={}, 이전={}, 이후={}, 성공={}", 
-                        userId, beforeCount, newCount, updated > 0);
-                
-                // 업데이트 후 다시 확인
-                afterCount = loginAttemptService.getCurrentAttemptCount(userId);
-                log.info(">> 최종 시도 횟수: userId={}, count={}", userId, afterCount);
-            }
+            // 증가 후 시도 횟수 조회
+            Integer afterCount = loginAttemptService.getAttemptCountByEmail(request.getEmail());
+            log.info(">> 현재 시도 횟수(증가 후): 이메일={}, count={}, 잠금={}", request.getEmail(), afterCount, isLocked);
             
             int maxAttempts = user.getMaxLoginAttempts();
-            int remainingAttempts = Math.max(0, maxAttempts - (afterCount != null ? afterCount : 0));
+            int remainingAttempts = Math.max(0, maxAttempts - afterCount);
             
             if (isLocked || remainingAttempts <= 0) {
                 // 계정 잠금 상태가 확인되면 User 엔티티의 accountLocked 필드도 업데이트
@@ -156,8 +144,11 @@ public class UserService {
                     }
                 }
                 
+                // 계정 잠금 시간 조회 (Redis에서)
+                long remainingLockTime = loginAttemptService.getRemainingLockTimeByEmail(request.getEmail());
+                
                 throw new AuthenticationFailedException("로그인 시도 횟수가 초과되어 계정이 잠겼습니다. " + 
-                    user.getAccountLockDurationMinutes() + "분 후에 다시 시도해주세요.");
+                    (remainingLockTime > 0 ? remainingLockTime : user.getAccountLockDurationMinutes()) + "분 후에 다시 시도해주세요.");
             } else {
                 throw new AuthenticationFailedException(String.format(
                     "비밀번호가 일치하지 않습니다. 남은 시도 횟수: %d회", remainingAttempts));
@@ -165,7 +156,7 @@ public class UserService {
         }
 
         // 로그인 성공 처리
-        boolean resetSuccess = loginAttemptService.resetAttempt(userId);
+        boolean resetSuccess = loginAttemptService.resetAttemptByEmail(request.getEmail());
         log.info(">> 로그인 성공: 시도 횟수 초기화 성공={}", resetSuccess);
         
         // 한 달에 1번 이상 로그인한 경우 비밀번호 만료일 연장

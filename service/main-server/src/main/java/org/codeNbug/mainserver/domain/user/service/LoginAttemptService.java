@@ -15,8 +15,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 로그인 시도 횟수 관리 서비스
- * JdbcTemplate을 사용해 데이터베이스에 직접 접근하여 로그인 시도 횟수를 관리합니다.
- * 계정 잠금은 Redis를 통해 TTL로 자동 관리됩니다.
+ * Redis를 사용하여 로그인 시도 횟수를 관리합니다.
+ * 계정 잠금은 Redis의 TTL을 활용해 자동 관리됩니다.
  */
 @Service
 @RequiredArgsConstructor
@@ -32,17 +32,22 @@ public class LoginAttemptService {
     // 계정 잠금 지속 시간 (분)
     private static final int LOCK_DURATION_MINUTES = 3;
     
+    // 로그인 시도 횟수 만료 시간 (분) - 일정 시간 후 시도 횟수 리셋
+    private static final int ATTEMPT_EXPIRY_MINUTES = 30;
+    
     // Redis 계정 잠금 키 접두사
     private static final String ACCOUNT_LOCK_PREFIX = "accountLock:";
+    
+    // Redis 로그인 시도 횟수 키 접두사
+    private static final String LOGIN_ATTEMPT_PREFIX = "loginAttempt:";
 
     /**
      * 로그인 시도 횟수 증가 및 계정 잠금 상태 업데이트
-     * 항상 새로운 트랜잭션에서 실행되어 DB에 즉시 반영됩니다.
+     * Redis를 사용해 빠르게 처리합니다.
      *
      * @param userId 사용자 ID
      * @return true: 계정이 잠겼음, false: 계정이 잠기지 않음
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean incrementAttempt(Long userId) {
         if (userId == null) {
             log.warn(">> 로그인 시도 횟수 증가 실패: 사용자 ID가 null입니다.");
@@ -52,22 +57,25 @@ public class LoginAttemptService {
         try {
             log.info(">> 로그인 시도 횟수 증가 시작: userId={}", userId);
             
-            // 현재 시간
-            LocalDateTime now = LocalDateTime.now();
-            
-            // 단순 SQL 쿼리로 카운트 증가 (MySQL 구문)
-            String sql = "UPDATE users SET login_attempt_count = IFNULL(login_attempt_count, 0) + 1, " +
-                         "last_login_at = ? WHERE user_id = ?";
-            int updatedRows = jdbcTemplate.update(sql, now, userId);
-            
-            if (updatedRows != 1) {
-                log.warn(">> 로그인 시도 횟수 업데이트 실패: 업데이트된 행 수={}", updatedRows);
+            // 사용자 이메일 조회
+            String email = getUserEmail(userId);
+            if (email == null) {
+                log.warn(">> 로그인 시도 횟수 증가 실패: 사용자 이메일을 찾을 수 없음, userId={}", userId);
                 return false;
             }
             
-            // 현재 시도 횟수 조회
-            Integer currentAttempts = getCurrentAttemptCount(userId);
-            log.info(">> 로그인 시도 횟수 업데이트 성공: userId={}, 현재 시도 횟수={}", userId, currentAttempts);
+            // Redis 키 생성
+            String attemptKey = LOGIN_ATTEMPT_PREFIX + email;
+            
+            // 현재 시도 횟수 가져오기 및 증가
+            Long currentAttempts = redisTemplate.opsForValue().increment(attemptKey);
+            
+            // 키가 없었다면 만료 시간 설정 (30분 후 자동 삭제)
+            if (currentAttempts != null && currentAttempts == 1) {
+                redisTemplate.expire(attemptKey, ATTEMPT_EXPIRY_MINUTES, TimeUnit.MINUTES);
+            }
+            
+            log.info(">> Redis 로그인 시도 횟수 증가: email={}, 현재 시도 횟수={}", email, currentAttempts);
             
             // 사용자의 최대 시도 횟수 조회
             Integer maxAttempts = getUserMaxLoginAttempts(userId);
@@ -75,25 +83,57 @@ public class LoginAttemptService {
                 maxAttempts = MAX_ATTEMPTS; // 기본값 사용
             }
             
+            // 데이터베이스 동기화 (빈도를 줄이기 위해 최대 시도 횟수 도달하거나 실패 횟수가 1의 배수일 때만 업데이트)
+            // 로그인 성공 시 resetAttempt에서 데이터베이스를 업데이트하므로 낮은 빈도로 동기화해도 충분함
+            if (currentAttempts != null && currentAttempts % 1 == 0) {
+                syncAttemptCountToDb(userId, currentAttempts.intValue());
+            }
+            
             // 최대 시도 횟수 초과 시 계정 잠금
             if (currentAttempts != null && currentAttempts >= maxAttempts) {
-                // 사용자 이메일 조회
-                String email = getUserEmail(userId);
-                if (email != null) {
-                    // Redis에 계정 잠금 설정
-                    lockAccountInRedis(email);
-                    log.info(">> 계정이 잠겼습니다: userId={}, email={}, 시도 횟수={}/{}", 
-                            userId, email, currentAttempts, maxAttempts);
-                    return true;
-                } else {
-                    log.warn(">> 계정 잠금 실패: 사용자 이메일을 찾을 수 없음, userId={}", userId);
-                }
+                // Redis에 계정 잠금 설정
+                lockAccountInRedis(email);
+                log.info(">> 계정이 잠겼습니다: userId={}, email={}, 시도 횟수={}/{}", 
+                        userId, email, currentAttempts, maxAttempts);
+                
+                // 데이터베이스 동기화
+                updateAccountLockedInDb(email, true);
+                
+                return true;
             }
             
             return false;
         } catch (Exception e) {
             log.error(">> 로그인 시도 횟수 업데이트 중 오류 발생: {}", e.getMessage(), e);
             return false;
+        }
+    }
+    
+    /**
+     * 데이터베이스에 시도 횟수 동기화 (백업용)
+     */
+    private void syncAttemptCountToDb(Long userId, int count) {
+        try {
+            String sql = "UPDATE users SET login_attempt_count = ?, last_login_at = ? WHERE user_id = ?";
+            int updatedRows = jdbcTemplate.update(sql, count, LocalDateTime.now(), userId);
+            log.debug(">> DB 로그인 시도 횟수 동기화: userId={}, count={}, 성공={}", 
+                    userId, count, updatedRows > 0);
+        } catch (Exception e) {
+            log.warn(">> DB 로그인 시도 횟수 동기화 실패: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * 데이터베이스에 계정 잠금 상태 동기화 (백업용)
+     */
+    private void updateAccountLockedInDb(String email, boolean locked) {
+        try {
+            String sql = "UPDATE users SET account_locked = ? WHERE email = ?";
+            int updatedRows = jdbcTemplate.update(sql, locked, email);
+            log.debug(">> DB 계정 잠금 상태 동기화: email={}, locked={}, 성공={}", 
+                    email, locked, updatedRows > 0);
+        } catch (Exception e) {
+            log.warn(">> DB 계정 잠금 상태 동기화 실패: {}", e.getMessage());
         }
     }
     
@@ -109,16 +149,6 @@ public class LoginAttemptService {
                                       LOCK_DURATION_MINUTES, 
                                       TimeUnit.MINUTES);
         log.info(">> Redis에 계정 잠금 설정 완료: email={}, 잠금시간={}분", email, LOCK_DURATION_MINUTES);
-        
-        // 데이터베이스의 User 엔티티 accountLocked 필드도 업데이트
-        try {
-            String sql = "UPDATE users SET account_locked = true WHERE email = ?";
-            int updatedRows = jdbcTemplate.update(sql, email);
-            log.info(">> 데이터베이스 계정 잠금 상태 업데이트: email={}, 성공={}", 
-                    email, updatedRows > 0);
-        } catch (Exception e) {
-            log.error(">> 데이터베이스 계정 잠금 상태 업데이트 실패: {}", e.getMessage(), e);
-        }
     }
     
     /**
@@ -139,12 +169,10 @@ public class LoginAttemptService {
     
     /**
      * 로그인 시도 횟수 초기화 및 계정 잠금 해제
-     * 항상 새로운 트랜잭션에서 실행되어 DB에 즉시 반영됩니다.
      *
      * @param userId 사용자 ID
      * @return 업데이트 성공 여부
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean resetAttempt(Long userId) {
         if (userId == null) {
             log.warn(">> 로그인 시도 횟수 초기화 실패: 사용자 ID가 null입니다.");
@@ -154,23 +182,24 @@ public class LoginAttemptService {
         try {
             log.info(">> 로그인 시도 횟수 초기화 시작: userId={}", userId);
             
-            // 현재 시간
-            LocalDateTime now = LocalDateTime.now();
-            
-            // 단순 SQL 쿼리로 초기화 (account_locked는 Redis로 관리하므로 업데이트 X)
-            String sql = "UPDATE users SET login_attempt_count = 0, last_login_at = ? WHERE user_id = ?";
-            int updatedRows = jdbcTemplate.update(sql, now, userId);
-            
-            if (updatedRows != 1) {
-                log.warn(">> 로그인 시도 횟수 초기화 실패: 업데이트된 행 수={}", updatedRows);
+            // 사용자 이메일 조회
+            String email = getUserEmail(userId);
+            if (email == null) {
+                log.warn(">> 로그인 시도 횟수 초기화 실패: 사용자 이메일을 찾을 수 없음, userId={}", userId);
                 return false;
             }
             
-            // 사용자 이메일 조회 및 Redis에서 잠금 키 삭제
-            String email = getUserEmail(userId);
-            if (email != null) {
-                unlockAccountInRedis(email);
-            }
+            // Redis에서 로그인 시도 횟수 키 삭제
+            String attemptKey = LOGIN_ATTEMPT_PREFIX + email;
+            Boolean attemptDeleted = redisTemplate.delete(attemptKey);
+            log.info(">> Redis에서 로그인 시도 횟수 초기화: email={}, 성공={}", 
+                    email, attemptDeleted != null && attemptDeleted);
+            
+            // Redis에서 계정 잠금 키 삭제
+            unlockAccountInRedis(email);
+            
+            // 데이터베이스 동기화 (백업)
+            syncAttemptCountToDb(userId, 0);
             
             log.info(">> 로그인 시도 횟수 초기화 성공: userId={}", userId);
             return true;
@@ -191,15 +220,8 @@ public class LoginAttemptService {
         log.info(">> Redis에서 계정 잠금 해제: email={}, 성공={}", 
                 email, deleted != null && deleted);
         
-        // 데이터베이스의 User 엔티티 accountLocked 필드도 업데이트
-        try {
-            String sql = "UPDATE users SET account_locked = false WHERE email = ?";
-            int updatedRows = jdbcTemplate.update(sql, email);
-            log.info(">> 데이터베이스 계정 잠금 상태 해제: email={}, 성공={}", 
-                    email, updatedRows > 0);
-        } catch (Exception e) {
-            log.error(">> 데이터베이스 계정 잠금 상태 해제 실패: {}", e.getMessage(), e);
-        }
+        // 데이터베이스 동기화 (백업)
+        updateAccountLockedInDb(email, false);
     }
     
     /**
@@ -210,11 +232,38 @@ public class LoginAttemptService {
      */
     public Integer getCurrentAttemptCount(Long userId) {
         try {
+            // 사용자 이메일 조회
+            String email = getUserEmail(userId);
+            if (email == null) {
+                return 0;
+            }
+            
+            // Redis에서 시도 횟수 조회
+            String attemptKey = LOGIN_ATTEMPT_PREFIX + email;
+            String countStr = redisTemplate.opsForValue().get(attemptKey);
+            
+            if (countStr != null) {
+                try {
+                    return Integer.parseInt(countStr);
+                } catch (NumberFormatException e) {
+                    log.warn(">> Redis 로그인 시도 횟수 변환 오류: {}", e.getMessage());
+                }
+            }
+            
+            // Redis에 없으면 데이터베이스에서 조회 (백업)
             String sql = "SELECT login_attempt_count FROM users WHERE user_id = ?";
-            return jdbcTemplate.queryForObject(sql, Integer.class, userId);
+            Integer dbCount = jdbcTemplate.queryForObject(sql, Integer.class, userId);
+            
+            // 데이터베이스 값이 있고 Redis에 없으면 Redis 동기화
+            if (dbCount != null && dbCount > 0 && countStr == null) {
+                redisTemplate.opsForValue().set(attemptKey, dbCount.toString(), ATTEMPT_EXPIRY_MINUTES, TimeUnit.MINUTES);
+                log.debug(">> Redis에 로그인 시도 횟수 동기화: email={}, count={}", email, dbCount);
+            }
+            
+            return dbCount != null ? dbCount : 0;
         } catch (Exception e) {
             log.warn(">> 로그인 시도 횟수 조회 중 오류 발생: {}", e.getMessage());
-            return null;
+            return 0;
         }
     }
     
@@ -311,7 +360,6 @@ public class LoginAttemptService {
     
     /**
      * 모든 사용자의 로그인 시도 횟수 초기화
-     * 항상 새로운 트랜잭션에서 실행되어 DB에 즉시 반영됩니다.
      *
      * @return 초기화된 사용자 수
      */
@@ -320,19 +368,26 @@ public class LoginAttemptService {
         try {
             log.info(">> 모든 사용자 로그인 시도 횟수 초기화 시작");
             
-            // 단순 SQL 쿼리로 모든 사용자 초기화 (account_locked도 함께 초기화)
-            String sql = "UPDATE users SET login_attempt_count = 0, account_locked = false";
-            int updatedRows = jdbcTemplate.update(sql);
-            
-            // Redis에서 모든 계정 잠금 키 삭제
-            Set<String> keys = redisTemplate.keys(ACCOUNT_LOCK_PREFIX + "*");
-            if (keys != null && !keys.isEmpty()) {
-                redisTemplate.delete(keys);
-                log.info(">> Redis에서 모든 계정 잠금 키 삭제 완료: 키 수={}", keys.size());
+            // Redis에서 모든 로그인 시도 횟수 키 삭제
+            Set<String> attemptKeys = redisTemplate.keys(LOGIN_ATTEMPT_PREFIX + "*");
+            if (attemptKeys != null && !attemptKeys.isEmpty()) {
+                redisTemplate.delete(attemptKeys);
+                log.info(">> Redis에서 모든 로그인 시도 키 삭제 완료: 키 수={}", attemptKeys.size());
             }
             
-            log.info(">> 모든 사용자 로그인 시도 횟수 초기화 완료: 초기화된 계정 수={}", updatedRows);
-            return updatedRows;
+            // Redis에서 모든 계정 잠금 키 삭제
+            Set<String> lockKeys = redisTemplate.keys(ACCOUNT_LOCK_PREFIX + "*");
+            if (lockKeys != null && !lockKeys.isEmpty()) {
+                redisTemplate.delete(lockKeys);
+                log.info(">> Redis에서 모든 계정 잠금 키 삭제 완료: 키 수={}", lockKeys.size());
+            }
+            
+            // 단순 SQL 쿼리로 모든 사용자 초기화 (백업용)
+            String sql = "UPDATE users SET login_attempt_count = 0, account_locked = false";
+            int updatedRows = jdbcTemplate.update(sql);
+            log.info(">> 데이터베이스 로그인 시도 횟수 초기화 완료: 초기화된 계정 수={}", updatedRows);
+            
+            return (attemptKeys != null ? attemptKeys.size() : 0) + (lockKeys != null ? lockKeys.size() : 0);
         } catch (Exception e) {
             log.error(">> 모든 사용자 로그인 시도 횟수 초기화 중 오류 발생: {}", e.getMessage(), e);
             return 0;
@@ -346,5 +401,136 @@ public class LoginAttemptService {
      */
     public StringRedisTemplate getRedisTemplate() {
         return redisTemplate;
+    }
+
+    /**
+     * 사용자 이메일로 로그인 시도 횟수 조회
+     *
+     * @param email 사용자 이메일
+     * @return 현재 로그인 시도 횟수
+     */
+    public Integer getAttemptCountByEmail(String email) {
+        try {
+            if (email == null || email.isEmpty()) {
+                return 0;
+            }
+            
+            // Redis에서 시도 횟수 조회
+            String attemptKey = LOGIN_ATTEMPT_PREFIX + email;
+            String countStr = redisTemplate.opsForValue().get(attemptKey);
+            
+            if (countStr != null) {
+                try {
+                    return Integer.parseInt(countStr);
+                } catch (NumberFormatException e) {
+                    log.warn(">> Redis 로그인 시도 횟수 변환 오류: {}", e.getMessage());
+                }
+            }
+            
+            // Redis에 없으면 0 반환 (새로운 시도로 간주)
+            return 0;
+        } catch (Exception e) {
+            log.warn(">> 로그인 시도 횟수 조회 중 오류 발생: {}", e.getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * 사용자 이메일로 로그인 시도 횟수 초기화
+     *
+     * @param email 사용자 이메일
+     * @return 초기화 성공 여부
+     */
+    public boolean resetAttemptByEmail(String email) {
+        try {
+            if (email == null || email.isEmpty()) {
+                return false;
+            }
+            
+            // Redis에서 로그인 시도 횟수 키 삭제
+            String attemptKey = LOGIN_ATTEMPT_PREFIX + email;
+            Boolean attemptDeleted = redisTemplate.delete(attemptKey);
+            
+            // Redis에서 계정 잠금 키 삭제
+            unlockAccountInRedis(email);
+            
+            log.info(">> 이메일 기반 로그인 시도 횟수 초기화: email={}, 성공={}", 
+                    email, attemptDeleted != null && attemptDeleted);
+            
+            return true;
+        } catch (Exception e) {
+            log.warn(">> 이메일 기반 로그인 시도 횟수 초기화 중 오류 발생: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * 사용자 이메일로 로그인 시도 횟수 증가
+     *
+     * @param email 사용자 이메일
+     * @param maxAttempts 최대 시도 횟수 (기본값: 5)
+     * @return true: 계정이 잠겼음, false: 계정이 잠기지 않음
+     */
+    public boolean incrementAttemptByEmail(String email, Integer maxAttempts) {
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+        
+        try {
+            log.info(">> 이메일 기반 로그인 시도 횟수 증가 시작: email={}", email);
+            
+            // Redis 키 생성
+            String attemptKey = LOGIN_ATTEMPT_PREFIX + email;
+            
+            // 현재 시도 횟수 가져오기 및 증가
+            Long currentAttempts = redisTemplate.opsForValue().increment(attemptKey);
+            
+            // 키가 없었다면 만료 시간 설정 (30분 후 자동 삭제)
+            if (currentAttempts != null && currentAttempts == 1) {
+                redisTemplate.expire(attemptKey, ATTEMPT_EXPIRY_MINUTES, TimeUnit.MINUTES);
+            }
+            
+            log.info(">> Redis 이메일 기반 로그인 시도 횟수 증가: email={}, 현재 시도 횟수={}", 
+                    email, currentAttempts);
+            
+            // 최대 시도 횟수 처리
+            int maxAllowedAttempts = maxAttempts != null ? maxAttempts : MAX_ATTEMPTS;
+            
+            // 최대 시도 횟수 초과 시 계정 잠금
+            if (currentAttempts != null && currentAttempts >= maxAllowedAttempts) {
+                // Redis에 계정 잠금 설정
+                lockAccountInRedis(email);
+                log.info(">> 이메일 기반 계정이 잠겼습니다: email={}, 시도 횟수={}/{}", 
+                        email, currentAttempts, maxAllowedAttempts);
+                return true;
+            }
+            
+            return false;
+        } catch (Exception e) {
+            log.error(">> 이메일 기반 로그인 시도 횟수 업데이트 중 오류 발생: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * 이메일로 계정 잠금 시간 조회
+     * 
+     * @param email 사용자 이메일
+     * @return 남은 잠금 시간(분), 잠금 시간이 지났거나 잠기지 않은 경우 0
+     */
+    public long getRemainingLockTimeByEmail(String email) {
+        try {
+            if (email == null || email.isEmpty()) {
+                return 0;
+            }
+            
+            String key = ACCOUNT_LOCK_PREFIX + email;
+            Long ttl = redisTemplate.getExpire(key, TimeUnit.MINUTES);
+            
+            return ttl != null && ttl > 0 ? ttl : 0;
+        } catch (Exception e) {
+            log.warn(">> 이메일 기반 계정 잠금 시간 조회 중 오류 발생: {}", e.getMessage());
+            return 0;
+        }
     }
 } 
