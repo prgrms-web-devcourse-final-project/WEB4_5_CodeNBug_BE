@@ -15,7 +15,7 @@ spring:
       port: 6379
       host: localhost
   datasource:
-    url: jdbc:mysql://localhost:3306/ticketone?rewriteBatchedStatements=true
+    url: jdbc:mysql://localhost:3306/ticketone
     username: ON_SECRET
     password: ON_SECRET
     hikari:
@@ -114,7 +114,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,metrics,info,prometheus
   prometheus:
     metrics:
       export:
