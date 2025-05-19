@@ -347,4 +347,38 @@ public class LoginAttemptService {
     public StringRedisTemplate getRedisTemplate() {
         return redisTemplate;
     }
+
+    /**
+     * 계정을 직접 잠그는 메서드
+     * 관리자 기능에서 사용됩니다.
+     *
+     * @param email 사용자 이메일
+     * @return 잠금 성공 여부
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean lockAccount(String email) {
+        if (email == null || email.isEmpty()) {
+            log.warn(">> 계정 잠금 실패: 이메일이 null이거나 비어 있습니다.");
+            return false;
+        }
+        
+        try {
+            log.info(">> 관리자에 의한 계정 잠금 시작: email={}", email);
+            
+            // 이미 잠겨있는지 확인
+            if (isAccountLocked(email)) {
+                log.info(">> 이미 잠긴 계정입니다: email={}", email);
+                return true;
+            }
+            
+            // Redis에 계정 잠금 설정
+            lockAccountInRedis(email);
+            
+            log.info(">> 관리자에 의한 계정 잠금 완료: email={}", email);
+            return true;
+        } catch (Exception e) {
+            log.error(">> 계정 잠금 중 오류 발생: {}", e.getMessage(), e);
+            return false;
+        }
+    }
 } 
