@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.domain.seat.service;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,6 +59,11 @@ public class SeatService {
 		return new SeatLayoutResponse(seatList, seatLayout);
 	}
 
+	public List<Seat> findSeatsByEventId(Long eventId) {
+		log.info("💺 SeatService - findSeatsByEventId 호출됨, eventId: {}", eventId);
+		return seatRepository.findAvailableSeatsByEventId(eventId);
+	}
+
 	/**
 	 * 좌석 선택 요청에 따라 Redis 락을 걸고, DB에 좌석 상태 반영
 	 *
@@ -69,31 +75,40 @@ public class SeatService {
 	 */
 	@Transactional
 	public SeatSelectResponse selectSeat(Long eventId, SeatSelectRequest seatSelectRequest, Long userId) {
+		log.info("✅ selectSeat 진입 성공");
+
 		if (userId == null || userId <= 0) {
 			throw new IllegalArgumentException("로그인된 사용자가 없습니다.");
 		}
+
+		log.info("eventId: {}", eventId);
+		Event event1 = eventRepository.findById(eventId).orElse(null);
+		System.out.println("📌 테스트에서 조회된 event: " + event1);
 
 		Event event = eventRepository.findById(eventId)
 			.orElseThrow(() -> new IllegalArgumentException("행사가 존재하지 않습니다."));
 
 		List<Long> selectedSeats = seatSelectRequest.getSeatList();
+		List<Long> reservedSeatIds;
 
 		if (event.getSeatSelectable()) {
+			log.info("3");
 			// 지정석 예매 처리
 			if (selectedSeats != null && selectedSeats.size() > 4) {
 				throw new BadRequestException("최대 4개의 좌석만 선택할 수 있습니다.");
 			}
-			selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
+			reservedSeatIds = selectSeats(selectedSeats, userId, eventId, true, seatSelectRequest.getTicketCount());
 		} else {
 			// 미지정석 예매 처리
+			log.info("4");
 			if (selectedSeats != null && !selectedSeats.isEmpty()) {
 				throw new BadRequestException("[selectSeats] 미지정석 예매 시 좌석 목록은 제공되지 않아야 합니다.");
 			}
-			selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
+			reservedSeatIds = selectSeats(null, userId, eventId, false, seatSelectRequest.getTicketCount());
 		}
 
 		SeatSelectResponse seatSelectResponse = new SeatSelectResponse();
-		seatSelectResponse.setSeatList(selectedSeats);
+		seatSelectResponse.setSeatList(reservedSeatIds);
 		return seatSelectResponse;
 	}
 
@@ -106,8 +121,10 @@ public class SeatService {
 	 * @param isDesignated  지정석 여부
 	 * @param ticketCount   예매할 좌석 수 (미지정석 예매 시 사용)
 	 */
-	private void selectSeats(List<Long> selectedSeats, Long userId, Long eventId, boolean isDesignated,
+	private List<Long> selectSeats(List<Long> selectedSeats, Long userId, Long eventId, boolean isDesignated,
 		int ticketCount) {
+		List<Long> reservedSeatIds = new ArrayList<>();
+		log.info("selectedSeats: {}", selectedSeats);
 		if (isDesignated) {
 			// 지정석 예매 처리
 			for (Long seatId : selectedSeats) {
@@ -119,6 +136,7 @@ public class SeatService {
 				}
 
 				reserveSeat(seat, userId, eventId, seatId);
+				reservedSeatIds.add(seatId);
 			}
 		} else {
 			// 미지정석 예매 처리
@@ -133,8 +151,10 @@ public class SeatService {
 
 			for (Seat seat : availableSeats) {
 				reserveSeat(seat, userId, eventId, seat.getId());
+				reservedSeatIds.add(seat.getId());
 			}
 		}
+		return reservedSeatIds;
 	}
 
 	/**
@@ -149,13 +169,19 @@ public class SeatService {
 		String lockKey = SEAT_LOCK_KEY_PREFIX + userId + ":" + eventId + ":" + seatId;
 		String lockValue = UUID.randomUUID().toString();
 
+		log.info("Trying to acquire lock for seat {} with key {}", seatId, lockKey);
 		boolean lockSuccess = redisLockService.tryLock(lockKey, lockValue, Duration.ofMinutes(5));
+		log.info("Lock result for {} = {}", seatId, lockSuccess);
 		if (!lockSuccess) {
 			throw new BadRequestException("[reserveSeat] 이미 선택된 좌석이 있습니다.");
 		}
 
-		seat.reserve();
-		seatRepository.save(seat);
+		try {
+			seat.reserve();
+			seatRepository.save(seat);
+		} finally {
+			redisLockService.unlock(lockKey, lockValue);
+		}
 	}
 
 	/**
@@ -184,7 +210,7 @@ public class SeatService {
 			Seat seat = seatRepository.findById(seatId)
 				.orElseThrow(() -> new IllegalArgumentException("[cancelSeat] 좌석을 찾을 수 없습니다. seatId: " + seatId));
 			seat.cancelReserve();
-			redisLockService.unlock(lockKey, null);
+			redisLockService.unlock(lockKey, lockValue);
 		}
 	}
 }
