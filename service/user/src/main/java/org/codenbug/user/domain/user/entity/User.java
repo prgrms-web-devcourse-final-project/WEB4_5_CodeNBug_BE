@@ -70,6 +70,9 @@ public class User {
     @Column(name = "account_expired_at")
     private LocalDateTime accountExpiredAt;
 
+    @Column(name = "password_expired_at")
+    private LocalDateTime passwordExpiredAt;
+
     @Builder.Default
     @Column(name = "account_locked")
     private Boolean accountLocked = false;
@@ -77,13 +80,6 @@ public class User {
     @Builder.Default
     @Column(name = "enabled")
     private Boolean enabled = true;
-
-    @Column(name = "password_expired_at")
-    private LocalDateTime passwordExpiredAt;
-
-    @Builder.Default
-    @Column(name = "login_attempt_count", nullable = false)
-    private Integer loginAttemptCount = 0;
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
@@ -126,18 +122,6 @@ public class User {
         this.role = role;
     }
 
-    public void setLoginAttemptCount(int loginAttemptCount) {
-        this.loginAttemptCount = loginAttemptCount;
-    }
-
-    public void setLastLoginAt(LocalDateTime lastLoginAt) {
-        this.lastLoginAt = lastLoginAt;
-    }
-
-    public void setAccountLocked(boolean accountLocked) {
-        this.accountLocked = accountLocked;
-    }
-
     public void setAccountExpiredAt(LocalDateTime accountExpiredAt) {
         this.accountExpiredAt = accountExpiredAt;
     }
@@ -148,6 +132,14 @@ public class User {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public void setAccountLocked(boolean accountLocked) {
+        this.accountLocked = accountLocked;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 
     /**

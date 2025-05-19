@@ -514,8 +514,7 @@ public class UserService {
     /**
      * 계정 자동 점검 스케줄 작업
      * 매일 새벽 2시에 실행되며, 다음 작업을 수행합니다:
-     * 1. null인 login_attempt_count 필드를 0으로 초기화
-     * 2. Redis와 DB 간의 계정 상태 동기화 확인
+     * 1. Redis와 DB 간의 계정 상태 동기화 확인
      */
     @Scheduled(cron = "0 0 2 * * ?") // 매일 새벽 2시에 실행
     @Transactional
@@ -523,19 +522,7 @@ public class UserService {
         log.info(">> 사용자 계정 자동 유지보수 작업 시작");
         
         try {
-            // 1. null인 login_attempt_count 필드를 0으로 초기화
-            List<User> usersWithNullCount = userRepository.findByLoginAttemptCountIsNull();
-            log.info(">> login_attempt_count가 null인 사용자 수: {}", usersWithNullCount.size());
-            
-            int updatedCount = 0;
-            for (User user : usersWithNullCount) {
-                user.setLoginAttemptCount(0);
-                userRepository.save(user);
-                updatedCount++;
-            }
-            log.info(">> login_attempt_count 초기화 완료: {}개 계정 업데이트됨", updatedCount);
-            
-            // 2. DB에는 잠겨있지만 Redis에는 잠금 정보가 없는 계정 해제
+            // DB에는 잠겨있지만 Redis에는 잠금 정보가 없는 계정 해제
             List<User> lockedUsers = userRepository.findByAccountLockedTrue();
             int unlockedCount = 0;
             

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.codeNbug.mainserver.domain.admin.dto.request.AdminLoginRequest;
 import org.codeNbug.mainserver.domain.admin.dto.request.AdminSignupRequest;
+import org.codeNbug.mainserver.domain.admin.dto.request.BulkUserIdsRequest;
 import org.codeNbug.mainserver.domain.admin.dto.request.RoleUpdateRequest;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminLoginResponse;
 import org.codeNbug.mainserver.domain.admin.dto.response.AdminSignupResponse;
@@ -282,16 +283,26 @@ public class AdminController {
         log.info(">> 사용자 관리 페이지 요청");
 
         try {
-            // 모든 사용자 목록 조회
+            // 계정 잠금 상태 동기화 먼저 수행
+            int syncCount = adminService.syncUserLockStatus();
+            log.info(">> 계정 잠금 상태 동기화 완료: {}개 계정", syncCount);
+            
+            // 동기화 후 모든 사용자 목록 조회
             Map<String, Object> usersData = adminService.getAllUsers();
             model.addAttribute("regularUsers", usersData.get("regularUsers"));
             model.addAttribute("snsUsers", usersData.get("snsUsers"));
+            model.addAttribute("redisLockStatus", usersData.get("redisLockStatus"));
+            model.addAttribute("redisLockRemainingTime", usersData.get("redisLockRemainingTime")); 
             model.addAttribute("roles", UserRole.values());
+            
+            // 동기화 결과 메시지 추가
+            if (syncCount > 0) {
+                model.addAttribute("syncMessage", String.format("%d개 계정의 잠금 상태가 동기화되었습니다.", syncCount));
+            }
 
             log.info(">> 사용자 목록 조회 성공: 일반 사용자={}, SNS 사용자={}",
                     ((java.util.List<?>) usersData.get("regularUsers")).size(),
                     ((java.util.List<?>) usersData.get("snsUsers")).size());
-
         } catch (Exception e) {
             log.error(">> 사용자 목록 조회 실패: {}", e.getMessage(), e);
             model.addAttribute("errorMessage", "사용자 목록을 불러오는 데 실패했습니다.");
@@ -594,9 +605,21 @@ public class AdminController {
     public String settingsPage(Model model) {
         log.info(">> 관리자 설정 페이지 요청");
         try {
+            // 계정 잠금 상태 동기화 먼저 수행
+            int syncCount = adminService.syncUserLockStatus();
+            log.info(">> 계정 잠금 상태 동기화 완료: {}개 계정", syncCount);
+            
+            // 동기화 후 모든 사용자 목록 조회
             Map<String, Object> usersData = adminService.getAllUsers();
             model.addAttribute("regularUsers", usersData.get("regularUsers"));
             model.addAttribute("snsUsers", usersData.get("snsUsers"));
+            model.addAttribute("redisLockStatus", usersData.get("redisLockStatus"));
+            model.addAttribute("redisLockRemainingTime", usersData.get("redisLockRemainingTime"));
+            
+            // 동기화 결과 메시지 추가
+            if (syncCount > 0) {
+                model.addAttribute("syncMessage", String.format("%d개 계정의 잠금 상태가 동기화되었습니다.", syncCount));
+            }
         } catch (Exception e) {
             log.error(">> 설정 페이지 사용자 목록 조회 실패: {}", e.getMessage(), e);
             model.addAttribute("errorMessage", "사용자 목록을 불러오는 데 실패했습니다.");
@@ -625,6 +648,162 @@ public class AdminController {
             log.error(">> 로그인 시도 횟수 초기화 실패: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(RsData.error("500-INTERNAL_SERVER_ERROR", "로그인 시도 횟수 초기화 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 모든 사용자의 계정 잠금 상태 동기화 API
+     * 관리자만 사용 가능한 기능입니다.
+     */
+    @PostMapping("/api/users/sync-lock-status")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Map<String, Integer>>> syncUserLockStatus() {
+        log.info(">> 계정 잠금 상태 동기화 요청");
+        
+        try {
+            int syncCount = adminService.syncUserLockStatus();
+            
+            Map<String, Integer> result = new HashMap<>();
+            result.put("syncCount", syncCount);
+            
+            log.info(">> 계정 잠금 상태 동기화 완료: {}개 계정", syncCount);
+            return ResponseEntity.ok(RsData.success("계정 잠금 상태 동기화가 완료되었습니다.", result));
+        } catch (Exception e) {
+            log.error(">> 계정 잠금 상태 동기화 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "계정 잠금 상태 동기화 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 여러 계정을 동시에 활성화하는 API
+     * 관리자만 사용 가능한 기능입니다.
+     */
+    @PostMapping("/api/users/bulk/enable")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Map<String, Integer>>> bulkEnableAccounts(
+            @RequestBody @Valid BulkUserIdsRequest request,
+            BindingResult bindingResult) {
+        
+        if (bindingResult.hasErrors()) {
+            log.warn(">> 일괄 계정 활성화 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
+            return ResponseEntity.badRequest()
+                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
+        }
+        
+        log.info(">> 일괄 계정 활성화 요청: 총 {}개 계정", request.getUserIds().size());
+        
+        try {
+            int processedCount = adminService.bulkEnableAccounts(request.getUserIds());
+            
+            Map<String, Integer> result = new HashMap<>();
+            result.put("processedCount", processedCount);
+            
+            log.info(">> 일괄 계정 활성화 완료: {}개 계정", processedCount);
+            return ResponseEntity.ok(RsData.success("선택한 계정이 성공적으로 활성화되었습니다.", result));
+        } catch (Exception e) {
+            log.error(">> 일괄 계정 활성화 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "계정 활성화 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 여러 계정을 동시에 비활성화하는 API
+     * 관리자만 사용 가능한 기능입니다.
+     */
+    @PostMapping("/api/users/bulk/disable")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Map<String, Integer>>> bulkDisableAccounts(
+            @RequestBody @Valid BulkUserIdsRequest request,
+            BindingResult bindingResult) {
+        
+        if (bindingResult.hasErrors()) {
+            log.warn(">> 일괄 계정 비활성화 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
+            return ResponseEntity.badRequest()
+                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
+        }
+        
+        log.info(">> 일괄 계정 비활성화 요청: 총 {}개 계정", request.getUserIds().size());
+        
+        try {
+            int processedCount = adminService.bulkDisableAccounts(request.getUserIds());
+            
+            Map<String, Integer> result = new HashMap<>();
+            result.put("processedCount", processedCount);
+            
+            log.info(">> 일괄 계정 비활성화 완료: {}개 계정", processedCount);
+            return ResponseEntity.ok(RsData.success("선택한 계정이 성공적으로 비활성화되었습니다.", result));
+        } catch (Exception e) {
+            log.error(">> 일괄 계정 비활성화 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "계정 비활성화 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 여러 계정을 동시에 잠그는 API
+     * 관리자만 사용 가능한 기능입니다.
+     */
+    @PostMapping("/api/users/bulk/lock")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Map<String, Integer>>> bulkLockAccounts(
+            @RequestBody @Valid BulkUserIdsRequest request,
+            BindingResult bindingResult) {
+        
+        if (bindingResult.hasErrors()) {
+            log.warn(">> 일괄 계정 잠금 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
+            return ResponseEntity.badRequest()
+                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
+        }
+        
+        log.info(">> 일괄 계정 잠금 요청: 총 {}개 계정", request.getUserIds().size());
+        
+        try {
+            int processedCount = adminService.bulkLockAccounts(request.getUserIds());
+            
+            Map<String, Integer> result = new HashMap<>();
+            result.put("processedCount", processedCount);
+            
+            log.info(">> 일괄 계정 잠금 완료: {}개 계정", processedCount);
+            return ResponseEntity.ok(RsData.success("선택한 계정이 성공적으로 잠겼습니다.", result));
+        } catch (Exception e) {
+            log.error(">> 일괄 계정 잠금 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "계정 잠금 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 여러 계정을 동시에 잠금 해제하는 API
+     * 관리자만 사용 가능한 기능입니다.
+     */
+    @PostMapping("/api/users/bulk/unlock")
+    @RoleRequired(UserRole.ADMIN)
+    public ResponseEntity<RsData<Map<String, Integer>>> bulkUnlockAccounts(
+            @RequestBody @Valid BulkUserIdsRequest request,
+            BindingResult bindingResult) {
+        
+        if (bindingResult.hasErrors()) {
+            log.warn(">> 일괄 계정 잠금 해제 요청 유효성 검증 실패: {}", bindingResult.getAllErrors());
+            return ResponseEntity.badRequest()
+                    .body(new RsData<>("400-BAD_REQUEST", "데이터 형식이 잘못되었습니다."));
+        }
+        
+        log.info(">> 일괄 계정 잠금 해제 요청: 총 {}개 계정", request.getUserIds().size());
+        
+        try {
+            int processedCount = adminService.bulkUnlockAccounts(request.getUserIds());
+            
+            Map<String, Integer> result = new HashMap<>();
+            result.put("processedCount", processedCount);
+            
+            log.info(">> 일괄 계정 잠금 해제 완료: {}개 계정", processedCount);
+            return ResponseEntity.ok(RsData.success("선택한 계정이 성공적으로 잠금 해제되었습니다.", result));
+        } catch (Exception e) {
+            log.error(">> 일괄 계정 잠금 해제 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(RsData.error("500-INTERNAL_SERVER_ERROR", "계정 잠금 해제 중 오류가 발생했습니다: " + e.getMessage()));
         }
     }
 }

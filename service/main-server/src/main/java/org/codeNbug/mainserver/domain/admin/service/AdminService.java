@@ -37,7 +37,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 관리자 관련 서비스
@@ -248,9 +251,27 @@ public class AdminService {
             List<SnsUser> snsUsers = snsUserRepository.findAll();
             log.debug(">> SNS 사용자 목록 조회 완료: {} 명", snsUsers.size());
             
+            // Redis의 계정 잠금 상태 확인 및 Map 생성
+            Map<String, Boolean> redisLockStatus = new HashMap<>();
+            Map<String, Long> redisLockRemainingTime = new HashMap<>();
+            
+            // 일반 사용자의 Redis 계정 잠금 상태 확인
+            for (User user : regularUsers) {
+                String email = user.getEmail();
+                boolean isLockedInRedis = loginAttemptService.isAccountLocked(email);
+                redisLockStatus.put(email, isLockedInRedis);
+                
+                if (isLockedInRedis) {
+                    long remainingTime = loginAttemptService.getRemainingLockTimeByEmail(email);
+                    redisLockRemainingTime.put(email, remainingTime);
+                }
+            }
+            
             // 결과 맵에 저장
             result.put("regularUsers", regularUsers);
             result.put("snsUsers", snsUsers);
+            result.put("redisLockStatus", redisLockStatus);
+            result.put("redisLockRemainingTime", redisLockRemainingTime);
             
             log.info(">> 모든 사용자 목록 조회 완료: 일반 사용자={}, SNS 사용자={}", 
                     regularUsers.size(), snsUsers.size());
@@ -649,6 +670,7 @@ public class AdminService {
      *
      * @param userId 사용자 ID
      */
+    @Transactional
     public void unlockAccount(Long userId) {
         log.info(">> 관리자에 의한 계정 잠금 해제: userId={}", userId);
         
@@ -672,6 +694,13 @@ public class AdminService {
         // 계정 잠금 해제 - 이메일 기반 메소드 사용
         boolean success = loginAttemptService.resetAttemptByEmail(email);
         
+        // DB에서 잠금 상태 해제
+        if (isLockedInDb) {
+            user.setAccountLocked(false);
+            userRepository.save(user);
+            log.info(">> DB 계정 잠금 상태 업데이트됨: userId={}", userId);
+        }
+        
         if (success) {
             log.info(">> 계정 잠금 해제 성공: userId={}, email={}", userId, email);
         } else {
@@ -682,13 +711,6 @@ public class AdminService {
                     String key = "accountLock:" + email;
                     boolean deleted = loginAttemptService.getRedisTemplate().delete(key);
                     log.info(">> Redis 직접 삭제 결과: {}", deleted);
-                    
-                    // DB에서도 잠금 상태 해제
-                    if (isLockedInDb) {
-                        user.setAccountLocked(false);
-                        userRepository.save(user);
-                        log.info(">> DB 계정 잠금 상태 직접 업데이트: userId={}", userId);
-                    }
                 } catch (Exception e) {
                     log.error(">> Redis 계정 잠금 직접 해제 중 오류: {}", e.getMessage(), e);
                 }
@@ -716,5 +738,252 @@ public class AdminService {
     public int resetAllLoginAttemptCounts() {
         log.info(">> 관리자에 의한 모든 사용자 로그인 시도 횟수 초기화 시작");
         return loginAttemptService.resetAllLoginAttempts();
+    }
+
+    /**
+     * 모든 사용자의 계정 잠금 상태를 Redis와 DB 간에 동기화합니다.
+     * 이 메서드는 관리자 권한으로 수동 실행 가능하며, 기본적으로 maintainUserAccounts에서 
+     * 매일 새벽 2시에 자동으로 실행되는 로직과 유사합니다.
+     * 
+     * @return 동기화된 사용자 수
+     */
+    @Transactional
+    public int syncUserLockStatus() {
+        log.info(">> 사용자 계정 잠금 상태 동기화 시작");
+        AtomicInteger syncCount = new AtomicInteger(0);
+        
+        try {
+            // 1. DB에는 잠겨있지만 Redis에는 잠금 정보가 없는 계정 해제
+            List<User> lockedUsers = userRepository.findByAccountLockedTrue();
+            log.info(">> DB에서 잠겨있는 계정 수: {}", lockedUsers.size());
+            
+            for (User user : lockedUsers) {
+                String email = user.getEmail();
+                if (!loginAttemptService.isAccountLocked(email)) {
+                    // Redis에는 잠금 정보가 없는 경우, DB에서도 해제
+                    user.setAccountLocked(false);
+                    userRepository.save(user);
+                    syncCount.incrementAndGet();
+                    log.info(">> DB 잠금 해제 동기화: email={}", email);
+                }
+            }
+            
+            // 2. Redis에는 잠겨있지만 DB에는 잠금 정보가 없는 계정 동기화
+            // Redis에서 모든 잠금 키 조회
+            Set<String> lockKeys = loginAttemptService.getRedisTemplate().keys("accountLock:*");
+            
+            if (lockKeys != null && !lockKeys.isEmpty()) {
+                log.info(">> Redis에서 잠겨있는 계정 수: {}", lockKeys.size());
+                
+                for (String key : lockKeys) {
+                    // 키에서 이메일 추출 (accountLock: 제거)
+                    String email = key.substring("accountLock:".length());
+                    
+                    // 해당 이메일로 사용자 조회
+                    userRepository.findByEmail(email).ifPresent(user -> {
+                        if (!user.isAccountLocked()) {
+                            user.setAccountLocked(true);
+                            userRepository.save(user);
+                            syncCount.incrementAndGet();
+                            log.info(">> DB 잠금 설정 동기화: email={}", email);
+                        }
+                    });
+                }
+            }
+            
+            log.info(">> 계정 잠금 상태 동기화 완료: {}개 계정 동기화됨", syncCount.get());
+            return syncCount.get();
+        } catch (Exception e) {
+            log.error(">> 계정 잠금 상태 동기화 중 오류 발생: {}", e.getMessage(), e);
+            throw new RuntimeException("계정 잠금 상태 동기화 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 여러 계정을 동시에 활성화합니다.
+     * 관리자 권한으로만 실행되어야 합니다.
+     * 
+     * @param userIds 활성화할 사용자 ID 목록
+     * @return 처리된 계정 수
+     */
+    @Transactional
+    public int bulkEnableAccounts(List<Long> userIds) {
+        log.info(">> 일괄 계정 활성화 시작: {}개 계정", userIds.size());
+        
+        if (userIds.isEmpty()) {
+            return 0;
+        }
+        
+        AtomicInteger processedCount = new AtomicInteger(0);
+        
+        for (Long userId : userIds) {
+            try {
+                User user = userRepository.findById(userId)
+                        .orElse(null);
+                
+                if (user != null) {
+                    user.setEnabled(true);
+                    userRepository.save(user);
+                    processedCount.incrementAndGet();
+                    log.info(">> 계정 활성화 성공: userId={}", userId);
+                } else {
+                    log.warn(">> 계정 활성화 실패: 사용자를 찾을 수 없음 - userId={}", userId);
+                }
+            } catch (Exception e) {
+                log.error(">> 계정 활성화 중 오류 발생: userId={}, 오류={}", userId, e.getMessage(), e);
+                // 개별 실패는 전체 프로세스를 중단하지 않음
+            }
+        }
+        
+        log.info(">> 일괄 계정 활성화 완료: {}개 처리됨", processedCount.get());
+        return processedCount.get();
+    }
+    
+    /**
+     * 여러 계정을 동시에 비활성화합니다.
+     * 관리자 권한으로만 실행되어야 합니다.
+     * 
+     * @param userIds 비활성화할 사용자 ID 목록
+     * @return 처리된 계정 수
+     */
+    @Transactional
+    public int bulkDisableAccounts(List<Long> userIds) {
+        log.info(">> 일괄 계정 비활성화 시작: {}개 계정", userIds.size());
+        
+        if (userIds.isEmpty()) {
+            return 0;
+        }
+        
+        AtomicInteger processedCount = new AtomicInteger(0);
+        
+        for (Long userId : userIds) {
+            try {
+                User user = userRepository.findById(userId)
+                        .orElse(null);
+                
+                if (user != null) {
+                    user.setEnabled(false);
+                    userRepository.save(user);
+                    processedCount.incrementAndGet();
+                    log.info(">> 계정 비활성화 성공: userId={}", userId);
+                } else {
+                    log.warn(">> 계정 비활성화 실패: 사용자를 찾을 수 없음 - userId={}", userId);
+                }
+            } catch (Exception e) {
+                log.error(">> 계정 비활성화 중 오류 발생: userId={}, 오류={}", userId, e.getMessage(), e);
+                // 개별 실패는 전체 프로세스를 중단하지 않음
+            }
+        }
+        
+        log.info(">> 일괄 계정 비활성화 완료: {}개 처리됨", processedCount.get());
+        return processedCount.get();
+    }
+    
+    /**
+     * 여러 계정을 동시에 잠급니다.
+     * 관리자 권한으로만 실행되어야 합니다.
+     * 
+     * @param userIds 잠글 사용자 ID 목록
+     * @return 처리된 계정 수
+     */
+    @Transactional
+    public int bulkLockAccounts(List<Long> userIds) {
+        log.info(">> 일괄 계정 잠금 시작: {}개 계정", userIds.size());
+        
+        if (userIds.isEmpty()) {
+            return 0;
+        }
+        
+        AtomicInteger processedCount = new AtomicInteger(0);
+        
+        for (Long userId : userIds) {
+            try {
+                User user = userRepository.findById(userId)
+                        .orElse(null);
+                
+                if (user != null) {
+                    // DB에서 계정 잠금 설정
+                    user.setAccountLocked(true);
+                    userRepository.save(user);
+                    
+                    // Redis에도 계정 잠금 설정
+                    String email = user.getEmail();
+                    if (email != null && !email.isEmpty()) {
+                        String key = "accountLock:" + email;
+                        loginAttemptService.getRedisTemplate().opsForValue().set(
+                            key, LocalDateTime.now().toString(), 30, TimeUnit.MINUTES);
+                        log.info(">> Redis에 계정 잠금 설정: email={}", email);
+                    }
+                    
+                    processedCount.incrementAndGet();
+                    log.info(">> 계정 잠금 성공: userId={}", userId);
+                } else {
+                    log.warn(">> 계정 잠금 실패: 사용자를 찾을 수 없음 - userId={}", userId);
+                }
+            } catch (Exception e) {
+                log.error(">> 계정 잠금 중 오류 발생: userId={}, 오류={}", userId, e.getMessage(), e);
+                // 개별 실패는 전체 프로세스를 중단하지 않음
+            }
+        }
+        
+        log.info(">> 일괄 계정 잠금 완료: {}개 처리됨", processedCount.get());
+        return processedCount.get();
+    }
+    
+    /**
+     * 여러 계정을 동시에 잠금 해제합니다.
+     * 관리자 권한으로만 실행되어야 합니다.
+     * 
+     * @param userIds 잠금 해제할 사용자 ID 목록
+     * @return 처리된 계정 수
+     */
+    @Transactional
+    public int bulkUnlockAccounts(List<Long> userIds) {
+        log.info(">> 일괄 계정 잠금 해제 시작: {}개 계정", userIds.size());
+        
+        if (userIds.isEmpty()) {
+            return 0;
+        }
+        
+        AtomicInteger processedCount = new AtomicInteger(0);
+        
+        for (Long userId : userIds) {
+            try {
+                User user = userRepository.findById(userId)
+                        .orElse(null);
+                
+                if (user != null) {
+                    // DB에서 계정 잠금 해제
+                    user.setAccountLocked(false);
+                    userRepository.save(user);
+                    
+                    // Redis에서도 계정 잠금 해제 및 로그인 시도 횟수 초기화
+                    String email = user.getEmail();
+                    if (email != null && !email.isEmpty()) {
+                        // 계정 잠금 키 삭제
+                        String lockKey = "accountLock:" + email;
+                        Boolean lockDeleted = loginAttemptService.getRedisTemplate().delete(lockKey);
+                        
+                        // 로그인 시도 횟수 키 삭제
+                        String attemptKey = "loginAttempt:" + email;
+                        Boolean attemptDeleted = loginAttemptService.getRedisTemplate().delete(attemptKey);
+                        
+                        log.info(">> Redis에서 계정 잠금 해제: email={}, 잠금삭제={}, 시도횟수삭제={}", 
+                                email, lockDeleted, attemptDeleted);
+                    }
+                    
+                    processedCount.incrementAndGet();
+                    log.info(">> 계정 잠금 해제 성공: userId={}", userId);
+                } else {
+                    log.warn(">> 계정 잠금 해제 실패: 사용자를 찾을 수 없음 - userId={}", userId);
+                }
+            } catch (Exception e) {
+                log.error(">> 계정 잠금 해제 중 오류 발생: userId={}, 오류={}", userId, e.getMessage(), e);
+                // 개별 실패는 전체 프로세스를 중단하지 않음
+            }
+        }
+        
+        log.info(">> 일괄 계정 잠금 해제 완료: {}개 처리됨", processedCount.get());
+        return processedCount.get();
     }
 } 
