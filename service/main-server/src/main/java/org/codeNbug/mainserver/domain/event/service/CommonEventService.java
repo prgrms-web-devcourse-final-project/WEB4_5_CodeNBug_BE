@@ -49,10 +49,7 @@ public class CommonEventService {
 
 	private Page<EventListResponse> getEventsWithFilterAndKeyword(String keyword, EventListFilter filter,
 		Pageable pageable) {
-		return commonEventRepository.findAllByFilterAndKeyword(keyword, filter, pageable)
-			.map(event -> new EventListResponse(event.get(0, Event.class), event.get(1, Integer.class),
-				event.get(2, Integer.class)));
-
+		return commonEventRepository.findAllByFilterAndKeyword(keyword, filter, pageable);
 	}
 
 	private Page<EventListResponse> getEventsOnlyKeyword(String keyword, Pageable pageable) {

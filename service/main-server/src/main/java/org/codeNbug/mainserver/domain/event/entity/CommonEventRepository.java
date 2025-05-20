@@ -12,7 +12,7 @@ public interface CommonEventRepository {
 
 	Page<EventListResponse> findAllByKeyword(String keyword, Pageable pageable);
 
-	Page<Tuple> findAllByFilterAndKeyword(String keyword, EventListFilter filter, Pageable pageable);
+	Page<EventListResponse> findAllByFilterAndKeyword(String keyword, EventListFilter filter, Pageable pageable);
 
 	Integer countAvailableSeat(Long id);
 
