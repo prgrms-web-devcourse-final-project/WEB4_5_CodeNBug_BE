@@ -165,13 +165,12 @@ public class PurchaseService {
 
 			// 결제 완료 알림 생성
 			try {
-				String notificationContent = String.format(
-					"[%s] 결제가 완료되었습니다. 금액: %d원, 결제수단: %s",
-					purchase.getOrderName(),
-					purchase.getAmount(),
-					methodEnum.name()
+				String notificationTitle = String.format("[%s] 결제 완료", purchase.getOrderName());
+				String notificationContent = String.format("결제가 완료되었습니다.\n금액: %d원\n결제수단: %s",
+						purchase.getAmount(),
+						methodEnum.name()
 				);
-				notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
+				notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle, notificationContent);
 			} catch (Exception e) {
 				log.error("결제 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
 					userId, purchase.getId(), e.getMessage(), e);
@@ -311,14 +310,16 @@ public class PurchaseService {
 
 		// 환불 완료 알림 생성
 		try {
-			String notificationContent = String.format(
-				"[%s] 환불 처리가 완료되었습니다. 환불금액: %d원",
-				purchase.getOrderName(),
-				canceledPaymentInfo.getCancels().stream()
+			int refundAmount = canceledPaymentInfo.getCancels().stream()
 					.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
-					.sum()
+					.sum();
+
+			String notificationTitle = String.format("[%s] 환불 완료", purchase.getOrderName());
+			String notificationContent = String.format(
+					"환불 처리가 완료되었습니다.\n환불 금액: %d원",
+					refundAmount
 			);
-			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationContent);
+			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle, notificationContent);
 		} catch (Exception e) {
 			log.error("환불 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
 				userId, purchase.getId(), e.getMessage(), e);
@@ -412,19 +413,22 @@ public class PurchaseService {
 
 			// 각 사용자에게 환불 알림 전송
 			try {
-				String notificationContent = String.format(
-					"[%s] 매니저에 의해 환불 처리되었습니다. 사유: %s, 환불금액: %d원",
-					purchase.getOrderName(),
-					request.getReason(),
-					canceledPaymentInfo.getCancels().stream()
+				int refundAmount = canceledPaymentInfo.getCancels().stream()
 						.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
-						.sum()
+						.sum();
+
+				String notificationTitle = String.format("[%s] 매니저 환불 처리", purchase.getOrderName());
+				String notificationContent = String.format(
+						"매니저에 의해 환불이 처리되었습니다.\n사유: %s\n환불 금액: %d원",
+						request.getReason(),
+						refundAmount
 				);
 
 				// 각 구매자에게 개별 알림 전송
 				notificationService.createNotification(
 					purchase.getUser().getUserId(),
 					NotificationEnum.PAYMENT,
+					notificationTitle,
 					notificationContent
 				);
 			} catch (Exception e) {
