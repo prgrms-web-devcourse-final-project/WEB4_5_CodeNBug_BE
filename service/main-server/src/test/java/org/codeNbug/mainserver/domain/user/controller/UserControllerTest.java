@@ -1,70 +1,45 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
+import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
-import org.codeNbug.mainserver.util.TestUtil;
+import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
+import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
+import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
+import org.codeNbug.mainserver.domain.user.service.UserService;
+import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.common.util.CookieUtil;
 import org.codenbug.common.util.JwtConfig;
 import org.codenbug.user.domain.user.constant.UserRole;
 import org.codenbug.user.domain.user.entity.User;
-import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
-import org.codenbug.user.security.service.CustomUserDetails;
-import org.junit.jupiter.api.AfterAll;
+import org.codenbug.user.security.exception.AuthenticationFailedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redis.testcontainers.RedisContainer;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import jakarta.servlet.http.Cookie;
-
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@ActiveProfiles("test")
-@Testcontainers
+@SuppressWarnings({"deprecation"})
+@WebMvcTest(UserController.class)
 class UserControllerTest {
-	@Container
-	@ServiceConnection
-	static MySQLContainer<?> mysql =
-		new MySQLContainer<>("mysql:8.0.34")
-			.withDatabaseName("ticketoneTest")
-			.withUsername("test")
-			.withPassword("test");
-	@Container
-	@ServiceConnection
-	static RedisContainer redis =
-		new RedisContainer("redis:alpine")
-			.withExposedPorts(6379)
-			.waitingFor(Wait.forListeningPort());
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -72,290 +47,315 @@ class UserControllerTest {
 	@Autowired
 	private ObjectMapper objectMapper;
 
-	@Autowired
-	private UserRepository userRepository;
+	@MockBean
+	private UserService userService;
 
-	@Autowired
-	private PasswordEncoder passwordEncoder;
-
-	@Autowired
+	@MockBean
 	private TokenService tokenService;
 
-	@Autowired
+	@MockBean
 	private CookieUtil cookieUtil;
 
-	@Autowired
+	@MockBean
 	private JwtConfig jwtConfig;
 
-	@Autowired
-	private RedisTemplate<String, String> redisTemplate;
+	@MockBean
+	private PurchaseService purchaseService;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
+	// Mock user data
 	private User testUser;
 	private String testEmail = "test@example.com";
 	private String testPassword = "Test1234!";
+	private TokenService.TokenInfo mockTokenInfo;
 
 	@BeforeEach
 	void setUp() {
-		// 테스트용 사용자 생성
+		// Create test user
 		testUser = User.builder()
-			.email(testEmail)
-			.password(passwordEncoder.encode(testPassword))
-			.name("테스트")
-			.age(25)
-			.sex("남성")
-			.phoneNum("010-1234-5678")
-			.location("서울시 강남구")
-			.role(UserRole.USER.getAuthority())
-			.build();
-		userRepository.save(testUser);
+				.email(testEmail)
+				.password("encodedPassword")
+				.name("테스트")
+				.age(25)
+				.sex("남성")
+				.phoneNum("010-1234-5678")
+				.location("서울시 강남구")
+				.role(UserRole.USER.getAuthority())
+				.build();
 
-		// CustomUserDetails 생성
-		CustomUserDetails userDetails = new CustomUserDetails(testUser);
-
-		// 인증 토큰 생성 및 SecurityContext에 등록
-		Authentication authentication = new UsernamePasswordAuthenticationToken(
-			userDetails, null, userDetails.getAuthorities()
-		);
-		SecurityContextHolder.getContext().setAuthentication(authentication);
-
-		// Redis 블랙리스트 정리
-		clearBlacklist();
-	}
-
-	@AfterAll
-	void afterAll() {
-		TestUtil.truncateAllTables(jdbcTemplate);
+		// Mock token info
+		mockTokenInfo = new TokenService.TokenInfo("test-access-token", "test-refresh-token");
 	}
 
 	@Test
-	@DisplayName("회원가입 성공")
+	@WithMockUser    @DisplayName("회원가입 성공")
 	void 회원가입_성공() throws Exception {
 		// given
 		SignupRequest signupRequest = SignupRequest.builder()
-			.email("new@example.com")
-			.password("New1234!")
-			.name("신규사용자")
-			.age(30)
-			.sex("여성")
-			.phoneNum("010-9876-5432")
-			.location("서울시 서초구")
-			.build();
+				.email("new@example.com")
+				.password("New1234!")
+				.name("신규사용자")
+				.age(30)
+				.sex("여성")
+				.phoneNum("010-9876-5432")
+				.location("서울시 서초구")
+				.build();
+
+		SignupResponse signupResponse = SignupResponse.builder()
+				.email("new@example.com")
+				.name("신규사용자")
+				.age(30)
+				.sex("여성")
+				.phoneNum("010-9876-5432")
+				.location("서울시 서초구")
+				.build();
+
+		when(userService.signup(any(SignupRequest.class))).thenReturn(signupResponse);
 
 		// when
 		ResultActions result = mockMvc.perform(post("/api/v1/users/signup")
-			.contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(signupRequest)));
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(signupRequest))
+				.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-			.andExpect(jsonPath("$.msg").value("회원가입 성공"))
-			.andExpect(jsonPath("$.data.email").value("new@example.com"))
-			.andExpect(jsonPath("$.data.name").value("신규사용자"))
-			.andExpect(jsonPath("$.data.age").value(30))
-			.andExpect(jsonPath("$.data.sex").value("여성"))
-			.andExpect(jsonPath("$.data.phoneNum").value("010-9876-5432"))
-			.andExpect(jsonPath("$.data.location").value("서울시 서초구"));
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("회원가입 성공"))
+				.andExpect(jsonPath("$.data.email").value("new@example.com"))
+				.andExpect(jsonPath("$.data.name").value("신규사용자"))
+				.andExpect(jsonPath("$.data.age").value(30))
+				.andExpect(jsonPath("$.data.sex").value("여성"))
+				.andExpect(jsonPath("$.data.phoneNum").value("010-9876-5432"))
+				.andExpect(jsonPath("$.data.location").value("서울시 서초구"));
 	}
 
 	@Test
-	@DisplayName("로그인 성공")
+	@WithMockUser    @DisplayName("로그인 성공")
 	void 로그인_성공() throws Exception {
 		// given
 		LoginRequest loginRequest = LoginRequest.builder()
-			.email(testEmail)
-			.password(testPassword)
-			.build();
+				.email(testEmail)
+				.password(testPassword)
+				.build();
+
+		LoginResponse loginResponse = LoginResponse.builder()
+				.accessToken("test-access-token")
+				.refreshToken("test-refresh-token")
+				.tokenType("Bearer")
+				.build();
+
+		when(userService.login(any(LoginRequest.class))).thenReturn(loginResponse);
+		doNothing().when(cookieUtil).setAccessTokenCookie(any(), anyString());
+		doNothing().when(cookieUtil).setRefreshTokenCookie(any(), anyString());
 
 		// when
 		ResultActions result = mockMvc.perform(post("/api/v1/users/login")
-			.contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(loginRequest)));
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(loginRequest))
+				.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-			.andExpect(jsonPath("$.msg").value("로그인 성공"));
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("로그인 성공"));
 	}
 
 	@Test
-	@DisplayName("로그아웃 성공")
+	@WithMockUser    @DisplayName("로그아웃 성공")
 	void 로그아웃_성공() throws Exception {
 		// given
-		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
+		Cookie refreshTokenCookie = new Cookie("refreshToken", "test-refresh-token");
+
+		when(cookieUtil.getAccessTokenFromCookie(any())).thenReturn("test-access-token");
+		when(cookieUtil.getRefreshTokenFromCookie(any())).thenReturn("test-refresh-token");
+		doNothing().when(userService).logout(anyString(), anyString());
+		doNothing().when(cookieUtil).expireAuthCookies(any(), any());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			post("/api/v1/users/logout")
-				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
-				.cookie(refreshTokenCookie));
+				post("/api/v1/users/logout")
+						.header("Authorization", "Bearer test-access-token")
+						.cookie(refreshTokenCookie)
+						.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-			.andExpect(jsonPath("$.msg").value("로그아웃 성공"));
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("로그아웃 성공"));
 	}
 
 	@Test
-	@DisplayName("회원 탈퇴 성공")
+	@WithMockUser    @DisplayName("회원 탈퇴 성공")
 	void 회원_탈퇴_성공() throws Exception {
 		// given
-		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
+		Cookie refreshTokenCookie = new Cookie("refreshToken", "test-refresh-token");
+
+		when(cookieUtil.getAccessTokenFromCookie(any())).thenReturn("test-access-token");
+		when(cookieUtil.getRefreshTokenFromCookie(any())).thenReturn("test-refresh-token");
+		when(tokenService.getSubjectFromToken(anyString())).thenReturn(testEmail);
+		doNothing().when(userService).withdrawUser(anyString(), anyString(), anyString());
+		doNothing().when(cookieUtil).expireAuthCookies(any(), any());
 
 		// when
 		ResultActions result = mockMvc.perform(
-			delete("/api/v1/users/me")
-				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
-				.cookie(refreshTokenCookie));
+				delete("/api/v1/users/me")
+						.header("Authorization", "Bearer test-access-token")
+						.cookie(refreshTokenCookie)
+						.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-			.andExpect(jsonPath("$.msg").value("회원 탈퇴 성공"));
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("회원 탈퇴 성공"));
 	}
 
 	@Test
-	@DisplayName("중복된 이메일로 회원가입 시도")
+	@WithMockUser    @DisplayName("중복된 이메일로 회원가입 시도")
 	void 회원가입_중복_이메일() throws Exception {
 		// given
 		SignupRequest signupRequest = SignupRequest.builder()
-			.email(testEmail)  // 이미 존재하는 이메일
-			.password("Test1234!")
-			.name("중복사용자")
-			.age(25)
-			.sex("남성")
-			.phoneNum("010-1111-2222")
-			.location("서울시 강남구")
-			.build();
+				.email(testEmail)  // 이미 존재하는 이메일
+				.password("Test1234!")
+				.name("중복사용자")
+				.age(25)
+				.sex("남성")
+				.phoneNum("010-1111-2222")
+				.location("서울시 강남구")
+				.build();
+
+		when(userService.signup(any(SignupRequest.class))).thenThrow(new DuplicateEmailException("이미 존재하는 이메일입니다."));
 
 		// when
 		ResultActions result = mockMvc.perform(post("/api/v1/users/signup")
-			.contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(signupRequest)));
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(signupRequest))
+				.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isConflict())
-			.andExpect(jsonPath("$.code").value("409-CONFLICT"))
-			.andExpect(jsonPath("$.msg").value("이미 존재하는 이메일입니다."));
+				.andExpect(jsonPath("$.code").value("409-CONFLICT"))
+				.andExpect(jsonPath("$.msg").value("이미 존재하는 이메일입니다."));
 	}
 
 	@Test
-	@DisplayName("잘못된 비밀번호로 로그인 시도")
+	@WithMockUser    @DisplayName("잘못된 비밀번호로 로그인 시도")
 	void 로그인_잘못된_비밀번호() throws Exception {
 		// given
 		LoginRequest loginRequest = LoginRequest.builder()
-			.email(testEmail)
-			.password("WrongPassword123!")
-			.build();
+				.email(testEmail)
+				.password("WrongPassword123!")
+				.build();
+
+		when(userService.login(any(LoginRequest.class))).thenThrow(new AuthenticationFailedException("비밀번호가 일치하지 않습니다. 남은 시도 횟수: 4회"));
 
 		// when
 		ResultActions result = mockMvc.perform(post("/api/v1/users/login")
-			.contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(loginRequest)));
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(loginRequest))
+				.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isUnauthorized())
-			.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
-			.andExpect(jsonPath("$.msg").value("비밀번호가 일치하지 않습니다. 남은 시도 횟수: 4회"));
+				.andExpect(jsonPath("$.code").value("401-UNAUTHORIZED"))
+				.andExpect(jsonPath("$.msg").value("비밀번호가 일치하지 않습니다. 남은 시도 횟수: 4회"));
 	}
 
 	@Test
-	@DisplayName("프로필 조회 성공")
+	@WithMockUser    @DisplayName("프로필 조회 성공")
 	void 프로필_조회_성공() throws Exception {
 		// given
-		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
+		UserProfileResponse profileResponse = UserProfileResponse.builder()
+				.id(1L)
+				.email(testEmail)
+				.name("테스트")
+				.age(25)
+				.sex("남성")
+				.phoneNum("010-1234-5678")
+				.location("서울시 강남구")
+				.isSnsUser(false)
+				.build();
+
+		when(userService.getProfile()).thenReturn(profileResponse);
 
 		// when
 		ResultActions result = mockMvc.perform(
-			get("/api/v1/users/me")
-				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
-				.cookie(refreshTokenCookie));
+				get("/api/v1/users/me")
+						.header("Authorization", "Bearer test-access-token")
+						.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-			.andExpect(jsonPath("$.msg").value("프로필 조회 성공"))
-			.andExpect(jsonPath("$.data.email").value(testEmail))
-			.andExpect(jsonPath("$.data.name").value("테스트"))
-			.andExpect(jsonPath("$.data.age").value(25))
-			.andExpect(jsonPath("$.data.sex").value("남성"))
-			.andExpect(jsonPath("$.data.phoneNum").value("010-1234-5678"))
-			.andExpect(jsonPath("$.data.location").value("서울시 강남구"));
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("프로필 조회 성공"))
+				.andExpect(jsonPath("$.data.email").value(testEmail))
+				.andExpect(jsonPath("$.data.name").value("테스트"))
+				.andExpect(jsonPath("$.data.age").value(25))
+				.andExpect(jsonPath("$.data.sex").value("남성"))
+				.andExpect(jsonPath("$.data.phoneNum").value("010-1234-5678"))
+				.andExpect(jsonPath("$.data.location").value("서울시 강남구"));
 	}
 
 	@Test
-	@DisplayName("프로필 수정 성공")
+	@WithMockUser    @DisplayName("프로필 수정 성공")
 	void 프로필_수정_성공() throws Exception {
 		// given
-		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
-			.name("수정된이름")
-			.phoneNum("010-9999-8888")
-			.location("서울시 송파구")
-			.build();
+				.name("수정된이름")
+				.phoneNum("010-9999-8888")
+				.location("서울시 송파구")
+				.build();
+
+		UserProfileResponse updatedProfile = UserProfileResponse.builder()
+				.id(1L)
+				.email(testEmail)
+				.name("수정된이름")
+				.age(25)
+				.sex("남성")
+				.phoneNum("010-9999-8888")
+				.location("서울시 송파구")
+				.isSnsUser(false)
+				.build();
+
+		when(userService.updateProfile(any(UserUpdateRequest.class))).thenReturn(updatedProfile);
 
 		// when
 		ResultActions result = mockMvc.perform(
-			put("/api/v1/users/me")
-				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
-				.cookie(refreshTokenCookie)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(updateRequest)));
+				put("/api/v1/users/me")
+						.header("Authorization", "Bearer test-access-token")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(updateRequest))
+						.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-			.andExpect(jsonPath("$.msg").value("프로필 수정 성공"))
-			.andExpect(jsonPath("$.data.name").value("수정된이름"))
-			.andExpect(jsonPath("$.data.phoneNum").value("010-9999-8888"))
-			.andExpect(jsonPath("$.data.location").value("서울시 송파구"));
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("프로필 수정 성공"))
+				.andExpect(jsonPath("$.data.name").value("수정된이름"))
+				.andExpect(jsonPath("$.data.phoneNum").value("010-9999-8888"))
+				.andExpect(jsonPath("$.data.location").value("서울시 송파구"));
 	}
 
 	@Test
-	@DisplayName("잘못된 형식의 프로필 수정 요청")
+	@WithMockUser    @DisplayName("잘못된 형식의 프로필 수정 요청")
 	void 프로필_수정_잘못된_요청() throws Exception {
 		// given
-		TokenService.TokenInfo tokenInfo = tokenService.generateTokens(testUser.getEmail());
-		Cookie refreshTokenCookie = createTestRefreshTokenCookie(tokenInfo.getRefreshToken());
 		UserUpdateRequest invalidRequest = UserUpdateRequest.builder()
-			.name("")
-			.phoneNum("010-9999-8888")
-			.location("서울시 송파구")
-			.build();
+				.name("")
+				.phoneNum("010-9999-8888")
+				.location("서울시 송파구")
+				.build();
 
 		// when
 		ResultActions result = mockMvc.perform(
-			put("/api/v1/users/me")
-				.header("Authorization", "Bearer " + tokenInfo.getAccessToken())
-				.cookie(refreshTokenCookie)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(invalidRequest)));
+				put("/api/v1/users/me")
+						.header("Authorization", "Bearer test-access-token")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(invalidRequest))
+						.with(SecurityMockMvcRequestPostProcessors.csrf()));
 
 		// then
 		result.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
-			.andExpect(jsonPath("$.msg").value("데이터 형식이 잘못되었습니다."));
-	}
-
-	private Cookie createTestRefreshTokenCookie(String refreshToken) {
-		Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
-		refreshTokenCookie.setHttpOnly(true);
-		refreshTokenCookie.setSecure(false);  // 테스트 환경에서는 false로 설정
-		refreshTokenCookie.setPath("/");
-		refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
-		return refreshTokenCookie;
-	}
-
-	private void clearBlacklist() {
-		String testToken = jwtConfig.generateAccessToken(testUser.getEmail());
-		String blacklistKey = "blacklist:" + testToken;
-		redisTemplate.delete(blacklistKey);
+				.andExpect(jsonPath("$.code").value("400-BAD_REQUEST"))
+				.andExpect(jsonPath("$.msg").value("데이터 형식이 잘못되었습니다."));
 	}
 }
