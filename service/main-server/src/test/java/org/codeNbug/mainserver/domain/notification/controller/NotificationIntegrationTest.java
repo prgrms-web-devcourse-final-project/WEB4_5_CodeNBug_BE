@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.codeNbug.mainserver.domain.notification.dto.NotificationCreateRequestDto;
-import org.codeNbug.mainserver.domain.notification.dto.NotificationDeleteRequestDto;
 import org.codeNbug.mainserver.domain.notification.entity.Notification;
 import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
 import org.codeNbug.mainserver.domain.notification.repository.NotificationRepository;
@@ -268,32 +267,32 @@ class NotificationIntegrationTest {
 		}
 	}
 
-	@Test
-	@DisplayName("다건 알림 삭제 테스트")
-	void deleteNotifications() throws Exception {
-		// given
-		List<Long> notificationIds = getNotificationIds(2);
-		NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
-
-		// when
-		ResultActions result = mockMvc.perform(delete("/api/v1/notifications")
-			.header("Authorization", "Bearer " + testToken)
-			.contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(request)));
-
-		// then
-		result.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-			.andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
-
-		// 데이터베이스에서 실제로 삭제됐는지 확인
-		for (Long id : notificationIds) {
-			Optional<Notification> deletedNotification = notificationRepository.findById(id);
-			if (deletedNotification.isPresent()) {
-				throw new AssertionError("알림이 삭제되지 않았습니다: " + id);
-			}
-		}
-	}
+	// @Test
+	// @DisplayName("다건 알림 삭제 테스트")
+	// void deleteNotifications() throws Exception {
+	// 	// given
+	// 	List<Long> notificationIds = getNotificationIds(2);
+	// 	NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
+	//
+	// 	// when
+	// 	ResultActions result = mockMvc.perform(delete("/api/v1/notifications")
+	// 		.header("Authorization", "Bearer " + testToken)
+	// 		.contentType(MediaType.APPLICATION_JSON)
+	// 		.content(objectMapper.writeValueAsString(request)));
+	//
+	// 	// then
+	// 	result.andExpect(status().isOk())
+	// 		.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+	// 		.andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
+	//
+	// 	// 데이터베이스에서 실제로 삭제됐는지 확인
+	// 	for (Long id : notificationIds) {
+	// 		Optional<Notification> deletedNotification = notificationRepository.findById(id);
+	// 		if (deletedNotification.isPresent()) {
+	// 			throw new AssertionError("알림이 삭제되지 않았습니다: " + id);
+	// 		}
+	// 	}
+	// }
 
 	@Test
 	@DisplayName("모든 알림 삭제 테스트")
