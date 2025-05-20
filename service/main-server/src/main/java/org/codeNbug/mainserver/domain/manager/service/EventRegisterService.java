@@ -2,6 +2,7 @@ package org.codeNbug.mainserver.domain.manager.service;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
@@ -14,11 +15,13 @@ import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
+import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -31,6 +34,7 @@ public class EventRegisterService {
 	private final ManagerEventRepository managerEventRepository;
 	private final UserRepository userRepository;
 	private final SeatGradeRepository seatGradeRepository;
+	private final SeatService seatService;
 
 	/**
 	 * 이벤트 등록 메인 메서드
@@ -123,6 +127,7 @@ public class EventRegisterService {
 			layoutJson,
 			event
 		);
+		seatService.evictSeatLayoutCache(event.getEventId());
 		return seatLayoutRepository.save(seatLayout);
 	}
 }

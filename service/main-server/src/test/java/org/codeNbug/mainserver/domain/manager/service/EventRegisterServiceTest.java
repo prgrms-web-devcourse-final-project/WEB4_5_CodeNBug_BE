@@ -1,8 +1,8 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -19,8 +19,8 @@ import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
-import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
+import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -33,130 +33,130 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class EventRegisterServiceTest {
 
-    @Mock
-    private EventDomainService eventDomainService;
-    @Mock
-    private EventRepository eventRepository;
-    @Mock
-    private SeatLayoutRepository seatLayoutRepository;
+	@Mock
+	private EventDomainService eventDomainService;
+	@Mock
+	private EventRepository eventRepository;
+	@Mock
+	private SeatLayoutRepository seatLayoutRepository;
 
-    @Mock
-    private UserRepository userRepository;
+	@Mock
+	private UserRepository userRepository;
+	@Mock
+	private SeatService seatService;
 
-    @Mock
-    private ManagerEventRepository managerEventRepository;
+	@Mock
+	private ManagerEventRepository managerEventRepository;
 
-    @InjectMocks
-    private EventRegisterService eventRegisterService;
+	@InjectMocks
+	private EventRegisterService eventRegisterService;
 
+	@DisplayName("이벤트 등록 성공 테스트")
+	@Test
+	void registerEvent_success() {
+		// given
+		Long managerId = 1L;
+		User manager = User.builder()
+			.userId(managerId)
+			.email("test@example.com")
+			.build();
+		EventRegisterRequest request = createDummyRequest();
 
+		Event event = new Event(
+			EventCategoryEnum.CONCERT,
+			EventInformation.builder()
+				.title("Test Event")
+				.description("Description")
+				.ageLimit(0)
+				.restrictions("")
+				.location("Seoul")
+				.hallName("Olympic Hall")
+				.eventStart(LocalDateTime.now())
+				.eventEnd(LocalDateTime.now().plusHours(2))
+				.seatCount(100)
+				.thumbnailUrl("https://image.com/test.jpg")
+				.build(),
+			LocalDateTime.now(),
+			LocalDateTime.now().plusDays(1),
+			0,
+			null,
+			null,
+			EventStatusEnum.OPEN,
+			true,
+			false,
+			null
+		);
 
-    @DisplayName("이벤트 등록 성공 테스트")
-    @Test
-    void registerEvent_success() {
-        // given
-        Long managerId = 1L;
-        User manager = User.builder()
-                .userId(managerId)
-                .email("test@example.com")
-                .build();
-        EventRegisterRequest request = createDummyRequest();
+		SeatLayout seatLayout = new SeatLayout(1L, "{}", event);
 
-        Event event = new Event(
-                EventCategoryEnum.CONCERT,
-                EventInformation.builder()
-                        .title("Test Event")
-                        .description("Description")
-                        .ageLimit(0)
-                        .restrictions("")
-                        .location("Seoul")
-                        .hallName("Olympic Hall")
-                        .eventStart(LocalDateTime.now())
-                        .eventEnd(LocalDateTime.now().plusHours(2))
-                        .seatCount(100)
-                        .thumbnailUrl("https://image.com/test.jpg")
-                        .build(),
-                LocalDateTime.now(),
-                LocalDateTime.now().plusDays(1),
-                0,
-                null,
-                null,
-                EventStatusEnum.OPEN,
-                true,
-                false,
-                null
-        );
+		// when mocking
+		when(userRepository.findById(managerId)).thenReturn(Optional.of(manager));
+		when(eventRepository.save(any(Event.class))).thenReturn(event);
+		when(eventDomainService.serializeLayoutToJson(any())).thenReturn("{}");
+		when(seatLayoutRepository.save(any(SeatLayout.class))).thenReturn(seatLayout);
+		when(eventDomainService.createAndSaveSeatGrades(any(), any())).thenReturn(new HashMap<>());
+		when(eventDomainService.buildEventRegisterResponse(any(), any()))
+			.thenReturn(createDummyResponse());
 
-        SeatLayout seatLayout = new SeatLayout(1L, "{}", event);
+		// when
+		EventRegisterResponse response = eventRegisterService.registerEvent(request, managerId);
 
-        // when mocking
-        when(userRepository.findById(managerId)).thenReturn(Optional.of(manager));
-        when(eventRepository.save(any(Event.class))).thenReturn(event);
-        when(eventDomainService.serializeLayoutToJson(any())).thenReturn("{}");
-        when(seatLayoutRepository.save(any(SeatLayout.class))).thenReturn(seatLayout);
-        when(eventDomainService.createAndSaveSeatGrades(any(), any())).thenReturn(new HashMap<>());
-        when(eventDomainService.buildEventRegisterResponse(any(), any()))
-                .thenReturn(createDummyResponse());
+		// then
+		assertNotNull(response);
+		assertEquals("Test Event", response.getTitle());
+		assertEquals("Seoul", response.getLocation());
+	}
 
-        // when
-        EventRegisterResponse response = eventRegisterService.registerEvent(request, managerId);
+	// 더미 요청 생성 메서드
+	private EventRegisterRequest createDummyRequest() {
+		return EventRegisterRequest.builder()
+			.title("Test Event")
+			.category(EventCategoryEnum.CONCERT)
+			.thumbnailUrl("https://image.com/test.jpg")
+			.description("Description")
+			.agelimit(0)
+			.restriction("")
+			.location("Seoul")
+			.hallName("Olympic Hall")
+			.startDate(LocalDateTime.now())
+			.endDate(LocalDateTime.now().plusHours(2))
+			.seatCount(100)
+			.bookingStart(LocalDateTime.now())
+			.bookingEnd(LocalDateTime.now().plusDays(1))
+			.layout(LayoutDto.builder()
+				.layout(Collections.emptyList())
+				.seat(Collections.emptyMap())
+				.build())
+			.price(Collections.emptyList())
+			.build();
+	}
 
-        // then
-        assertNotNull(response);
-        assertEquals("Test Event", response.getTitle());
-        assertEquals("Seoul", response.getLocation());
-    }
-
-    // 더미 요청 생성 메서드
-    private EventRegisterRequest createDummyRequest() {
-        return EventRegisterRequest.builder()
-                .title("Test Event")
-                .category(EventCategoryEnum.CONCERT)
-                .thumbnailUrl("https://image.com/test.jpg")
-                .description("Description")
-                .agelimit(0)
-                .restriction("")
-                .location("Seoul")
-                .hallName("Olympic Hall")
-                .startDate(LocalDateTime.now())
-                .endDate(LocalDateTime.now().plusHours(2))
-                .seatCount(100)
-                .bookingStart(LocalDateTime.now())
-                .bookingEnd(LocalDateTime.now().plusDays(1))
-                .layout(LayoutDto.builder()
-                        .layout(Collections.emptyList())
-                        .seat(Collections.emptyMap())
-                        .build())
-                .price(Collections.emptyList())
-                .build();
-    }
-
-    // 더미 응답 생성 메서드
-    private EventRegisterResponse createDummyResponse() {
-        return EventRegisterResponse.builder()
-                .eventId(1L)
-                .title("Test Event")
-                .category(EventCategoryEnum.CONCERT)
-                .description("Description")
-                .restriction("")
-                .thumbnailUrl("https://image.com/test.jpg")
-                .startDate(LocalDateTime.now())
-                .endDate(LocalDateTime.now().plusHours(2))
-                .location("Seoul")
-                .hallName("Olympic Hall")
-                .seatCount(100)
-                .layout(LayoutDto.builder()
-                        .layout(Collections.emptyList())
-                        .seat(Collections.emptyMap())
-                        .build())
-                .price(Collections.emptyList())
-                .bookingStart(LocalDateTime.now())
-                .bookingEnd(LocalDateTime.now().plusDays(1))
-                .agelimit(0)
-                .createdAt(LocalDateTime.now())
-                .modifiedAt(LocalDateTime.now())
-                .status(EventStatusEnum.OPEN)
-                .build();
-    }
+	// 더미 응답 생성 메서드
+	private EventRegisterResponse createDummyResponse() {
+		return EventRegisterResponse.builder()
+			.eventId(1L)
+			.title("Test Event")
+			.category(EventCategoryEnum.CONCERT)
+			.description("Description")
+			.restriction("")
+			.thumbnailUrl("https://image.com/test.jpg")
+			.startDate(LocalDateTime.now())
+			.endDate(LocalDateTime.now().plusHours(2))
+			.location("Seoul")
+			.hallName("Olympic Hall")
+			.seatCount(100)
+			.layout(LayoutDto.builder()
+				.layout(Collections.emptyList())
+				.seat(Collections.emptyMap())
+				.build())
+			.price(Collections.emptyList())
+			.bookingStart(LocalDateTime.now())
+			.bookingEnd(LocalDateTime.now().plusDays(1))
+			.agelimit(0)
+			.createdAt(LocalDateTime.now())
+			.modifiedAt(LocalDateTime.now())
+			.status(EventStatusEnum.OPEN)
+			.build();
+	}
 }
 
