@@ -23,7 +23,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
@@ -58,6 +58,8 @@ spring:
       initialize-schema: always  # 배치용 테이블 자동 생성 (개발 환경만)
     event-status-update:
       enabled: false
+  jackson:
+    time-zone: Asia/Seoul
 
 payment:
   toss:
