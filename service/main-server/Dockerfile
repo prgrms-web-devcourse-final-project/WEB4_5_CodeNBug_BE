@@ -38,4 +38,4 @@ WORKDIR /app
 COPY --from=builder /app/service/main-server/build/libs/*.jar app.jar
 
 # 실행할 JAR 파일 지정
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=prod", "app.jar"]
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=prod","-Duser.timezone=Asia/Seoul", "app.jar"]
