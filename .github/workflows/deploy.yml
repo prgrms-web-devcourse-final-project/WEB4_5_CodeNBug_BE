@@ -15,7 +15,7 @@ on:
 jobs:
   deployMainServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'main-server'
+    if: inputs.selectServer == 'main-server' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -100,7 +100,7 @@ jobs:
 
   deployQueueServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'queue-server'
+    if: inputs.selectServer == 'queue-server' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -190,7 +190,7 @@ jobs:
 
   deployDispatchServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'message-dispatcher'
+    if: inputs.selectServer == 'message-dispatcher' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
