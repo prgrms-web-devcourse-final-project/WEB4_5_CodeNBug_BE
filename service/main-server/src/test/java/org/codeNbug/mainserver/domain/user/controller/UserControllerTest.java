@@ -1,12 +1,8 @@
 package org.codeNbug.mainserver.domain.user.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
+import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.domain.user.dto.request.LoginRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.SignupRequest;
 import org.codeNbug.mainserver.domain.user.dto.request.UserUpdateRequest;
@@ -14,7 +10,6 @@ import org.codeNbug.mainserver.domain.user.dto.response.LoginResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.SignupResponse;
 import org.codeNbug.mainserver.domain.user.dto.response.UserProfileResponse;
 import org.codeNbug.mainserver.domain.user.service.UserService;
-import org.codeNbug.mainserver.domain.purchase.service.PurchaseService;
 import org.codeNbug.mainserver.global.exception.globalException.DuplicateEmailException;
 import org.codenbug.common.util.CookieUtil;
 import org.codenbug.common.util.JwtConfig;
@@ -34,9 +29,13 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import jakarta.servlet.http.Cookie;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SuppressWarnings({"deprecation"})
 @WebMvcTest(UserController.class)
