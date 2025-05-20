@@ -15,7 +15,7 @@ on:
 jobs:
   deployMainServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'main-server'
+    if: inputs.selectServer == 'main-server' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -54,7 +54,7 @@ jobs:
             docker stop app1 2>/dev/null || true && \
             docker rm app1 2>/dev/null || true && \
             docker run -d --name app1 --network env_common -p 9000:9000 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a || true
   deployMainServerUsingTag:
     runs-on: ubuntu-latest
     if: inputs.selectServer == 'main-server' && startsWith(github.ref, 'refs/tags/')
@@ -96,11 +96,11 @@ jobs:
             docker stop app1 2>/dev/null || true && \
             docker rm app1 2>/dev/null || true && \
             docker run -d --name app1 --network env_common -p 9000:9000 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ github.ref_name }} && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a || true
 
   deployQueueServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'queue-server'
+    if: inputs.selectServer == 'queue-server' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -141,7 +141,7 @@ jobs:
             docker stop queue-server 2>/dev/null || true && \
             docker rm queue-server 2>/dev/null || true && \
             docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a || true
   deployQueueServerUsingTag:
     runs-on: ubuntu-latest
     if: inputs.selectServer == 'queue-server' && startsWith(github.ref, 'refs/tags/')
@@ -185,12 +185,12 @@ jobs:
             docker stop queue-server 2>/dev/null || true && \
             docker rm queue-server 2>/dev/null || true && \
             docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ github.ref_name }} && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a || true
 
 
   deployDispatchServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'message-dispatcher'
+    if: inputs.selectServer == 'message-dispatcher' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -230,7 +230,7 @@ jobs:
             docker stop dispatch-server 2>/dev/null || true && \
             docker rm dispatch-server 2>/dev/null || true && \
             docker run -d --name dispatch-server --network env_common -p 9002:9002 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:latest && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a || true
   deployDispatchServerUsingTag:
     runs-on: ubuntu-latest
     if: inputs.selectServer == 'message-dispatcher' && startsWith(github.ref, 'refs/tags/')
@@ -273,4 +273,4 @@ jobs:
             docker stop dispatch-server 2>/dev/null || true && \
             docker rm dispatch-server 2>/dev/null || true && \
             docker run -d --name dispatch-server --network env_common -p 9002:9002 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:${{ github.ref_name }} && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a || true

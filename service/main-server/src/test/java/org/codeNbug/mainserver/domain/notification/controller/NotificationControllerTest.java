@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.codeNbug.mainserver.domain.notification.dto.NotificationCreateRequestDto;
+import org.codeNbug.mainserver.domain.notification.dto.NotificationDeleteRequestDto;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
 import org.codeNbug.mainserver.domain.notification.service.NotificationEmitterService;
@@ -17,6 +18,7 @@ import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.global.util.SecurityUtil;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -222,26 +224,27 @@ class NotificationControllerTest {
 		verify(notificationService, times(1)).deleteNotification(eq(notificationId), anyLong());
 	}
 
-	// @Test
-	// @WithMockUser
-	// @DisplayName("다건 알림 삭제 테스트")
-	// void deleteNotifications() throws Exception {
-	// 	// given
-	// 	List<Long> notificationIds = Arrays.asList(1L, 2L);
-	// 	NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
-	//
-	// 	doNothing().when(notificationService).deleteNotifications(eq(notificationIds), anyLong());
-	//
-	// 	// when & then
-	// 	mockMvc.perform(delete("/api/v1/notifications")
-	// 			.contentType(MediaType.APPLICATION_JSON)
-	// 			.content(objectMapper.writeValueAsString(request)))
-	// 		.andExpect(status().isOk())
-	// 		.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-	// 		.andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
-	//
-	// 	verify(notificationService, times(1)).deleteNotifications(eq(notificationIds), anyLong());
-	// }
+    @Test
+    @WithMockUser
+    @DisplayName("다건 알림 삭제 테스트")
+    @Disabled
+    void deleteNotifications() throws Exception {
+        // given
+        List<Long> notificationIds = Arrays.asList(1L, 2L);
+        NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
+
+        doNothing().when(notificationService).deleteNotifications(eq(notificationIds), anyLong());
+
+        // when & then
+        mockMvc.perform(delete("/api/v1/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("200-SUCCESS"))
+                .andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
+
+        verify(notificationService, times(1)).deleteNotifications(eq(notificationIds), anyLong());
+    }
 
 	@Test
 	@WithMockUser
