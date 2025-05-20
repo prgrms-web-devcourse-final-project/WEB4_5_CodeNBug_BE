@@ -153,8 +153,8 @@ public class NotificationController {
      * @param request 삭제할 알림 ID 목록이 포함된 요청 객체
      * @return 삭제 결과 응답
      */
-    @PostMapping("/batch-delete")
-    public ResponseEntity<RsData<Void>> batchDeleteNotifications(@RequestBody NotificationDeleteRequestDto request) {
+    @DeleteMapping
+    public ResponseEntity<RsData<Void>> deleteNotifications(@RequestBody NotificationDeleteRequestDto request) {
         Long userId = SecurityUtil.getCurrentUserId();
         notificationService.deleteNotifications(request.getNotificationIds(), userId);
         return ResponseEntity.ok(new RsData<>("200-SUCCESS", "알림 삭제 성공"));
