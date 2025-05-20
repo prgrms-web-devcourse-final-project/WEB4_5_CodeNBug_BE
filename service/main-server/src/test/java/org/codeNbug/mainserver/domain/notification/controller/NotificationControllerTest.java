@@ -96,9 +96,9 @@ class NotificationControllerTest {
     void getNotifications() throws Exception {
         // given
         List<NotificationDto> notificationList = Arrays.asList(
-                createNotificationDto(1L, NotificationEnum.SYSTEM, "시스템 알림입니다."),
-                createNotificationDto(2L, NotificationEnum.EVENT, "이벤트 알림입니다."),
-                createNotificationDto(3L, NotificationEnum.TICKET, "티켓 알림입니다.")
+                createNotificationDto(1L, NotificationEnum.SYSTEM, "시스템 알림입니다.", "알림 내용입니다."),
+                createNotificationDto(2L, NotificationEnum.EVENT, "이벤트 알림입니다.", "알림 내용입니다."),
+                createNotificationDto(3L, NotificationEnum.TICKET, "티켓 알림입니다.", "알림 내용입니다.")
         );
 
         Page<NotificationDto> notificationPage = new PageImpl<>(
@@ -127,8 +127,8 @@ class NotificationControllerTest {
     void getUnreadNotifications() throws Exception {
         // given
         List<NotificationDto> unreadNotifications = Arrays.asList(
-                createNotificationDto(1L, NotificationEnum.SYSTEM, "읽지 않은 시스템 알림"),
-                createNotificationDto(2L, NotificationEnum.EVENT, "읽지 않은 이벤트 알림")
+                createNotificationDto(1L, NotificationEnum.SYSTEM, "읽지 않은 시스템 알림", "알림 내용"),
+                createNotificationDto(2L, NotificationEnum.EVENT, "읽지 않은 이벤트 알림", "알림 내용")
         );
 
         Page<NotificationDto> notificationPage = new PageImpl<>(
@@ -185,16 +185,17 @@ class NotificationControllerTest {
     void createNotification() throws Exception {
         // given
         NotificationCreateRequestDto requestDto = new NotificationCreateRequestDto(
-                1L, NotificationEnum.SYSTEM, "API를 통해 생성된 테스트 알림입니다."
+                1L, NotificationEnum.SYSTEM, "알림 제목", "API를 통해 생성된 테스트 알림입니다."
         );
 
         NotificationDto createdNotification = createNotificationDto(
-                1L, NotificationEnum.SYSTEM, "API를 통해 생성된 테스트 알림입니다."
+                1L, NotificationEnum.SYSTEM, "API 알림 제목", "API를 통해 생성된 테스트 알림입니다."
         );
 
         when(notificationService.createNotification(
                 eq(requestDto.getUserId()),
                 eq(requestDto.getType()),
+                eq(requestDto.getTitle()),
                 eq(requestDto.getContent())))
                 .thenReturn(createdNotification);
 
@@ -212,6 +213,7 @@ class NotificationControllerTest {
         verify(notificationService, times(1)).createNotification(
                 eq(requestDto.getUserId()),
                 eq(requestDto.getType()),
+                eq(requestDto.getTitle()),
                 eq(requestDto.getContent())
         );
     }
@@ -317,10 +319,11 @@ class NotificationControllerTest {
     /**
      * Builder 패턴을 사용하여 NotificationDto 객체 생성
      */
-    private NotificationDto createNotificationDto(Long id, NotificationEnum type, String content) {
+    private NotificationDto createNotificationDto(Long id, NotificationEnum type,String title, String content) {
         return NotificationDto.builder()
                 .id(id)
                 .type(type)
+                .title(title)
                 .content(content)
                 .sentAt(LocalDateTime.now())
                 .isRead(false)

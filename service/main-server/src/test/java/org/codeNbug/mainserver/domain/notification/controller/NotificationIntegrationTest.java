@@ -171,6 +171,7 @@ class NotificationIntegrationTest {
 		NotificationCreateRequestDto requestDto = new NotificationCreateRequestDto(
 			testUser.getUserId(),
 			NotificationEnum.SYSTEM,
+			"API 알림 제목",
 			"API를 통해 생성된 테스트 알림입니다."
 		);
 
