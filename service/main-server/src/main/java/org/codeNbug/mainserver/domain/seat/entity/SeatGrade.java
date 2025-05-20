@@ -11,9 +11,11 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,6 +25,11 @@ import lombok.NoArgsConstructor;
  * SeatGrade 엔티티 클래스
  */
 @Entity
+@Table(name = "SeatGrade", indexes = {
+	@Index(name = "idx_seat_grade_amount", columnList = "amount"),
+	@Index(name = "idx_seat_grade_event_id", columnList = "event_id"),
+	@Index(name = "idx_seatgrade_event_id_amount", columnList = "event_id, amount")
+})
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter

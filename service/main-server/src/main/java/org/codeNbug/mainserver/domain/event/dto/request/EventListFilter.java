@@ -9,6 +9,8 @@ import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 import org.codeNbug.mainserver.domain.event.entity.Location;
 import org.codeNbug.mainserver.domain.event.entity.QEvent;
 import org.codeNbug.mainserver.domain.event.entity.ValidDateRange;
+import org.codeNbug.mainserver.domain.seat.entity.QSeat;
+import org.codeNbug.mainserver.domain.seat.entity.QSeatGrade;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.querydsl.core.types.dsl.BooleanExpression;
@@ -50,11 +52,11 @@ public class EventListFilter {
 	}
 
 	@JsonIgnore
-	public BooleanExpression getCostRangeQuery() {
+	public BooleanExpression getCostRangeQuery(QSeat seat, QSeatGrade grade) {
 		if (costRange == null) {
 			return Expressions.TRUE.eq(true);
 		}
-		return QEvent.event.seatLayout.seats.any().grade.amount.between(costRange.getMin(), costRange.getMax());
+		return grade.amount.between(costRange.getMin(), costRange.getMax());
 	}
 
 	/**

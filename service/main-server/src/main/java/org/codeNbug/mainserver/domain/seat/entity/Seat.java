@@ -8,8 +8,10 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,6 +22,12 @@ import lombok.Setter;
  * Seat 엔티티 클래스
  */
 @Entity
+@Table(indexes = {
+	@Index(name = "idx_seat_event_id", columnList = "event_id"),
+	@Index(name = "idx_seat_grade_id", columnList = "grade_id"),
+	@Index(name = "idx_seat_layout_id", columnList = "layout_id"),
+	@Index(name = "idx_seat_available", columnList = "available")
+})
 @NoArgsConstructor
 @Getter
 @Builder
