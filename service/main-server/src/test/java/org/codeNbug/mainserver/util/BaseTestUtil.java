@@ -1,5 +1,7 @@
 package org.codeNbug.mainserver.util;
 
+import static org.junit.jupiter.api.TestInstance.Lifecycle.*;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,35 +22,36 @@ import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.redis.service.TokenService;
+import org.codenbug.user.security.config.SecurityConfig;
 import org.codenbug.user.security.service.CustomUserDetailsService;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@SpringBootTest
-@Transactional
 @Component
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@TestInstance(PER_CLASS)
 public class BaseTestUtil {
 	@Autowired
 	protected UserRepository userRepository;
 	@Autowired
 	protected PasswordEncoder passwordEncoder;
+	@Autowired
+	protected SecurityConfig securityConfig;
 	@Autowired
 	protected TokenService tokenService;
 	@Autowired
@@ -64,10 +67,9 @@ public class BaseTestUtil {
 	@Autowired
 	protected StringRedisTemplate stringRedisTemplate;
 
-	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
-	public static String testToken;
-	public static User testUser;
-	public static Event testEvent;
+	public String testToken;
+	public User testUser;
+	public Event testSelectableEvent;
 
 	public User setUpUser() {
 		// 테스트용 사용자 생성
@@ -82,6 +84,7 @@ public class BaseTestUtil {
 			.role("ROLE_USER")
 			.build();
 		userRepository.save(testUser);
+		userRepository.flush();
 
 		return testUser;
 	}
@@ -99,7 +102,7 @@ public class BaseTestUtil {
 		return testToken;
 	}
 
-	public Event setUpEvent() throws JSONException {
+	public Event setUpSelecatbleEvent() throws JSONException {
 		// 테스트용 행사 생성
 		EventInformation info = EventInformation.builder()
 			.title("테스트 공연")
@@ -114,7 +117,7 @@ public class BaseTestUtil {
 			.seatCount(200)
 			.build();
 
-		testEvent = new Event(
+		testSelectableEvent = new Event(
 			EventCategoryEnum.CONCERT,
 			info,
 			LocalDateTime.now().plusDays(1),
@@ -127,7 +130,9 @@ public class BaseTestUtil {
 			false,
 			null
 		);
-		eventRepository.save(testEvent);
+
+		eventRepository.save(testSelectableEvent);
+		eventRepository.flush();
 
 		// 테스트용 좌석 레이아웃 생성
 		String layoutJson = """
@@ -163,17 +168,19 @@ public class BaseTestUtil {
 
 		SeatLayout seatLayout = SeatLayout.builder()
 			.layout(layoutJson)
-			.event(testEvent)
+			.event(testSelectableEvent)
 			.build();
 		seatLayoutRepository.save(seatLayout);
+		seatLayoutRepository.flush();
 
-		testEvent.setSeatLayout(seatLayout);
-		eventRepository.save(testEvent);
+		testSelectableEvent.setSeatLayout(seatLayout);
+		eventRepository.save(testSelectableEvent);
+		eventRepository.flush();
 
 		// 좌석 등급 및 좌석 생성
 		createSeatGradesAndSeats(layoutJson);
 
-		return testEvent;
+		return testSelectableEvent;
 	}
 
 	private void createSeatGradesAndSeats(String layoutJson) throws JSONException {
@@ -186,9 +193,10 @@ public class BaseTestUtil {
 			SeatGrade seatGrade = SeatGrade.builder()
 				.grade(gradeEnum)
 				.amount(getSeatGradeAmount(gradeEnum))
-				.event(testEvent)
+				.event(testSelectableEvent)
 				.build();
 			seatGradeRepository.save(seatGrade);
+			seatGradeRepository.flush();
 			gradeMap.put(gradeEnum, seatGrade);
 		}
 
@@ -208,12 +216,13 @@ public class BaseTestUtil {
 				Seat testSeat = Seat.builder()
 					.location(seatName)
 					.grade(seatGrade)
-					.layout(testEvent.getSeatLayout())
-					.event(testEvent)
+					.layout(testSelectableEvent.getSeatLayout())
+					.event(testSelectableEvent)
 					.available(true)
 					.build();
 
 				seatRepository.save(testSeat);
+				seatRepository.flush();
 			}
 		}
 	}
@@ -226,14 +235,5 @@ public class BaseTestUtil {
 			case A -> 50000;
 			default -> 40000;
 		};
-	}
-
-	public void setUpRedis() {
-		// 테스트용 entry token 저장
-		stringRedisTemplate.opsForHash().put(
-			ENTRY_TOKEN_STORAGE_KEY_NAME,
-			String.valueOf(testUser.getUserId()),
-			testToken
-		);
 	}
 }

@@ -10,6 +10,7 @@ import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.repository.PurchaseRepository;
+import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.Assertions;
@@ -37,6 +38,8 @@ class EventDeleteServiceTest {
 	private NotificationService notificationService;
 	@Mock
 	private PurchaseRepository purchaseRepository;
+	@Mock
+	private SeatService seatService;
 
 	@InjectMocks
 	private EventDeleteService eventDeleteService;
