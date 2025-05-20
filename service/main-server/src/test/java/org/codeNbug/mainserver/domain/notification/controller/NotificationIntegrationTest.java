@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.codeNbug.mainserver.domain.notification.dto.NotificationCreateRequestDto;
+import org.codeNbug.mainserver.domain.notification.dto.NotificationDeleteRequestDto;
 import org.codeNbug.mainserver.domain.notification.entity.Notification;
 import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
 import org.codeNbug.mainserver.domain.notification.repository.NotificationRepository;

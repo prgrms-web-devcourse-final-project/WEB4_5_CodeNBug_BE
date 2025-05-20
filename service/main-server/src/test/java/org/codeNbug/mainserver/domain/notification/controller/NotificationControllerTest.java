@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.codeNbug.mainserver.domain.notification.dto.NotificationCreateRequestDto;
+import org.codeNbug.mainserver.domain.notification.dto.NotificationDeleteRequestDto;
 import org.codeNbug.mainserver.domain.notification.dto.NotificationDto;
 import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
 import org.codeNbug.mainserver.domain.notification.service.NotificationEmitterService;
