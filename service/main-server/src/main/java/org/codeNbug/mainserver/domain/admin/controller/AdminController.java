@@ -391,39 +391,30 @@ public class AdminController {
     // === ExceptionHandler 분리 ===
     // 뷰 반환용 (페이지 요청에서만 동작)
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public String handleViewException(Exception e, RedirectAttributes redirectAttributes, HttpServletRequest request) {
         String uri = request.getRequestURI();
-        String contentType = request.getHeader("Accept");
-        
-        // API 요청이 아니고 HTML을 요청한 경우에만 동작
-        if (!uri.contains("/api/") && (contentType == null || contentType.contains("text/html"))) {
+        // API 요청이 아닌 경우에만 동작
+        if (!uri.contains("/api/")) {
             log.error(">> 예외 발생(뷰): {}", e.getMessage(), e);
             redirectAttributes.addFlashAttribute("errorMessage", "요청 처리 중 오류가 발생했습니다: " + e.getMessage());
             return "redirect:/admin/login";
         }
-        // API 요청이면 다음 핸들러로 위임
-        return null; // null을 반환하여 다음 핸들러로 전달
+        // API 요청이면 null 반환해서 아래 API용 핸들러로 위임
+        return null;
     }
 
     // API용 (RestController, @ResponseBody에서만 동작)
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @ResponseBody
     public ResponseEntity<RsData<Void>> handleApiException(Exception e, HttpServletRequest request) {
         String uri = request.getRequestURI();
-        String contentType = request.getHeader("Accept");
-        
-        // API 요청이거나 HTML이 아닌 응답을 요청한 경우 동작
-        if (uri.contains("/api/") || (contentType != null && !contentType.contains("text/html"))) {
+        if (uri.contains("/api/")) {
             log.error(">> 예외 발생(API): {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(RsData.error("500-INTERNAL_SERVER_ERROR", "요청 처리 중 오류가 발생했습니다: " + e.getMessage()));
         }
-        
-        // 뷰 요청은 위 핸들러로 위임되었을 것이므로 여기서는 기본 에러 응답
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(RsData.error("500-INTERNAL_SERVER_ERROR", "요청 처리 중 오류가 발생했습니다"));
+        // 뷰 요청이면 null 반환해서 위 핸들러로 위임
+        return null;
     }
 
     /**
@@ -635,73 +626,5 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(RsData.error("500-INTERNAL_SERVER_ERROR", "로그인 시도 횟수 초기화 중 오류가 발생했습니다: " + e.getMessage()));
         }
-    }
-
-    /**
-     * 여러 사용자 계정을 일괄 비활성화
-     */
-    @PutMapping("/api/users/batch/disable")
-    @RoleRequired(UserRole.ADMIN)
-    public ResponseEntity<RsData<Map<String, Object>>> batchDisableAccounts(@RequestBody List<Long> userIds) {
-        log.info(">> 여러 계정 일괄 비활성화 요청: {}개 계정", userIds.size());
-        
-        int disabledCount = adminService.batchDisableAccounts(userIds);
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("disabledCount", disabledCount);
-        result.put("message", String.format("%d개 계정이 비활성화되었습니다.", disabledCount));
-        
-        return ResponseEntity.ok(RsData.success("일괄 비활성화가 완료되었습니다.", result));
-    }
-
-    /**
-     * 여러 사용자 계정을 일괄 활성화
-     */
-    @PutMapping("/api/users/batch/enable")
-    @RoleRequired(UserRole.ADMIN)
-    public ResponseEntity<RsData<Map<String, Object>>> batchEnableAccounts(@RequestBody List<Long> userIds) {
-        log.info(">> 여러 계정 일괄 활성화 요청: {}개 계정", userIds.size());
-        
-        int enabledCount = adminService.batchEnableAccounts(userIds);
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("enabledCount", enabledCount);
-        result.put("message", String.format("%d개 계정이 활성화되었습니다.", enabledCount));
-        
-        return ResponseEntity.ok(RsData.success("일괄 활성화가 완료되었습니다.", result));
-    }
-
-    /**
-     * 여러 사용자 계정을 일괄 잠금
-     */
-    @PutMapping("/api/users/batch/lock")
-    @RoleRequired(UserRole.ADMIN)
-    public ResponseEntity<RsData<Map<String, Object>>> batchLockAccounts(@RequestBody List<Long> userIds) {
-        log.info(">> 여러 계정 일괄 잠금 요청: {}개 계정", userIds.size());
-        
-        int lockedCount = adminService.batchLockAccounts(userIds);
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("lockedCount", lockedCount);
-        result.put("message", String.format("%d개 계정이 잠금 처리되었습니다.", lockedCount));
-        
-        return ResponseEntity.ok(RsData.success("일괄 잠금 처리가 완료되었습니다.", result));
-    }
-
-    /**
-     * 여러 사용자 계정을 일괄 잠금 해제
-     */
-    @PutMapping("/api/users/batch/unlock")
-    @RoleRequired(UserRole.ADMIN)
-    public ResponseEntity<RsData<Map<String, Object>>> batchUnlockAccounts(@RequestBody List<Long> userIds) {
-        log.info(">> 여러 계정 일괄 잠금 해제 요청: {}개 계정", userIds.size());
-        
-        int unlockedCount = adminService.batchUnlockAccounts(userIds);
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("unlockedCount", unlockedCount);
-        result.put("message", String.format("%d개 계정의 잠금이 해제되었습니다.", unlockedCount));
-        
-        return ResponseEntity.ok(RsData.success("일괄 잠금 해제가 완료되었습니다.", result));
     }
 }

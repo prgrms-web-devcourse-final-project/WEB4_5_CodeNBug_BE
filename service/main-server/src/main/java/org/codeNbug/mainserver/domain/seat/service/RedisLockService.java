@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class RedisLockService {
-	private final RedisTemplate<String, String> redisTemplate;
+	private final StringRedisTemplate redisTemplate;
 	private final RedisKeyScanner redisKeyScanner;
 	private static final String PREFIX = "seat:lock:";
 	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";

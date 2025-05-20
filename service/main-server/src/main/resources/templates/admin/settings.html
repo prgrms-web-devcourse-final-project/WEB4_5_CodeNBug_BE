@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="admin/fragments/layout :: head('설정')">
-    <meta name="_csrf" th:content="${_csrf.token}" />
-    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
-</head>
+<head th:replace="admin/fragments/layout :: head('설정')"></head>
 <body>
     <!-- 사이드바 -->
     <div th:replace="admin/fragments/layout :: sidebar" th:with="currentPage='settings'"></div>
@@ -26,34 +23,14 @@
 
         <!-- 일반 사용자 -->
         <div class="card mb-4">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white">
                 <h5 class="mb-0">일반 사용자</h5>
-                <div class="batch-actions d-none" id="batchActionsRegular">
-                    <span class="selected-count me-2">0개 선택됨</span>
-                    <button class="btn btn-sm btn-warning" onclick="batchDisableAccounts('regular')" id="batchDisableRegular">
-                        <i class="bi bi-person-x"></i> 선택 계정 비활성화
-                    </button>
-                    <button class="btn btn-sm btn-success" onclick="batchEnableAccounts('regular')" id="batchEnableRegular">
-                        <i class="bi bi-person-check"></i> 선택 계정 활성화
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="batchLockAccounts('regular')" id="batchLockRegular">
-                        <i class="bi bi-lock"></i> 선택 계정 잠금
-                    </button>
-                    <button class="btn btn-sm btn-info" onclick="batchUnlockAccounts('regular')" id="batchUnlockRegular">
-                        <i class="bi bi-unlock"></i> 선택 계정 잠금 해제
-                    </button>
-                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>
-                                    <div class="form-check">
-                                        <input class="form-check-input select-all-regular" type="checkbox" id="selectAllRegular">
-                                    </div>
-                                </th>
                                 <th>ID</th>
                                 <th>이메일</th>
                                 <th>이름</th>
@@ -66,17 +43,11 @@
                         </thead>
                         <tbody>
                             <tr th:if="${regularUsers == null || regularUsers.isEmpty()}">
-                                <td colspan="9" class="text-center py-4 text-muted">
+                                <td colspan="8" class="text-center py-4 text-muted">
                                     등록된 일반 사용자가 없습니다.
                                 </td>
                             </tr>
                             <tr th:each="user : ${regularUsers}">
-                                <td>
-                                    <div class="form-check">
-                                        <input class="form-check-input user-checkbox-regular" type="checkbox" 
-                                               th:value="${user.userId}" th:data-locked="${user.accountLocked}">
-                                    </div>
-                                </td>
                                 <td th:text="${user.userId}">1</td>
                                 <td th:text="${user.email}">user@example.com</td>
                                 <td th:text="${user.name}">홍길동</td>
@@ -108,34 +79,14 @@
 
         <!-- SNS 사용자 -->
         <div class="card">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-white">
                 <h5 class="mb-0">SNS 사용자</h5>
-                <div class="batch-actions d-none" id="batchActionsSns">
-                    <span class="selected-count me-2">0개 선택됨</span>
-                    <button class="btn btn-sm btn-warning" onclick="batchDisableAccounts('sns')" id="batchDisableSns">
-                        <i class="bi bi-person-x"></i> 선택 계정 비활성화
-                    </button>
-                    <button class="btn btn-sm btn-success" onclick="batchEnableAccounts('sns')" id="batchEnableSns">
-                        <i class="bi bi-person-check"></i> 선택 계정 활성화
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="batchLockAccounts('sns')" id="batchLockSns">
-                        <i class="bi bi-lock"></i> 선택 계정 잠금
-                    </button>
-                    <button class="btn btn-sm btn-info" onclick="batchUnlockAccounts('sns')" id="batchUnlockSns">
-                        <i class="bi bi-unlock"></i> 선택 계정 잠금 해제
-                    </button>
-                </div>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>
-                                    <div class="form-check">
-                                        <input class="form-check-input select-all-sns" type="checkbox" id="selectAllSns">
-                                    </div>
-                                </th>
                                 <th>ID</th>
                                 <th>소셜 ID</th>
                                 <th>제공자</th>
@@ -150,17 +101,11 @@
                         </thead>
                         <tbody>
                             <tr th:if="${snsUsers == null || snsUsers.isEmpty()}">
-                                <td colspan="11" class="text-center py-4 text-muted">
+                                <td colspan="10" class="text-center py-4 text-muted">
                                     등록된 SNS 사용자가 없습니다.
                                 </td>
                             </tr>
                             <tr th:each="user : ${snsUsers}">
-                                <td>
-                                    <div class="form-check">
-                                        <input class="form-check-input user-checkbox-sns" type="checkbox" 
-                                               th:value="${user.id}" th:data-locked="${user.accountLocked}">
-                                    </div>
-                                </td>
                                 <td th:text="${user.id}">1</td>
                                 <td th:text="${user.socialId}">social_id</td>
                                 <td th:text="${user.provider}">KAKAO</td>
@@ -198,147 +143,7 @@
         // 툴팁 초기화
         $(document).ready(function() {
             $('[data-bs-toggle="tooltip"]').tooltip();
-            
-            // 전체 선택 체크박스 이벤트 처리
-            $('#selectAllRegular').change(function() {
-                $('.user-checkbox-regular').prop('checked', $(this).prop('checked'));
-                updateBatchActionsVisibility('regular');
-            });
-            
-            $('#selectAllSns').change(function() {
-                $('.user-checkbox-sns').prop('checked', $(this).prop('checked'));
-                updateBatchActionsVisibility('sns');
-            });
-            
-            // 개별 체크박스 이벤트 처리
-            $(document).on('change', '.user-checkbox-regular', function() {
-                updateSelectAllCheckbox('regular');
-                updateBatchActionsVisibility('regular');
-            });
-            
-            $(document).on('change', '.user-checkbox-sns', function() {
-                updateSelectAllCheckbox('sns');
-                updateBatchActionsVisibility('sns');
-            });
         });
-        
-        // 전체 선택 체크박스 상태 업데이트
-        function updateSelectAllCheckbox(userType) {
-            const checkboxClass = userType === 'regular' ? '.user-checkbox-regular' : '.user-checkbox-sns';
-            const selectAllId = userType === 'regular' ? '#selectAllRegular' : '#selectAllSns';
-            
-            const totalCheckboxes = $(checkboxClass).length;
-            const checkedCheckboxes = $(checkboxClass + ':checked').length;
-            
-            $(selectAllId).prop('checked', totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes);
-        }
-        
-        // 일괄 작업 버튼 표시 여부 업데이트
-        function updateBatchActionsVisibility(userType) {
-            const checkboxClass = userType === 'regular' ? '.user-checkbox-regular' : '.user-checkbox-sns';
-            const batchActionsId = userType === 'regular' ? '#batchActionsRegular' : '#batchActionsSns';
-            const disableButtonId = userType === 'regular' ? '#batchDisableRegular' : '#batchDisableSns';
-            const enableButtonId = userType === 'regular' ? '#batchEnableRegular' : '#batchEnableSns';
-            const lockButtonId = userType === 'regular' ? '#batchLockRegular' : '#batchLockSns';
-            const unlockButtonId = userType === 'regular' ? '#batchUnlockRegular' : '#batchUnlockSns';
-            const checkedCheckboxes = $(checkboxClass + ':checked');
-            const checkedCount = checkedCheckboxes.length;
-            $(batchActionsId + ' .selected-count').text(checkedCount + '개 선택됨');
-            $(batchActionsId).toggleClass('d-none', checkedCount === 0);
-            let canDisable = false, canEnable = false, canLock = false, canUnlock = false;
-            checkedCheckboxes.each(function() {
-                const $row = $(this).closest('tr');
-                const isEnabled = $row.find('.badge.bg-success').length > 0;
-                const isDisabled = $row.find('.badge.bg-secondary').length > 0;
-                const isLocked = $row.find('.badge.bg-danger').length > 0;
-                if (isEnabled) canDisable = true;
-                if (isDisabled) canEnable = true;
-                if (!isLocked) canLock = true;
-                if (isLocked) canUnlock = true;
-            });
-            $(disableButtonId).prop('disabled', !canDisable);
-            $(enableButtonId).prop('disabled', !canEnable);
-            $(lockButtonId).prop('disabled', !canLock);
-            $(unlockButtonId).prop('disabled', !canUnlock);
-        }
-        
-        // 일괄 계정 잠금
-        function batchLockAccounts(userType) {
-            const checkboxClass = userType === 'regular' ? '.user-checkbox-regular' : '.user-checkbox-sns';
-            const userIds = [];
-            
-            $(checkboxClass + ':checked').each(function() {
-                // 이미 잠금 상태가 아닌 계정만 선택
-                if ($(this).data('locked') !== true) {
-                    userIds.push($(this).val());
-                }
-            });
-            
-            if (userIds.length === 0) {
-                showAlert('잠금할 계정을 선택해주세요.', false);
-                return;
-            }
-            
-            if (confirm(`선택한 ${userIds.length}개의 계정을 잠금 처리하시겠습니까?`)) {
-                var csrfToken = $('meta[name="_csrf"]').attr('content');
-                var csrfHeader = $('meta[name="_csrf_header"]').attr('content');
-                $.ajax({
-                    url: '/admin/api/users/batch/lock',
-                    type: 'PUT',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ userIds: userIds }),
-                    beforeSend: function(xhr) {
-                        if (csrfToken && csrfHeader) xhr.setRequestHeader(csrfHeader, csrfToken);
-                    },
-                    success: function(response) {
-                        showAlert('선택한 계정이 잠금 처리되었습니다.', true);
-                        setTimeout(() => location.reload(), 1000);
-                    },
-                    error: function(xhr) {
-                        showAlert('계정 잠금 처리 중 오류가 발생했습니다.', false);
-                    }
-                });
-            }
-        }
-        
-        // 일괄 계정 잠금 해제
-        function batchUnlockAccounts(userType) {
-            const checkboxClass = userType === 'regular' ? '.user-checkbox-regular' : '.user-checkbox-sns';
-            const userIds = [];
-            
-            $(checkboxClass + ':checked').each(function() {
-                // 잠금 상태인 계정만 선택
-                if ($(this).data('locked') === true) {
-                    userIds.push($(this).val());
-                }
-            });
-            
-            if (userIds.length === 0) {
-                showAlert('잠금 해제할 계정을 선택해주세요.', false);
-                return;
-            }
-            
-            if (confirm(`선택한 ${userIds.length}개의 계정 잠금을 해제하시겠습니까?`)) {
-                var csrfToken = $('meta[name="_csrf"]').attr('content');
-                var csrfHeader = $('meta[name="_csrf_header"]').attr('content');
-                $.ajax({
-                    url: '/admin/api/users/batch/unlock',
-                    type: 'PUT',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ userIds: userIds }),
-                    beforeSend: function(xhr) {
-                        if (csrfToken && csrfHeader) xhr.setRequestHeader(csrfHeader, csrfToken);
-                    },
-                    success: function(response) {
-                        showAlert('선택한 계정의 잠금이 해제되었습니다.', true);
-                        setTimeout(() => location.reload(), 1000);
-                    },
-                    error: function(xhr) {
-                        showAlert('계정 잠금 해제 중 오류가 발생했습니다.', false);
-                    }
-                });
-            }
-        }
 
         function showAlert(msg, isSuccess) {
             const alertDiv = document.createElement('div');
@@ -377,56 +182,6 @@
         function unlockAccount(userId) {
             // Redis 기반 계정 잠금: 3분 TTL로 자동 해제되며, 관리자가 수동으로 해제할 수도 있습니다.
             ajaxAction('/admin/api/users/' + userId + '/unlock', 'PUT', userId, '계정 잠금이 해제되었습니다.');
-        }
-        function batchDisableAccounts(userType) {
-            const checkboxClass = userType === 'regular' ? '.user-checkbox-regular' : '.user-checkbox-sns';
-            const userIds = [];
-            $(checkboxClass + ':checked').each(function() {
-                const $row = $(this).closest('tr');
-                const isEnabled = $row.find('.badge.bg-success').length > 0;
-                if (isEnabled) userIds.push($(this).val());
-            });
-            if (userIds.length === 0) return showAlert('비활성화할 계정을 선택하세요.', false);
-            if (confirm(`${userIds.length}개 계정을 비활성화 하시겠습니까?`)) {
-                var csrfToken = $('meta[name="_csrf"]').attr('content');
-                var csrfHeader = $('meta[name="_csrf_header"]').attr('content');
-                $.ajax({
-                    url: '/admin/api/users/batch/disable',
-                    type: 'PUT',
-                    contentType: 'application/json',
-                    data: JSON.stringify(userIds),
-                    beforeSend: function(xhr) {
-                        if (csrfToken && csrfHeader) xhr.setRequestHeader(csrfHeader, csrfToken);
-                    },
-                    success: function() { location.reload(); },
-                    error: function(xhr) { showAlert('비활성화 실패: ' + (xhr.responseJSON?.msg || ''), false); }
-                });
-            }
-        }
-        function batchEnableAccounts(userType) {
-            const checkboxClass = userType === 'regular' ? '.user-checkbox-regular' : '.user-checkbox-sns';
-            const userIds = [];
-            $(checkboxClass + ':checked').each(function() {
-                const $row = $(this).closest('tr');
-                const isDisabled = $row.find('.badge.bg-secondary').length > 0;
-                if (isDisabled) userIds.push($(this).val());
-            });
-            if (userIds.length === 0) return showAlert('활성화할 계정을 선택하세요.', false);
-            if (confirm(`${userIds.length}개 계정을 활성화 하시겠습니까?`)) {
-                var csrfToken = $('meta[name="_csrf"]').attr('content');
-                var csrfHeader = $('meta[name="_csrf_header"]').attr('content');
-                $.ajax({
-                    url: '/admin/api/users/batch/enable',
-                    type: 'PUT',
-                    contentType: 'application/json',
-                    data: JSON.stringify(userIds),
-                    beforeSend: function(xhr) {
-                        if (csrfToken && csrfHeader) xhr.setRequestHeader(csrfHeader, csrfToken);
-                    },
-                    success: function() { location.reload(); },
-                    error: function(xhr) { showAlert('활성화 실패: ' + (xhr.responseJSON?.msg || ''), false); }
-                });
-            }
         }
     </script>
 </body>
