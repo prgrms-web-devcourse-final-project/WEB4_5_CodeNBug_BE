@@ -3,7 +3,6 @@ package org.codeNbug.mainserver.domain.seat.service;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
@@ -20,8 +19,6 @@ import org.codeNbug.mainserver.global.exception.globalException.ConflictExceptio
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SeatService {
 
 	private final RedisLockService redisLockService;
+	private final SeatTransactionService seatTransactionService;
 	private final SeatRepository seatRepository;
 	private final EventRepository eventRepository;
 	private final SeatLayoutRepository seatLayoutRepository;
@@ -170,33 +168,8 @@ public class SeatService {
 	 * @param eventId  이벤트 ID
 	 * @param seatId   좌석 ID
 	 */
-	private void reserveSeat(Seat seat, Long userId, Long eventId, Long seatId) {
-		String lockKey = SEAT_LOCK_KEY_PREFIX + userId + ":" + eventId + ":" + seatId;
-		String lockValue = UUID.randomUUID().toString();
-
-		boolean lockSuccess = redisLockService.tryLock(lockKey, lockValue, Duration.ofMinutes(5));
-		if (!lockSuccess) {
-			throw new BadRequestException("[reserveSeat] 이미 선택된 좌석이 있습니다.");
-		}
-
-		try {
-			seat.reserve();
-			seatRepository.save(seat);
-
-			// 트랜잭션 성공 후에만 락 해제 등록
-			TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-				@Override
-				public void afterCompletion(int status) {
-					if (status == STATUS_COMMITTED) {
-						redisLockService.unlock(lockKey, lockValue);
-					}
-				}
-			});
-
-		} catch (Exception e) {
-			redisLockService.unlock(lockKey, lockValue);
-			throw e;
-		}
+	public void reserveSeat(Seat seat, Long userId, Long eventId, Long seatId) {
+		seatTransactionService.reserveSeat(seat, userId, eventId, seatId);
 	}
 
 	/**

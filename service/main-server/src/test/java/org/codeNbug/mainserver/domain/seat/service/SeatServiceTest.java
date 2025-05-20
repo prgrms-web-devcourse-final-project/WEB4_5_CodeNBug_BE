@@ -26,7 +26,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.annotation.Transactional;
 
 class SeatServiceTest {
 
@@ -44,6 +47,15 @@ class SeatServiceTest {
 
 	@Mock
 	private RedisLockService redisLockService;
+
+	@Mock
+	private RedisTemplate<String, Object> redisTemplate;
+
+	@Mock
+	private ValueOperations<String, Object> valueOperations;
+
+	@Mock
+	private SeatTransactionService seatTransactionService;
 
 	private Long userId;
 	private Long eventId;
@@ -98,6 +110,8 @@ class SeatServiceTest {
 			.layout(seatLayout)
 			.event(event)
 			.build();
+
+		given(redisTemplate.opsForValue()).willReturn(valueOperations);
 	}
 
 	@Test
@@ -132,6 +146,7 @@ class SeatServiceTest {
 	}
 
 	@Test
+	@Transactional
 	@DisplayName("지정석 선택 성공")
 	void selectSeat_success() {
 		// given
@@ -194,6 +209,7 @@ class SeatServiceTest {
 	}
 
 	@Test
+	@Transactional
 	@DisplayName("미지정석 선택 성공")
 	void nonSelectSeat_success() {
 		// given
@@ -283,6 +299,7 @@ class SeatServiceTest {
 	void cancelSeat_fail_unlockFailure() {
 		// given
 		Seat seat = seat1;
+		given(seatRepository.findById(seat.getId())).willReturn(Optional.of(seat));
 		given(redisLockService.getLockValue(any())).willReturn("lock-value");
 		given(redisLockService.unlock(any(), any())).willReturn(false);
 

@@ -1,5 +1,6 @@
 package org.codeNbug.mainserver.domain.purchase.service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -99,10 +100,16 @@ public class PurchaseService {
 	 * @param userId     현재 로그인한 사용자 ID
 	 * @return 결제 UUID, 금액, 결제 수단, 승인 시각 등을 포함한 응답 DTO
 	 */
-	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId) {
+	public ConfirmPaymentResponse confirmPayment(ConfirmPaymentRequest request, Long userId) throws
+		IOException,
+		InterruptedException {
 		try {
 			Purchase purchase = purchaseRepository.findById(request.getPurchaseId())
 				.orElseThrow(() -> new IllegalArgumentException("[confirm] 구매 정보를 찾을 수 없습니다."));
+
+			if (request.getAmount().equals(0)) {
+				throw new BadRequestException("[confirm] 결제 금액이 0원입니다.");
+			}
 
 			if (!Objects.equals(purchase.getAmount(), request.getAmount())) {
 				throw new BadRequestException("[confirm] 결제 금액이 일치하지 않습니다.");
@@ -184,12 +191,11 @@ public class PurchaseService {
 		} catch (Exception e) {
 			log.error("[confirmPayment] 결제 처리 중 예외 발생 - userId: {}, 오류: {}", userId, e.getMessage(), e);
 			e.printStackTrace();
+			throw e;
 		} finally {
 			redisLockService.releaseAllLocks(userId);
 			redisLockService.releaseAllEntryQueueLocks(userId);
 		}
-
-		return null;
 	}
 
 	/**
@@ -206,7 +212,7 @@ public class PurchaseService {
 			pageable
 		);
 
-		Page<PurchaseHistoryListResponse.PurchaseSummaryDto> purchaseDtos = purchases.map(purchase -> 
+		Page<PurchaseHistoryListResponse.PurchaseSummaryDto> purchaseDtos = purchases.map(purchase ->
 			PurchaseHistoryListResponse.PurchaseSummaryDto.builder()
 				.purchaseId(purchase.getId())
 				.itemName(purchase.getOrderName())
