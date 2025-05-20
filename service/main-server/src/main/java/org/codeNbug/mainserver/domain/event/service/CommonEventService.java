@@ -56,10 +56,7 @@ public class CommonEventService {
 	}
 
 	private Page<EventListResponse> getEventsOnlyKeyword(String keyword, Pageable pageable) {
-		return commonEventRepository.findAllByKeyword(keyword, pageable)
-			.map(event -> new EventListResponse(event.get(0, Event.class), event.get(1, Integer.class),
-				event.get(2, Integer.class)));
-
+		return commonEventRepository.findAllByKeyword(keyword, pageable);
 	}
 
 	private Page<EventListResponse> getEventsOnlyFilters(EventListFilter filter, Pageable pageable) {

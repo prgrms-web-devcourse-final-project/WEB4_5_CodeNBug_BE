@@ -10,7 +10,7 @@ import com.querydsl.core.Tuple;
 public interface CommonEventRepository {
 	Page<EventListResponse> findAllByFilter(EventListFilter filter, Pageable pageable);
 
-	Page<Tuple> findAllByKeyword(String keyword, Pageable pageable);
+	Page<EventListResponse> findAllByKeyword(String keyword, Pageable pageable);
 
 	Page<Tuple> findAllByFilterAndKeyword(String keyword, EventListFilter filter, Pageable pageable);
 

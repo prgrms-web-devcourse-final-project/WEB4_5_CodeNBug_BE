@@ -290,16 +290,13 @@ class QueryDslCommonEventRepositoryTest {
 
 		// Act: Use the "findAllByKeyword" method to search for events with the keyword "Rock"
 		Pageable pageable = PageRequest.of(0, 10);
-		Page<Tuple> result = queryDslCommonEventRepository.findAllByKeyword("Rock", pageable);
+		Page<EventListResponse> result = queryDslCommonEventRepository.findAllByKeyword("Rock", pageable);
 
 		// Assert: Verify that only events containing "Rock" in the title are returned
 		assertEquals(2, result.getTotalElements());
 
-		Tuple tuple1 = result.getContent().get(0);
-		Tuple tuple2 = result.getContent().get(1);
-
-		Event filteredEvent1 = tuple1.get(QEvent.event);
-		Event filteredEvent2 = tuple2.get(QEvent.event);
+		EventListResponse filteredEvent1 = result.getContent().get(0);
+		EventListResponse filteredEvent2 = result.getContent().get(1);
 
 		assertTrue(filteredEvent1.getInformation().getTitle().contains("Rock"));
 		assertTrue(filteredEvent2.getInformation().getTitle().contains("Rock"));
@@ -337,7 +334,7 @@ class QueryDslCommonEventRepositoryTest {
 
 		// Search for the event
 		Pageable pageable = PageRequest.of(0, 10);
-		Page<Tuple> result = queryDslCommonEventRepository.findAllByKeyword("Multi Price", pageable);
+		Page<EventListResponse> result = queryDslCommonEventRepository.findAllByKeyword("Multi Price", pageable);
 
 		assertEquals(1, result.getTotalElements());
 		Tuple tuple = result.getContent().get(0);
