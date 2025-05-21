@@ -7,7 +7,6 @@ import org.codeNbug.mainserver.domain.event.dto.response.EventListResponse;
 import org.codeNbug.mainserver.domain.event.entity.CommonEventRepository;
 import org.codeNbug.mainserver.domain.event.entity.QEvent;
 import org.codeNbug.mainserver.domain.seat.entity.QSeat;
-import org.codeNbug.mainserver.domain.seat.entity.QSeatGrade;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -42,26 +41,6 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 	public Page<EventListResponse> findAllByFilter(EventListFilter filter, Pageable pageable) {
 
 		QEvent event = QEvent.event;
-		QSeat seat = QSeat.seat;
-		QSeatGrade grade = QSeatGrade.seatGrade;
-
-		// ✅ 서브쿼리: 페이징 적용된 이벤트 ID 목록
-		List<Long> eventIds = jpaQueryFactory
-			.select(event.eventId)
-			.from(event)
-			.where(
-				Expressions.allOf(
-					filter.getLocationListIncludeQuery(),
-					filter.getEventCategoryIncludeQuery(),
-					filter.getEventStatusIncludeQuery(),
-					filter.getBetweenDateQuery(),
-					filterDeletedFalseExpression(event)
-				)
-			)
-			.orderBy(event.createdAt.desc())
-			.offset(pageable.getOffset())
-			.limit(pageable.getPageSize())
-			.fetch();
 
 		// ✅ 메인 쿼리: 조건에 맞는 event + 가격 정보 집계 포함
 		List<EventListResponse> results = jpaQueryFactory
@@ -76,37 +55,42 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 				event.status,
 				event.seatSelectable,
 				event.isDeleted,
-				grade.amount.min().as("minPrice"),
-				grade.amount.max().as("maxPrice")
+				event.minPrice.as("minPrice"),
+				event.maxPrice.as("maxPrice")
 			))
-			.from(seat)
-			.join(seat.grade, grade)
-			.join(seat.event, event)
-			.where(
-				event.eventId.in(eventIds)
-					.and(filter.getCostRangeQuery(seat, grade))
-			)
-			.groupBy(event.eventId)
-			.orderBy(event.createdAt.desc()) // optional: 재정렬
-			.fetch();
-
-		JPAQuery<Long> countQuery = jpaQueryFactory
-			.select(event.eventId.countDistinct())
-			.from(seat)
-			.join(seat.grade, grade)
-			.join(seat.event, event)
+			.from(event)
 			.where(
 				Expressions.allOf(
-					filter.getCostRangeQuery(seat, grade)
-						.and(filter.getLocationListIncludeQuery())
-						.and(filter.getEventCategoryIncludeQuery())
-						.and(filter.getEventStatusIncludeQuery())
-						.and(filter.getBetweenDateQuery())
-						.and(filterDeletedFalseExpression(event))
+					filter.getLocationListIncludeQuery(),
+					filter.getEventCategoryIncludeQuery(),
+					filter.getEventStatusIncludeQuery(),
+					filter.getBetweenDateQuery(),
+					filterDeletedFalseExpression(event),
+					filter.getCostRangeQuery(event)
 				)
-			);
+			)
+			.orderBy(event.createdAt.desc())
+			.offset(pageable.getOffset())
+			.limit(pageable.getPageSize())
+			.fetch();
+		long count = jpaQueryFactory
+			.select(event.eventId)
+			.from(event)
+			.where(
+				Expressions.allOf(
+					filter.getLocationListIncludeQuery(),
+					filter.getEventCategoryIncludeQuery(),
+					filter.getEventStatusIncludeQuery(),
+					filter.getBetweenDateQuery(),
+					filterDeletedFalseExpression(event),
+					filter.getCostRangeQuery(event)
+				)
+			)
+			.groupBy(event.eventId)
+			.fetchCount();
 
-		long count = countQuery.fetchCount();
+
+
 
 		return new PageImpl<>(results, pageable, count);
 	}
@@ -119,55 +103,49 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 	 */
 	@Override
 	public Page<EventListResponse> findAllByKeyword(String keyword, Pageable pageable) {
-		QEvent event = QEvent.event;
-		QSeat seat = QSeat.seat;
-		QSeatGrade grade = QSeatGrade.seatGrade;
 
-		List<Long> eventIds = jpaQueryFactory
-			.select(event.eventId)
+		QEvent event = QEvent.event;
+
+		// ✅ 메인 쿼리: 조건에 맞는 event + 가격 정보 집계 포함
+		List<EventListResponse> results = jpaQueryFactory
+			.select(Projections.constructor(
+				EventListResponse.class,
+				event.eventId,
+				event.category,
+				event.information,
+				event.bookingStart,
+				event.bookingEnd,
+				event.viewCount,
+				event.status,
+				event.seatSelectable,
+				event.isDeleted,
+				event.minPrice.as("minPrice"),
+				event.maxPrice.as("maxPrice")
+			))
 			.from(event)
 			.where(
-				event.information.title.like("%" + keyword + "%")
-					.and(filterDeletedFalseExpression(QEvent.event))
+				Expressions.allOf(
+					filterDeletedFalseExpression(event),
+					event.information.title.like("%" + keyword + "%")
+				)
 			)
 			.orderBy(event.createdAt.desc())
 			.offset(pageable.getOffset())
 			.limit(pageable.getPageSize())
 			.fetch();
-
-		JPAQuery<EventListResponse> query = jpaQueryFactory.select(
-				Projections.constructor(
-					EventListResponse.class,
-					event.eventId,
-					event.category,
-					event.information,
-					event.bookingStart,
-					event.bookingEnd,
-					event.viewCount,
-					event.status,
-					event.seatSelectable,
-					event.isDeleted,
-					grade.amount.min().as("minPrice"),
-					grade.amount.max().as("maxPrice")
-				))
-			.from(seat)
-			.leftJoin(seat.grade, grade)
-			.leftJoin(seat.event, event)
-			.where(
-				seat.event.eventId.in(eventIds)
-			)
-			.groupBy(event.eventId);
-		JPAQuery<Long> countQuery = jpaQueryFactory
-			.select(event.eventId.countDistinct())
+		long count = jpaQueryFactory
+			.select(event.eventId)
 			.from(event)
 			.where(
-				event.information.title.like("%" + keyword + "%")
-					.and(filterDeletedFalseExpression(QEvent.event))
-			);
+				Expressions.allOf(
+					filterDeletedFalseExpression(event),
+					event.information.title.like("%" + keyword + "%")
+				)
+			)
+			.groupBy(event.eventId)
+			.fetchCount();
 
-		long count = countQuery.fetchCount();
-
-		return new PageImpl<>(query.fetch(), pageable, count);
+		return new PageImpl<>(results, pageable, count);
 	}
 
 	/**
@@ -180,10 +158,43 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 	@Override
 	public Page<EventListResponse> findAllByFilterAndKeyword(String keyword, EventListFilter filter,
 		Pageable pageable) {
+
 		QEvent event = QEvent.event;
-		QSeat seat = QSeat.seat;
-		QSeatGrade grade = QSeatGrade.seatGrade;
-		List<Long> eventIds = jpaQueryFactory
+
+		// ✅ 메인 쿼리: 조건에 맞는 event + 가격 정보 집계 포함
+		List<EventListResponse> results = jpaQueryFactory
+			.select(Projections.constructor(
+				EventListResponse.class,
+				event.eventId,
+				event.category,
+				event.information,
+				event.bookingStart,
+				event.bookingEnd,
+				event.viewCount,
+				event.status,
+				event.seatSelectable,
+				event.isDeleted,
+				event.minPrice.as("minPrice"),
+				event.maxPrice.as("maxPrice")
+			))
+			.from(event)
+			.where(
+				Expressions.allOf(
+					filter.getLocationListIncludeQuery(),
+					filter.getEventCategoryIncludeQuery(),
+					filter.getEventStatusIncludeQuery(),
+					filter.getBetweenDateQuery(),
+					filterDeletedFalseExpression(event),
+					filter.getCostRangeQuery(event),
+					event.information.title.like("%" + keyword + "%")
+
+				)
+			)
+			.orderBy(event.createdAt.desc())
+			.offset(pageable.getOffset())
+			.limit(pageable.getPageSize())
+			.fetch();
+		long count = jpaQueryFactory
 			.select(event.eventId)
 			.from(event)
 			.where(
@@ -192,57 +203,13 @@ public class QueryDslCommonEventRepository implements CommonEventRepository {
 					filter.getEventCategoryIncludeQuery(),
 					filter.getEventStatusIncludeQuery(),
 					filter.getBetweenDateQuery(),
-					event.information.title.like("%" + keyword + "%"),
-					filterDeletedFalseExpression(event)
+					filterDeletedFalseExpression(event),
+					filter.getCostRangeQuery(event),
+					event.information.title.like("%" + keyword + "%")
 				)
-			)
-			.orderBy(event.createdAt.desc())
-			.offset(pageable.getOffset())
-			.limit(pageable.getPageSize())
-			.fetch();
-
-		List<EventListResponse> results = jpaQueryFactory.select(
-				Projections.constructor(
-					EventListResponse.class,
-					event.eventId,
-					event.category,
-					event.information,
-					event.bookingStart,
-					event.bookingEnd,
-					event.viewCount,
-					event.status,
-					event.seatSelectable,
-					event.isDeleted,
-					grade.amount.min().as("minPrice"),
-					grade.amount.max().as("maxPrice")
-				))
-			.from(seat)
-			.leftJoin(seat.grade, grade)
-			.leftJoin(seat.event, event)
-			.where(
-				seat.event.eventId.in(eventIds)
 			)
 			.groupBy(event.eventId)
-			.fetch();
-
-		JPAQuery<Long> countQuery = jpaQueryFactory
-			.select(event.eventId.countDistinct())
-			.from(seat)
-			.join(seat.grade, grade)
-			.join(seat.event, event)
-			.where(
-				Expressions.allOf(
-					filter.getCostRangeQuery(seat, grade)
-						.and(filter.getLocationListIncludeQuery())
-						.and(filter.getEventCategoryIncludeQuery())
-						.and(filter.getEventStatusIncludeQuery())
-						.and(filter.getBetweenDateQuery())
-						.and(event.information.title.like("%" + keyword + "%"))
-						.and(filterDeletedFalseExpression(event))
-				)
-			);
-
-		long count = countQuery.fetchCount();
+			.fetchCount();
 
 		return new PageImpl<>(results, pageable, count);
 	}

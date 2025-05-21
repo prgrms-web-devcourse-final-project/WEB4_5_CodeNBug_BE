@@ -8,7 +8,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -23,10 +22,13 @@ import lombok.Setter;
  */
 @Entity
 @Table(indexes = {
-	@Index(name = "idx_seat_event_id", columnList = "event_id"),
-	@Index(name = "idx_seat_grade_id", columnList = "grade_id"),
-	@Index(name = "idx_seat_layout_id", columnList = "layout_id"),
-	@Index(name = "idx_seat_available", columnList = "available")
+	/*
+	외래키는 자동으로 인덱스르 생성합니다. 필요 없어서 주석 처리했습니다
+	 */
+	// @Index(name = "idx_seat_event_id", columnList = "event_id"),
+	// @Index(name = "idx_seat_grade_id", columnList = "grade_id"),
+	// @Index(name = "idx_seat_layout_id", columnList = "layout_id"),
+	// @Index(name = "idx_seat_available", columnList = "available")
 })
 @NoArgsConstructor
 @Getter

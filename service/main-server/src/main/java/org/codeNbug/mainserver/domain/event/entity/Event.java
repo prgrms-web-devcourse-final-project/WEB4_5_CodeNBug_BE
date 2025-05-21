@@ -78,6 +78,12 @@ public class Event {
 	@Setter
 	@Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
 	private Boolean isDeleted = false;
+	@Setter
+	@Column(columnDefinition = "int default 0")
+	private Integer minPrice;
+	@Setter
+	@Column(columnDefinition = "int default 0")
+	private Integer maxPrice;
 
 	public Event(EventCategoryEnum category, EventInformation information, LocalDateTime bookingStart,
 		LocalDateTime bookingEnd,
@@ -94,5 +100,6 @@ public class Event {
 		this.seatSelectable = seatSelectable;
 		this.isDeleted = isDeleted;
 		this.seatLayout = seatLayout;
+
 	}
 }
