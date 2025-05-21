@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
@@ -18,6 +18,8 @@ import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
 import org.codeNbug.mainserver.domain.manager.dto.layout.LayoutDto;
 import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.manager.repository.ManagerEventRepository;
+import org.codeNbug.mainserver.domain.seat.entity.SeatGrade;
+import org.codeNbug.mainserver.domain.seat.entity.SeatGradeEnum;
 import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.service.SeatService;
@@ -94,7 +96,9 @@ class EventRegisterServiceTest {
 		when(eventRepository.save(any(Event.class))).thenReturn(event);
 		when(eventDomainService.serializeLayoutToJson(any())).thenReturn("{}");
 		when(seatLayoutRepository.save(any(SeatLayout.class))).thenReturn(seatLayout);
-		when(eventDomainService.createAndSaveSeatGrades(any(), any())).thenReturn(new HashMap<>());
+		when(eventDomainService.createAndSaveSeatGrades(any(), any())).thenReturn(Map.of(
+			"A1", new SeatGrade(1L, SeatGradeEnum.A, 1000, null), "A2", new SeatGrade(1L, SeatGradeEnum.A, 2000, null)
+		));
 		when(eventDomainService.buildEventRegisterResponse(any(), any()))
 			.thenReturn(createDummyResponse());
 

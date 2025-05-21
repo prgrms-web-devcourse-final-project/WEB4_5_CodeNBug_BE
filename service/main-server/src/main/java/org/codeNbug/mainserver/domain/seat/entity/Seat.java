@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,6 +21,15 @@ import lombok.Setter;
  * Seat 엔티티 클래스
  */
 @Entity
+@Table(indexes = {
+	/*
+	외래키는 자동으로 인덱스르 생성합니다. 필요 없어서 주석 처리했습니다
+	 */
+	// @Index(name = "idx_seat_event_id", columnList = "event_id"),
+	// @Index(name = "idx_seat_grade_id", columnList = "grade_id"),
+	// @Index(name = "idx_seat_layout_id", columnList = "layout_id"),
+	// @Index(name = "idx_seat_available", columnList = "available")
+})
 @NoArgsConstructor
 @Getter
 @Builder

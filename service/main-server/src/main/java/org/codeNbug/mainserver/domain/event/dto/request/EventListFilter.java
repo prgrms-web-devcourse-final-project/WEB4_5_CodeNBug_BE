@@ -50,11 +50,12 @@ public class EventListFilter {
 	}
 
 	@JsonIgnore
-	public BooleanExpression getCostRangeQuery() {
+	public BooleanExpression getCostRangeQuery(QEvent event) {
 		if (costRange == null) {
 			return Expressions.TRUE.eq(true);
 		}
-		return QEvent.event.seatLayout.seats.any().grade.amount.between(costRange.getMin(), costRange.getMax());
+		return event.minPrice.between(costRange.getMin(), costRange.getMax())
+			.or(event.maxPrice.between(costRange.getMin(), costRange.getMax()));
 	}
 
 	/**

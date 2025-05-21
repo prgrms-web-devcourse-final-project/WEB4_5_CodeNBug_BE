@@ -20,6 +20,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -27,7 +28,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "event")
+@Table(name = "event", indexes = {
+	@Index(name = "idx_event_createdat", columnList = "created_at")
+})
 @Getter
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
@@ -75,9 +78,15 @@ public class Event {
 	@Setter
 	@Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
 	private Boolean isDeleted = false;
+	@Setter
+	@Column(columnDefinition = "int default 0")
+	private Integer minPrice;
+	@Setter
+	@Column(columnDefinition = "int default 0")
+	private Integer maxPrice;
 
-
-	public Event(EventCategoryEnum category, EventInformation information, LocalDateTime bookingStart, LocalDateTime bookingEnd,
+	public Event(EventCategoryEnum category, EventInformation information, LocalDateTime bookingStart,
+		LocalDateTime bookingEnd,
 		Integer viewCount, LocalDateTime createdAt, LocalDateTime modifiedAt, EventStatusEnum status,
 		Boolean seatSelectable, Boolean isDeleted, SeatLayout seatLayout) {
 		this.category = category;
@@ -91,5 +100,6 @@ public class Event {
 		this.seatSelectable = seatSelectable;
 		this.isDeleted = isDeleted;
 		this.seatLayout = seatLayout;
+
 	}
 }

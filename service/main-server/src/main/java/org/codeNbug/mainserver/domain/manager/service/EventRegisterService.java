@@ -1,6 +1,7 @@
 package org.codeNbug.mainserver.domain.manager.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.dto.EventRegisterResponse;
@@ -46,7 +47,15 @@ public class EventRegisterService {
 		Map<String, SeatGrade> seatGradeMap = eventDomainService.createAndSaveSeatGrades(event, request.getPrice());
 		eventDomainService.createAndSaveSeats(event, seatLayout, request.getLayout(), seatGradeMap);
 		saveManagerEvent(managerId, event);
+		List<Integer> priceList = seatGradeMap.values()
+			.stream()
+			.map(seatGrade -> seatGrade.getAmount())
+			.sorted().toList();
+		Integer minPrice = priceList.getFirst();
+		Integer maxPrice = priceList.getLast();
 		event.setSeatLayout(seatLayout);
+		event.setMinPrice(minPrice);
+		event.setMaxPrice(maxPrice);
 		return eventDomainService.buildEventRegisterResponse(request, event);
 	}
 
