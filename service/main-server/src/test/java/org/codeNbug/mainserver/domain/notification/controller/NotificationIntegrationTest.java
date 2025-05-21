@@ -277,15 +277,15 @@ class NotificationIntegrationTest {
 		NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
 
 		// when
-		ResultActions result = mockMvc.perform(delete("/api/v1/notifications")
-			.header("Authorization", "Bearer " + testToken)
-			.contentType(MediaType.APPLICATION_JSON)
-			.content(objectMapper.writeValueAsString(request)));
+		ResultActions result = mockMvc.perform(post("/api/v1/notifications/batch-delete")
+				.header("Authorization", "Bearer " + testToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)));
 
 		// then
 		result.andExpect(status().isOk())
-			.andExpect(jsonPath("$.code").value("200-SUCCESS"))
-			.andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
 
 		// 데이터베이스에서 실제로 삭제됐는지 확인
 		for (Long id : notificationIds) {

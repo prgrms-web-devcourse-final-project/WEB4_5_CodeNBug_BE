@@ -15,7 +15,7 @@ on:
 jobs:
   deployMainServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'main-server'
+    if: inputs.selectServer == 'main-server' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -54,11 +54,53 @@ jobs:
             docker stop app1 2>/dev/null || true && \
             docker rm app1 2>/dev/null || true && \
             docker run -d --name app1 --network env_common -p 9000:9000 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:latest && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a -f|| true
+  deployMainServerUsingTag:
+    runs-on: ubuntu-latest
+    if: inputs.selectServer == 'main-server' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: set lower case owner name
+        id: export_owner
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
+      - name: Fetch EC2 Instance ID
+        id: fetch_instance
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+          --filters \
+          "Name=tag:Name,Values=team01-main" \
+          "Name=tag:Team,Values=devcos5-team01" \
+          "Name=instance-state-name,Values=running" \
+          --query "Reservations[].Instances[0].InstanceId" \
+          --output text) 
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+      - name: AWS SSM Send-Command
+        uses: peterkimzz/aws-ssm-send-command@master
+        id: ssm
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          instance-ids: ${{ steps.fetch_instance.outputs.instance_id }}
+          working-directory: /
+          comment: Deploy
+          command: |
+            docker pull ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ github.ref_name }} && \
+            docker stop app1 2>/dev/null || true && \
+            docker rm app1 2>/dev/null || true && \
+            docker run -d --name app1 --network env_common -p 9000:9000 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-main-deploy:${{ github.ref_name }} && \
+            docker image prune -a -f || true
 
   deployQueueServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'queue-server'
+    if: inputs.selectServer == 'queue-server' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -99,12 +141,56 @@ jobs:
             docker stop queue-server 2>/dev/null || true && \
             docker rm queue-server 2>/dev/null || true && \
             docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:latest && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a -f || true
+  deployQueueServerUsingTag:
+    runs-on: ubuntu-latest
+    if: inputs.selectServer == 'queue-server' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: set lower case owner name
+        id: export_owner
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
+      - name: Fetch EC2 Instance ID
+        id: fetch_instance2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+          --filters \
+          "Name=tag:Name,Values=team01-main" \
+          "Name=tag:Team,Values=devcos5-team01" \
+          "Name=instance-state-name,Values=running" \
+          --query "Reservations[].Instances[0].InstanceId" \
+          --output text) 
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+
+      - name: AWS SSM Send-Command
+        uses: peterkimzz/aws-ssm-send-command@master
+        id: ssm
+
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          instance-ids: ${{ steps.fetch_instance2.outputs.instance_id }}
+          working-directory: /
+          comment: Deploy
+          command: |
+            docker pull ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ github.ref_name }} && \
+            docker stop queue-server 2>/dev/null || true && \
+            docker rm queue-server 2>/dev/null || true && \
+            docker run -d --name queue-server --network env_common -p 9001:9001 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-queue-deploy:${{ github.ref_name }} && \
+            docker image prune -a -f || true
 
 
   deployDispatchServer:
     runs-on: ubuntu-latest
-    if: inputs.selectServer == 'message-dispatcher'
+    if: inputs.selectServer == 'message-dispatcher' && !startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -144,4 +230,47 @@ jobs:
             docker stop dispatch-server 2>/dev/null || true && \
             docker rm dispatch-server 2>/dev/null || true && \
             docker run -d --name dispatch-server --network env_common -p 9002:9002 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:latest && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            docker image prune -a -f || true
+  deployDispatchServerUsingTag:
+    runs-on: ubuntu-latest
+    if: inputs.selectServer == 'message-dispatcher' && startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: set lower case owner name
+        id: export_owner
+        run: |
+          OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "owner_lc=$OWNER_LC" >> $GITHUB_OUTPUT
+      - name: Fetch EC2 Instance ID
+        id: fetch_instance2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+          --filters \
+          "Name=tag:Name,Values=team01-main" \
+          "Name=tag:Team,Values=devcos5-team01" \
+          "Name=instance-state-name,Values=running" \
+          --query "Reservations[].Instances[0].InstanceId" \
+          --output text) 
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+
+      - name: AWS SSM Send-Command
+        uses: peterkimzz/aws-ssm-send-command@master
+        id: ssm
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          instance-ids: ${{ steps.fetch_instance2.outputs.instance_id }}
+          working-directory: /
+          comment: Deploy
+          command: |
+            docker pull ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:${{ github.ref_name }} && \
+            docker stop dispatch-server 2>/dev/null || true && \
+            docker rm dispatch-server 2>/dev/null || true && \
+            docker run -d --name dispatch-server --network env_common -p 9002:9002 ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/backend-dispatcher-deploy:${{ github.ref_name }} && \
+            docker image prune -a -f || true
