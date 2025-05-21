@@ -3,7 +3,9 @@ package org.codeNbug.mainserver.domain.manager.controller;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 
@@ -137,42 +139,50 @@ class ManagerControllerTest {
                 ))
                 .build();
 
-        EventRegisterRequest request = EventRegisterRequest.builder()
-                .title("테스트 이벤트")
-                .category(EventCategoryEnum.CONCERT)
-                .description("설명")
-                .restriction("없음")
-                .thumbnailUrl("https://example.com/image.jpg")
-                .startDate(LocalDateTime.now().plusDays(5))
-                .endDate(LocalDateTime.now().plusDays(7))
-                .location("서울시 강남구")
-                .hallName("1관")
-                .seatCount(4)
-                .layout(layoutDto)
-                .price(List.of(
-                        new PriceDto("S", 100000),
-                        new PriceDto("A", 80000)
-                ))
-                .bookingStart(LocalDateTime.now().plusDays(1))
-                .bookingEnd(LocalDateTime.now().plusDays(4))
-                .agelimit(12)
-                .build();
+        // 🔁 UTC ISO 8601 문자열 생성
+        String now = Instant.now().toString();
+        String bookingStart = Instant.now().plus(1, ChronoUnit.DAYS).toString();
+        String bookingEnd = Instant.now().plus(4, ChronoUnit.DAYS).toString();
+        String startDate = Instant.now().plus(5, ChronoUnit.DAYS).toString();
+        String endDate = Instant.now().plus(7, ChronoUnit.DAYS).toString();
+
+        // 🔁 JSON 수동 구성
+        String json = """
+        {
+          "title": "테스트 이벤트",
+          "category": "CONCERT",
+          "description": "설명",
+          "restriction": "없음",
+          "thumbnailUrl": "https://example.com/image.jpg",
+          "startDate": "%s",
+          "endDate": "%s",
+          "location": "서울시 강남구",
+          "hallName": "1관",
+          "seatCount": 4,
+          "layout": %s,
+          "price": [
+            { "grade": "S", "price": 100000 },
+            { "grade": "A", "price": 80000 }
+          ],
+          "bookingStart": "%s",
+          "bookingEnd": "%s",
+          "agelimit": 12
+        }
+        """.formatted(startDate, endDate, objectMapper.writeValueAsString(layoutDto), bookingStart, bookingEnd);
 
         mockMvc.perform(post("/api/v1/manager/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("200"))
                 .andExpect(jsonPath("$.msg").value("이벤트 등록 성공"))
                 .andExpect(jsonPath("$.data.eventId").exists());
-
     }
-
 
     @Test
     @DisplayName("이벤트 수정 성공")
+    @WithMockUser(username = "manager@test.com", roles = "MANAGER")
     void 이벤트_수정_성공() throws Exception {
-        // Step 1: 이벤트 등록
         LayoutDto layoutDto = LayoutDto.builder()
                 .layout(List.of(List.of("A1", "A2"), List.of("B1", "B2")))
                 .seat(Map.of(
@@ -183,30 +193,42 @@ class ManagerControllerTest {
                 ))
                 .build();
 
-        EventRegisterRequest original = EventRegisterRequest.builder()
-                .title("테스트 이벤트")
-                .category(EventCategoryEnum.CONCERT)
-                .description("설명")
-                .restriction("없음")
-                .thumbnailUrl("https://example.com/image.jpg")
-                .startDate(LocalDateTime.now().plusDays(1))
-                .endDate(LocalDateTime.now().plusDays(3))
-                .location("서울시 강남구")
-                .hallName("1관")
-                .seatCount(4)
-                .layout(layoutDto)
-                .price(List.of(
-                        new PriceDto("S", 100000),
-                        new PriceDto("A", 80000)
-                ))
-                .bookingStart(LocalDateTime.now())
-                .bookingEnd(LocalDateTime.now().plusDays(1))
-                .agelimit(12)
-                .build();
+        String layoutJson = objectMapper.writeValueAsString(layoutDto);
+
+        // Step 1: 이벤트 등록 (UTC ISO 문자열)
+        String now = Instant.now().toString();
+        String registerJson = """
+        {
+          "title": "테스트 이벤트",
+          "category": "CONCERT",
+          "description": "설명",
+          "restriction": "없음",
+          "thumbnailUrl": "https://example.com/image.jpg",
+          "startDate": "%s",
+          "endDate": "%s",
+          "location": "서울시 강남구",
+          "hallName": "1관",
+          "seatCount": 4,
+          "layout": %s,
+          "price": [
+            { "grade": "S", "price": 100000 },
+            { "grade": "A", "price": 80000 }
+          ],
+          "bookingStart": "%s",
+          "bookingEnd": "%s",
+          "agelimit": 12
+        }
+        """.formatted(
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().plus(3, ChronoUnit.DAYS),
+                layoutJson,
+                Instant.now(),
+                Instant.now().plus(1, ChronoUnit.DAYS)
+        );
 
         MvcResult result = mockMvc.perform(post("/api/v1/manager/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(original)))
+                        .content(registerJson))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -215,31 +237,38 @@ class ManagerControllerTest {
         Long eventId = jsonNode.path("data").path("eventId").asLong();
 
         // Step 2: 수정 요청
-        EventRegisterRequest updated = EventRegisterRequest.builder()
-                .title("수정된 이벤트")
-                .category(EventCategoryEnum.MUSICAL)
-                .description("수정된 설명")
-                .restriction("연령제한")
-                .thumbnailUrl("https://example.com/updated.jpg")
-                .startDate(LocalDateTime.now().plusDays(2))
-                .endDate(LocalDateTime.now().plusDays(4))
-                .location("부산시 해운대구")
-                .hallName("2관")
-                .seatCount(4)
-                .layout(layoutDto)
-                .price(List.of(
-                        new PriceDto("S", 100000),
-                        new PriceDto("A", 80000)
-                ))
-                .bookingStart(LocalDateTime.now().plusDays(1))
-                .bookingEnd(LocalDateTime.now().plusDays(2))
-                .agelimit(15)
-                .build();
+        String updateJson = """
+        {
+          "title": "수정된 이벤트",
+          "category": "MUSICAL",
+          "description": "수정된 설명",
+          "restriction": "연령제한",
+          "thumbnailUrl": "https://example.com/updated.jpg",
+          "startDate": "%s",
+          "endDate": "%s",
+          "location": "부산시 해운대구",
+          "hallName": "2관",
+          "seatCount": 4,
+          "layout": %s,
+          "price": [
+            { "grade": "S", "price": 100000 },
+            { "grade": "A", "price": 80000 }
+          ],
+          "bookingStart": "%s",
+          "bookingEnd": "%s",
+          "agelimit": 15
+        }
+        """.formatted(
+                Instant.now().plus(2, ChronoUnit.DAYS),
+                Instant.now().plus(4, ChronoUnit.DAYS),
+                layoutJson,
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().plus(2, ChronoUnit.DAYS)
+        );
 
-        // Step 3: 수정 요청 실행 및 검증
         mockMvc.perform(put("/api/v1/manager/events/{eventId}", eventId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updated)))
+                        .content(updateJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value("200"))
                 .andExpect(jsonPath("$.msg").value("이벤트 수정 성공"))
@@ -248,6 +277,7 @@ class ManagerControllerTest {
 
     @Test
     @DisplayName("이벤트 삭제 성공")
+    @WithMockUser(username = "manager@test.com", roles = "MANAGER")
     void 이벤트_삭제_성공() throws Exception {
         // Step 1: 이벤트 등록
         LayoutDto layoutDto = LayoutDto.builder()
@@ -260,30 +290,40 @@ class ManagerControllerTest {
                 ))
                 .build();
 
-        EventRegisterRequest request = EventRegisterRequest.builder()
-                .title("삭제할 이벤트")
-                .category(EventCategoryEnum.CONCERT)
-                .description("설명")
-                .restriction("없음")
-                .thumbnailUrl("https://example.com/image.jpg")
-                .startDate(LocalDateTime.now().plusDays(1))
-                .endDate(LocalDateTime.now().plusDays(3))
-                .location("서울시 강남구")
-                .hallName("1관")
-                .seatCount(4)
-                .layout(layoutDto)
-                .price(List.of(
-                        new PriceDto("S", 100000),
-                        new PriceDto("A", 80000)
-                ))
-                .bookingStart(LocalDateTime.now())
-                .bookingEnd(LocalDateTime.now().plusDays(1))
-                .agelimit(12)
-                .build();
+        String layoutJson = objectMapper.writeValueAsString(layoutDto);
+
+        String requestJson = """
+        {
+          "title": "삭제할 이벤트",
+          "category": "CONCERT",
+          "description": "설명",
+          "restriction": "없음",
+          "thumbnailUrl": "https://example.com/image.jpg",
+          "startDate": "%s",
+          "endDate": "%s",
+          "location": "서울시 강남구",
+          "hallName": "1관",
+          "seatCount": 4,
+          "layout": %s,
+          "price": [
+            { "grade": "S", "price": 100000 },
+            { "grade": "A", "price": 80000 }
+          ],
+          "bookingStart": "%s",
+          "bookingEnd": "%s",
+          "agelimit": 12
+        }
+        """.formatted(
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().plus(3, ChronoUnit.DAYS),
+                layoutJson,
+                Instant.now(),
+                Instant.now().plus(1, ChronoUnit.DAYS)
+        );
 
         MvcResult result = mockMvc.perform(post("/api/v1/manager/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(requestJson))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -302,8 +342,9 @@ class ManagerControllerTest {
 
     @Test
     @DisplayName("매니저 이벤트 목록 조회 성공")
+    @WithMockUser(username = "manager@test.com", roles = "MANAGER")
     void 매니저_이벤트_목록_조회() throws Exception {
-        // Step 1: 이벤트 하나 등록
+        // Step 1: 이벤트 등록
         LayoutDto layoutDto = LayoutDto.builder()
                 .layout(List.of(List.of("A1", "A2"), List.of("B1", "B2")))
                 .seat(Map.of(
@@ -314,30 +355,40 @@ class ManagerControllerTest {
                 ))
                 .build();
 
-        EventRegisterRequest request = EventRegisterRequest.builder()
-                .title("목록 조회용 이벤트")
-                .category(EventCategoryEnum.CONCERT)
-                .description("설명")
-                .restriction("없음")
-                .thumbnailUrl("https://example.com/image.jpg")
-                .startDate(LocalDateTime.now().plusDays(1))
-                .endDate(LocalDateTime.now().plusDays(3))
-                .location("서울시 강남구")
-                .hallName("1관")
-                .seatCount(4)
-                .layout(layoutDto)
-                .price(List.of(
-                        new PriceDto("S", 100000),
-                        new PriceDto("A", 80000)
-                ))
-                .bookingStart(LocalDateTime.now())
-                .bookingEnd(LocalDateTime.now().plusDays(1))
-                .agelimit(12)
-                .build();
+        String layoutJson = objectMapper.writeValueAsString(layoutDto);
+
+        String requestJson = """
+        {
+          "title": "목록 조회용 이벤트",
+          "category": "CONCERT",
+          "description": "설명",
+          "restriction": "없음",
+          "thumbnailUrl": "https://example.com/image.jpg",
+          "startDate": "%s",
+          "endDate": "%s",
+          "location": "서울시 강남구",
+          "hallName": "1관",
+          "seatCount": 4,
+          "layout": %s,
+          "price": [
+            { "grade": "S", "price": 100000 },
+            { "grade": "A", "price": 80000 }
+          ],
+          "bookingStart": "%s",
+          "bookingEnd": "%s",
+          "agelimit": 12
+        }
+        """.formatted(
+                Instant.now().plus(1, ChronoUnit.DAYS),
+                Instant.now().plus(3, ChronoUnit.DAYS),
+                layoutJson,
+                Instant.now(),
+                Instant.now().plus(1, ChronoUnit.DAYS)
+        );
 
         mockMvc.perform(post("/api/v1/manager/events")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(requestJson))
                 .andExpect(status().isOk());
 
         // Step 2: 목록 조회 요청
@@ -348,6 +399,5 @@ class ManagerControllerTest {
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data[0].title").value("목록 조회용 이벤트"));
     }
-
 
 }
