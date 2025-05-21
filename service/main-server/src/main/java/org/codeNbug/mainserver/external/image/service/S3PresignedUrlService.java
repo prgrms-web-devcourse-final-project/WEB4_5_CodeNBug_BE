@@ -27,10 +27,12 @@ public class S3PresignedUrlService {
     private final StaticCredentialsProvider credentialsProvider;
 
     public String generatePresignedUploadUrl(String fileName, int expirationMinutes) {
+        String contentType = guessContentType(fileName); // 확장자 기반 추출
+
         PutObjectRequest objectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(fileName)
-                .contentType("image/jpeg")
+                .contentType(contentType)
                 .build();
 
         S3Presigner presigner = S3Presigner.builder()
@@ -47,4 +49,23 @@ public class S3PresignedUrlService {
 
         return presignedRequest.url().toString();
     }
+
+
+    private String extractExtension(String fileName) {
+        String[] parts = fileName.split("\\.");
+        if (parts.length < 2) return ""; // 확장자 없음
+        return parts[parts.length - 1].toLowerCase(); // 마지막 요소가 확장자
+    }
+
+    private String guessContentType(String fileName) {
+        String ext = extractExtension(fileName);
+        return switch (ext) {
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "webp" -> "image/webp";
+            case "gif" -> "image/gif";
+            default -> "application/octet-stream"; // fallback
+        };
+    }
+
 }

@@ -51,7 +51,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 		)
 )
 @WebMvcTest(PurchaseController.class)
-@Import(PurchaseControllerTest.MockBeans.class)
 class PurchaseControllerTest {
 	@Autowired
 	private MockMvc mockMvc;

@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 public class NotificationDto {
     private Long id;
     private NotificationEnum type;
+    private String title;
     private String content;
     private LocalDateTime sentAt;
     private boolean isRead;
@@ -28,6 +29,7 @@ public class NotificationDto {
         return NotificationDto.builder()
                 .id(notification.getId())
                 .type(notification.getType())
+                .title(notification.getTitle())
                 .content(notification.getContent())
                 .sentAt(notification.getSentAt())
                 .isRead(notification.isRead())

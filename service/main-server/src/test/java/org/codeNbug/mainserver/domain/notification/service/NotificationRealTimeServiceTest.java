@@ -177,7 +177,7 @@ class NotificationRealTimeServiceTest {
         NotificationEnum type = NotificationEnum.SYSTEM;
         String content = "테스트 알림";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content, LocalDateTime.now(), false, NotificationStatus.PENDING);
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, "테스트 알림 제목", content, LocalDateTime.now(), false, NotificationStatus.PENDING);
 
         // emitterService 설정 - 사용자가 연결되어 있음
         SseEmitter mockEmitter = mock(SseEmitter.class);
@@ -214,7 +214,7 @@ class NotificationRealTimeServiceTest {
         NotificationEnum type = NotificationEnum.SYSTEM;
         String content = "테스트 알림";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content, LocalDateTime.now(), false, NotificationStatus.PENDING);
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, "테스트 알림 제목", content, LocalDateTime.now(), false, NotificationStatus.PENDING);
 
         // userConnectionsMap은 비어있으므로 사용자가 연결되어 있지 않음
 
@@ -236,7 +236,7 @@ class NotificationRealTimeServiceTest {
         NotificationEnum type = NotificationEnum.SYSTEM;
         String content = "테스트 알림";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, content, LocalDateTime.now(), false, NotificationStatus.PENDING);
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, "테스트 알림 제목", content, LocalDateTime.now(), false, NotificationStatus.PENDING);
 
         // 직접적인 예외 발생 시나리오 구성
         NotificationEmitterService mockEmitterService = mock(NotificationEmitterService.class);
@@ -283,7 +283,7 @@ class NotificationRealTimeServiceTest {
      * 테스트용 Notification 객체 생성 도우미 메서드
      */
     private Notification createNotification(Long id, Long userId, NotificationEnum type, String content) {
-        Notification notification = new Notification(userId, type, content);
+        Notification notification = new Notification(userId, type, "테스트 알림 제목", content);
 
         // 리플렉션으로 private 필드 설정
         try {

@@ -9,7 +9,6 @@ import org.codeNbug.mainserver.domain.event.entity.Event;
 import org.codeNbug.mainserver.domain.event.entity.EventCategoryEnum;
 import org.codeNbug.mainserver.domain.event.entity.EventInformation;
 import org.codeNbug.mainserver.domain.manager.dto.EventRegisterRequest;
-import org.codeNbug.mainserver.domain.manager.repository.EventRepository;
 import org.codeNbug.mainserver.domain.notification.entity.NotificationEnum;
 import org.codeNbug.mainserver.domain.notification.service.NotificationService;
 import org.codeNbug.mainserver.domain.purchase.entity.Purchase;
@@ -20,6 +19,7 @@ import org.codeNbug.mainserver.domain.seat.entity.SeatLayout;
 import org.codeNbug.mainserver.domain.seat.repository.SeatGradeRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatLayoutRepository;
 import org.codeNbug.mainserver.domain.seat.repository.SeatRepository;
+import org.codeNbug.mainserver.domain.seat.service.SeatService;
 import org.codeNbug.mainserver.global.exception.globalException.BadRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +38,7 @@ public class EventEditService {
 	private final EventDomainService eventDomainService;
 	private final PurchaseRepository purchaseRepository;
 	private final NotificationService notificationService;
+	private final SeatService seatService;
 
 	/**
 	 * 이벤트 수정 메인 메서드입니다.
@@ -87,28 +88,29 @@ public class EventEditService {
 					changes.append("공연 종료 시간 변경 ");
 				}
 
-				String notificationContent = String.format(
-						"[%s] 행사 정보가 변경되었습니다. (%s)",
-						request.getTitle(),
+				String notificationTitle = String.format("[%s] 행사 정보 변경", request.getTitle());
+				String notificationContent = String.format("다음 항목이 변경되었습니다: %s",
 						changes.toString().trim());
+
 
 				for (Purchase purchase : purchases) {
 					try {
 						Long userId = purchase.getUser().getUserId();
 						notificationService.createNotification(
-								userId,
-								NotificationEnum.EVENT,
-								notificationContent
+							userId,
+							NotificationEnum.EVENT,
+							notificationTitle,
+							notificationContent
 						);
 					} catch (Exception e) {
 						log.error("행사 정보 변경 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
-								purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
+							purchase.getUser().getUserId(), purchase.getId(), e.getMessage(), e);
 						// 개별 사용자 알림 실패는 이벤트 수정에 영향을 주지 않도록 예외를 무시함
 					}
 				}
 
 				log.info("행사 정보 변경 알림 전송 완료. 이벤트ID: {}, 변경사항: {}, 대상자 수: {}",
-						eventId, changes.toString().trim(), purchases.size());
+					eventId, changes.toString().trim(), purchases.size());
 			}
 		} catch (Exception e) {
 			log.error("행사 정보 변경 알림 처리 실패. 이벤트ID: {}, 오류: {}", eventId, e.getMessage(), e);
@@ -126,7 +128,6 @@ public class EventEditService {
 			event.setCategory(newCategory);
 		}
 	}
-
 
 	/**
 	 * 이벤트 정보를 갱신하는 메서드입니다.
@@ -164,6 +165,7 @@ public class EventEditService {
 			.orElseThrow(() -> new BadRequestException("좌석 레이아웃을 찾을 수 없습니다: eventId=" + eventId));
 		String layoutJson = eventDomainService.serializeLayoutToJson(request.getLayout());
 		seatLayout.setLayout(layoutJson);
+		seatService.evictSeatLayoutCache(eventId);
 	}
 
 	/**
