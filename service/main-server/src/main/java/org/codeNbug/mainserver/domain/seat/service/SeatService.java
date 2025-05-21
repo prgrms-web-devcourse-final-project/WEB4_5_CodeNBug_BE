@@ -199,6 +199,8 @@ public class SeatService {
 				throw new BadRequestException("[cancelSeat] 좌석 락을 해제할 수 없습니다.");
 			}
 			seat.cancelReserve();
+			String cacheKey = "seatLayout:" + eventId;
+			redisTemplate.delete(cacheKey);
 		}
 	}
 
