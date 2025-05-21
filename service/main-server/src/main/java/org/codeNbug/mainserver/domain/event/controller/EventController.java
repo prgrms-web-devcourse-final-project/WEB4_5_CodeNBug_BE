@@ -42,10 +42,8 @@ public class EventController {
 		@RequestParam(name = "keyword", required = false) String keyword,
 		@Valid @RequestBody(required = false) EventListFilter filter,
 		Pageable pageable) {
-		if (pageable.getPageNumber() > 1) {
-			pageable = PageRequest.of(pageable.getPageNumber() - 1, pageable.getPageSize());
-		}
-		Page<EventListResponse> eventList = commonEventService.getEvents(keyword, filter, pageable);
+		PageRequest page = PageRequest.of(pageable.getPageNumber() - 1, pageable.getPageSize());
+		Page<EventListResponse> eventList = commonEventService.getEvents(keyword, filter, page);
 
 		return ResponseEntity.ok(RsData.success("event list 조회 성공.", eventList));
 	}
