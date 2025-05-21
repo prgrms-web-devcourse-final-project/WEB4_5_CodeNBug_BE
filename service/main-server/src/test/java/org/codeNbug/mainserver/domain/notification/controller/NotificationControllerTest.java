@@ -225,32 +225,33 @@ class NotificationControllerTest {
 		verify(notificationService, times(1)).deleteNotification(eq(notificationId), anyLong());
 	}
 
-	 @Test
-	 @WithMockUser
-	 @DisplayName("다건 알림 삭제 테스트")
-	 void batchDeleteNotifications() throws Exception {
-		 // given
-		 List<Long> notificationIds = Arrays.asList(1L, 2L);
-		 NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
-
-		 doNothing().when(notificationService).deleteNotifications(eq(notificationIds), anyLong());
-
-		 // when & then
-		 mockMvc.perform(post("/api/v1/notifications/batch-delete")
-						 .contentType(MediaType.APPLICATION_JSON)
-						 .content(objectMapper.writeValueAsString(request)))
-				 .andExpect(status().isOk())
-				 .andExpect(jsonPath("$.code").value("200-SUCCESS"))
-				 .andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
-
-		 verify(notificationService, times(1)).deleteNotifications(eq(notificationIds), anyLong());
-	 }
 	@Test
 	@WithMockUser
-	@DisplayName("모든 알림 삭제 테스트")
-	void deleteAllNotifications() throws Exception {
+	@DisplayName("다건 알림 삭제 테스트")
+	void batchDeleteNotifications() throws Exception {
 		// given
-		doNothing().when(notificationService).deleteAllNotifications(anyLong());
+		List<Long> notificationIds = Arrays.asList(1L, 2L);
+		NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
+
+		doNothing().when(notificationService).deleteNotifications(eq(notificationIds), anyLong());
+
+		// when & then
+		mockMvc.perform(post("/api/v1/notifications/batch-delete")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
+
+		verify(notificationService, times(1)).deleteNotifications(eq(notificationIds), anyLong());
+	}
+
+    @Test
+    @WithMockUser
+    @DisplayName("모든 알림 삭제 테스트")
+    void deleteAllNotifications() throws Exception {
+        // given
+        doNothing().when(notificationService).deleteAllNotifications(anyLong());
 
 		// when & then
 		mockMvc.perform(delete("/api/v1/notifications/all"))
