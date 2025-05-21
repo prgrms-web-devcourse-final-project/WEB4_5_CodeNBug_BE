@@ -88,10 +88,10 @@ public class EventEditService {
 					changes.append("공연 종료 시간 변경 ");
 				}
 
-				String notificationContent = String.format(
-					"[%s] 행사 정보가 변경되었습니다. (%s)",
-					request.getTitle(),
-					changes.toString().trim());
+				String notificationTitle = String.format("[%s] 행사 정보 변경", request.getTitle());
+				String notificationContent = String.format("다음 항목이 변경되었습니다: %s",
+						changes.toString().trim());
+
 
 				for (Purchase purchase : purchases) {
 					try {
@@ -99,6 +99,7 @@ public class EventEditService {
 						notificationService.createNotification(
 							userId,
 							NotificationEnum.EVENT,
+							notificationTitle,
 							notificationContent
 						);
 					} catch (Exception e) {

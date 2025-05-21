@@ -500,10 +500,8 @@ public class AdminService {
             log.debug(">> 이벤트 구매자 조회 완료: eventId={}, 구매자 수={}", eventId, purchases.size());
 
             // 모든 구매자에게 행사 복구 알림 전송
-            String notificationContent = String.format(
-                    "[%s] 행사가 복구되었습니다. 예매 내역을 확인해주세요.",
-                    event.getInformation().getTitle()
-            );
+            String notificationTitle = String.format("[%s] 행사 복구 안내", event.getInformation().getTitle());
+            String notificationContent = "취소되었던 행사가 복구되었습니다. 예매 내역을 확인해주세요.";
 
             for (Purchase purchase : purchases) {
                 try {
@@ -511,6 +509,7 @@ public class AdminService {
                     notificationService.createNotification(
                             userId,
                             NotificationEnum.EVENT,
+                            notificationTitle,
                             notificationContent
                     );
                     log.debug(">> 알림 전송 완료: userId={}, eventId={}", userId, eventId);
@@ -568,10 +567,8 @@ public class AdminService {
             log.debug(">> 이벤트 구매자 조회 완료: eventId={}, 구매자 수={}", eventId, purchases.size());
 
             // 모든 구매자에게 행사 취소 알림 전송
-            String notificationContent = String.format(
-                    "[%s] 행사가 취소되었습니다. 예매 내역을 확인해주세요.",
-                    event.getInformation().getTitle()
-            );
+            String notificationTitle = String.format("[%s] 행사 취소 안내", event.getInformation().getTitle());
+            String notificationContent = "예매하신 행사가 취소되었습니다. 예매 내역을 확인해주세요.";
 
             for (Purchase purchase : purchases) {
                 try {
@@ -579,6 +576,7 @@ public class AdminService {
                     notificationService.createNotification(
                             userId,
                             NotificationEnum.EVENT,
+                            notificationTitle,
                             notificationContent
                     );
                     log.debug(">> 알림 전송 완료: userId={}, eventId={}", userId, eventId);

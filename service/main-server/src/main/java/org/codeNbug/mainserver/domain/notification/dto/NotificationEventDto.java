@@ -16,16 +16,18 @@ public class NotificationEventDto {
     private final Long notificationId;
     private final Long userId;
     private final NotificationEnum type;
+    private final String title;
     private final String content;
     private final LocalDateTime sentAt;
     private final boolean isRead;
     private final NotificationStatus status;
 
-    public NotificationEventDto(Long notificationId, Long userId, NotificationEnum type, String content,
+    public NotificationEventDto(Long notificationId, Long userId, NotificationEnum type, String title, String content,
                                 LocalDateTime sentAt, boolean isRead, NotificationStatus status) {
         this.notificationId = notificationId;
         this.userId = userId;
         this.type = type;
+        this.title = title;
         this.content = content;
         this.sentAt = sentAt;
         this.isRead = isRead;
@@ -37,6 +39,7 @@ public class NotificationEventDto {
                 notification.getId(),
                 notification.getUserId(),
                 notification.getType(),
+                notification.getTitle(),
                 notification.getContent(),
                 notification.getSentAt(),
                 notification.isRead(),
@@ -49,6 +52,7 @@ public class NotificationEventDto {
         return NotificationDto.builder()
                 .id(notificationId)
                 .type(type)
+                .title(title)
                 .content(content)
                 .sentAt(sentAt)
                 .isRead(isRead)

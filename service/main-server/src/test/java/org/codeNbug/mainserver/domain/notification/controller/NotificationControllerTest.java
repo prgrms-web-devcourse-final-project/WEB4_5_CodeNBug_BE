@@ -79,16 +79,16 @@ class NotificationControllerTest {
 		}
 	}
 
-	@Test
-	@WithMockUser
-	@DisplayName("알림 목록 조회 테스트")
-	void getNotifications() throws Exception {
-		// given
-		List<NotificationDto> notificationList = Arrays.asList(
-			createNotificationDto(1L, NotificationEnum.SYSTEM, "시스템 알림입니다."),
-			createNotificationDto(2L, NotificationEnum.EVENT, "이벤트 알림입니다."),
-			createNotificationDto(3L, NotificationEnum.TICKET, "티켓 알림입니다.")
-		);
+    @Test
+    @WithMockUser
+    @DisplayName("알림 목록 조회 테스트")
+    void getNotifications() throws Exception {
+        // given
+        List<NotificationDto> notificationList = Arrays.asList(
+                createNotificationDto(1L, NotificationEnum.SYSTEM, "시스템 알림입니다.", "알림 내용입니다."),
+                createNotificationDto(2L, NotificationEnum.EVENT, "이벤트 알림입니다.", "알림 내용입니다."),
+                createNotificationDto(3L, NotificationEnum.TICKET, "티켓 알림입니다.", "알림 내용입니다.")
+        );
 
 		Page<NotificationDto> notificationPage = new PageImpl<>(
 			notificationList,
@@ -110,15 +110,15 @@ class NotificationControllerTest {
 		verify(notificationService, times(1)).getNotifications(anyLong(), any(Pageable.class));
 	}
 
-	@Test
-	@WithMockUser
-	@DisplayName("읽지 않은 알림 조회 테스트")
-	void getUnreadNotifications() throws Exception {
-		// given
-		List<NotificationDto> unreadNotifications = Arrays.asList(
-			createNotificationDto(1L, NotificationEnum.SYSTEM, "읽지 않은 시스템 알림"),
-			createNotificationDto(2L, NotificationEnum.EVENT, "읽지 않은 이벤트 알림")
-		);
+    @Test
+    @WithMockUser
+    @DisplayName("읽지 않은 알림 조회 테스트")
+    void getUnreadNotifications() throws Exception {
+        // given
+        List<NotificationDto> unreadNotifications = Arrays.asList(
+                createNotificationDto(1L, NotificationEnum.SYSTEM, "읽지 않은 시스템 알림", "알림 내용"),
+                createNotificationDto(2L, NotificationEnum.EVENT, "읽지 않은 이벤트 알림", "알림 내용")
+        );
 
 		Page<NotificationDto> notificationPage = new PageImpl<>(
 			unreadNotifications,
@@ -168,24 +168,25 @@ class NotificationControllerTest {
 		verify(notificationService, times(1)).getNotificationById(eq(notificationId), anyLong());
 	}
 
-	@Test
-	@WithMockUser(roles = "ADMIN")
-	@DisplayName("알림 생성 테스트")
-	void createNotification() throws Exception {
-		// given
-		NotificationCreateRequestDto requestDto = new NotificationCreateRequestDto(
-			1L, NotificationEnum.SYSTEM, "API를 통해 생성된 테스트 알림입니다."
-		);
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("알림 생성 테스트")
+    void createNotification() throws Exception {
+        // given
+        NotificationCreateRequestDto requestDto = new NotificationCreateRequestDto(
+                1L, NotificationEnum.SYSTEM, "알림 제목", "API를 통해 생성된 테스트 알림입니다."
+        );
 
-		NotificationDto createdNotification = createNotificationDto(
-			1L, NotificationEnum.SYSTEM, "API를 통해 생성된 테스트 알림입니다."
-		);
+        NotificationDto createdNotification = createNotificationDto(
+                1L, NotificationEnum.SYSTEM, "API 알림 제목", "API를 통해 생성된 테스트 알림입니다."
+        );
 
-		when(notificationService.createNotification(
-			eq(requestDto.getUserId()),
-			eq(requestDto.getType()),
-			eq(requestDto.getContent())))
-			.thenReturn(createdNotification);
+        when(notificationService.createNotification(
+                eq(requestDto.getUserId()),
+                eq(requestDto.getType()),
+                eq(requestDto.getTitle()),
+                eq(requestDto.getContent())))
+                .thenReturn(createdNotification);
 
 		// when & then
 		mockMvc.perform(post("/api/v1/notifications")
@@ -198,12 +199,13 @@ class NotificationControllerTest {
 			.andExpect(jsonPath("$.data.content").value("API를 통해 생성된 테스트 알림입니다."))
 			.andExpect(jsonPath("$.data.read").value(false));
 
-		verify(notificationService, times(1)).createNotification(
-			eq(requestDto.getUserId()),
-			eq(requestDto.getType()),
-			eq(requestDto.getContent())
-		);
-	}
+        verify(notificationService, times(1)).createNotification(
+                eq(requestDto.getUserId()),
+                eq(requestDto.getType()),
+                eq(requestDto.getTitle()),
+                eq(requestDto.getContent())
+        );
+    }
 
 	@Test
 	@WithMockUser
@@ -223,32 +225,33 @@ class NotificationControllerTest {
 		verify(notificationService, times(1)).deleteNotification(eq(notificationId), anyLong());
 	}
 
-	 @Test
-	 @WithMockUser
-	 @DisplayName("다건 알림 삭제 테스트")
-	 void batchDeleteNotifications() throws Exception {
-		 // given
-		 List<Long> notificationIds = Arrays.asList(1L, 2L);
-		 NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
-
-		 doNothing().when(notificationService).deleteNotifications(eq(notificationIds), anyLong());
-
-		 // when & then
-		 mockMvc.perform(post("/api/v1/notifications/batch-delete")
-						 .contentType(MediaType.APPLICATION_JSON)
-						 .content(objectMapper.writeValueAsString(request)))
-				 .andExpect(status().isOk())
-				 .andExpect(jsonPath("$.code").value("200-SUCCESS"))
-				 .andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
-
-		 verify(notificationService, times(1)).deleteNotifications(eq(notificationIds), anyLong());
-	 }
 	@Test
 	@WithMockUser
-	@DisplayName("모든 알림 삭제 테스트")
-	void deleteAllNotifications() throws Exception {
+	@DisplayName("다건 알림 삭제 테스트")
+	void batchDeleteNotifications() throws Exception {
 		// given
-		doNothing().when(notificationService).deleteAllNotifications(anyLong());
+		List<Long> notificationIds = Arrays.asList(1L, 2L);
+		NotificationDeleteRequestDto request = new NotificationDeleteRequestDto(notificationIds);
+
+		doNothing().when(notificationService).deleteNotifications(eq(notificationIds), anyLong());
+
+		// when & then
+		mockMvc.perform(post("/api/v1/notifications/batch-delete")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(objectMapper.writeValueAsString(request)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
+				.andExpect(jsonPath("$.msg").value("알림 삭제 성공"));
+
+		verify(notificationService, times(1)).deleteNotifications(eq(notificationIds), anyLong());
+	}
+
+    @Test
+    @WithMockUser
+    @DisplayName("모든 알림 삭제 테스트")
+    void deleteAllNotifications() throws Exception {
+        // given
+        doNothing().when(notificationService).deleteAllNotifications(anyLong());
 
 		// when & then
 		mockMvc.perform(delete("/api/v1/notifications/all"))
@@ -301,16 +304,18 @@ class NotificationControllerTest {
 		verify(emitterService, times(1)).createEmitter(anyLong(), eq(null));
 	}
 
-	/**
-	 * Builder 패턴을 사용하여 NotificationDto 객체 생성
-	 */
-	private NotificationDto createNotificationDto(Long id, NotificationEnum type, String content) {
-		return NotificationDto.builder()
-			.id(id)
-			.type(type)
-			.content(content)
-			.sentAt(LocalDateTime.now())
-			.isRead(false)
-			.build();
-	}
+
+    /**
+     * Builder 패턴을 사용하여 NotificationDto 객체 생성
+     */
+    private NotificationDto createNotificationDto(Long id, NotificationEnum type,String title, String content) {
+        return NotificationDto.builder()
+                .id(id)
+                .type(type)
+                .title(title)
+                .content(content)
+                .sentAt(LocalDateTime.now())
+                .isRead(false)
+                .build();
+    }
 }

@@ -141,9 +141,9 @@ class NotificationIntegrationTest {
 
 	private void createTestNotifications() {
 		// 여러 상태와 유형의 알림 데이터 생성
-		notificationService.createNotification(testUser.getUserId(), NotificationEnum.SYSTEM, "시스템 알림입니다.");
-		notificationService.createNotification(testUser.getUserId(), NotificationEnum.EVENT, "이벤트 알림입니다.");
-		notificationService.createNotification(testUser.getUserId(), NotificationEnum.TICKET, "티켓 알림입니다.");
+		notificationService.createNotification(testUser.getUserId(), NotificationEnum.SYSTEM, "시스템 알림 제목", "시스템 알림입니다.");
+		notificationService.createNotification(testUser.getUserId(), NotificationEnum.EVENT, "이벤트 알림 제목", "이벤트 알림입니다.");
+		notificationService.createNotification(testUser.getUserId(), NotificationEnum.TICKET, "티켓 알림 제목", "티켓 알림입니다.");
 	}
 
 	private void setAuthenticationForUser(User user) {
@@ -171,6 +171,7 @@ class NotificationIntegrationTest {
 		NotificationCreateRequestDto requestDto = new NotificationCreateRequestDto(
 			testUser.getUserId(),
 			NotificationEnum.SYSTEM,
+			"API 알림 제목",
 			"API를 통해 생성된 테스트 알림입니다."
 		);
 
@@ -191,7 +192,7 @@ class NotificationIntegrationTest {
 		// DB에 실제로 생성됐는지 확인
 		List<Notification> notifications = notificationRepository.findByUserIdOrderBySentAtDesc(testUser.getUserId());
 		boolean found = notifications.stream()
-			.anyMatch(n -> "API를 통해 생성된 테스트 알림입니다.".equals(n.getContent()));
+				.anyMatch(n -> "API를 통해 생성된 테스트 알림입니다.".equals(n.getContent()) && "API 알림 제목".equals(n.getTitle()));
 
 		if (!found) {
 			throw new AssertionError("알림이 데이터베이스에 생성되지 않았습니다.");

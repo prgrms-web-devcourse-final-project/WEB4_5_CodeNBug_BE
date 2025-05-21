@@ -90,6 +90,7 @@ public class NotificationController {
         NotificationDto createdNotification = notificationService.createNotification(
                 requestDto.getUserId(),
                 requestDto.getType(),
+                requestDto.getTitle(),
                 requestDto.getContent()
         );
 

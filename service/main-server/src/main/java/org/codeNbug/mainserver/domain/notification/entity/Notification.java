@@ -28,7 +28,10 @@ public class Notification {
     @Column(nullable = false)
     private NotificationEnum type;
 
-    @Column(nullable = false, length = 500)
+    @Column(nullable = false, length = 100)
+    private String title;
+
+    @Column(nullable = true, length = 500)
     private String content;
 
     @CreatedDate
@@ -43,13 +46,33 @@ public class Notification {
     private NotificationStatus status;
 
     @Builder
-    public Notification(Long userId, NotificationEnum type, String content) {
+    public Notification(Long userId, NotificationEnum type, String title, String content) {
         this.userId = userId;
         this.type = type;
+        this.title = title;
         this.content = content;
         this.isRead = false;
         this.status = NotificationStatus.PENDING;
     }
+
+    // 하위 호환성을 위한 생성자 (기존 코드 호출 지원)
+    @Builder(builderMethodName = "legacyBuilder")
+    public Notification(Long userId, NotificationEnum type, String content) {
+        this.userId = userId;
+        this.type = type;
+        this.title = extractTitleFromContent(content);
+        this.content = content;
+        this.isRead = false;
+        this.status = NotificationStatus.PENDING;
+    }
+
+    // 내용에서 제목 추출 (내용이 짧으면 그대로, 길면 앞부분만 사용)
+    private String extractTitleFromContent(String content) {
+        if (content == null || content.isEmpty()) return "알림";
+        if (content.length() <= 30) return content;
+        return content.substring(0, 30) + "...";
+    }
+
 
     /**
      * 알림을 읽음 상태로 변경

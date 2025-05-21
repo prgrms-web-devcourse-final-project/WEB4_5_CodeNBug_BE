@@ -76,13 +76,14 @@ public class NotificationService {
      * 트랜잭션 동기화를 위해 이벤트 발행 방식 사용
      * @param userId 알림을 받을 사용자 ID
      * @param type 알림 유형
+     * @param title 알림 제목
      * @param content 알림 내용
      * @return 생성된 알림 DTO
      * @throws BadRequestException 사용자를 찾을 수 없는 경우
      */
     @Transactional
-    public NotificationDto createNotification(Long userId, NotificationEnum type, String content) {
-        log.debug("알림 생성 시작: userId={}, type={}", userId, type);
+    public NotificationDto createNotification(Long userId, NotificationEnum type, String title, String content) {
+        log.debug("알림 생성 시작: userId={}, type={}, title={}", userId, type, title);
 
         // 사용자 존재 여부 검증
         if (!userRepository.existsById(userId)) {
@@ -94,6 +95,7 @@ public class NotificationService {
         Notification notification = Notification.builder()
                 .userId(userId)
                 .type(type)
+                .title(title)
                 .content(content)
                 .build();
 
@@ -114,6 +116,21 @@ public class NotificationService {
     }
 
     /**
+     * 하위 호환성을 위한 메서드 (기존 코드)
+     */
+    @Transactional
+    public NotificationDto createNotification(Long userId, NotificationEnum type, String content) {
+        // 내용에서 제목 추출 (엔티티 내부 메서드 활용)
+        Notification tempNotification = Notification.legacyBuilder()
+                .userId(userId)
+                .type(type)
+                .content(content)
+                .build();
+
+        return createNotification(userId, type, tempNotification.getTitle(), content);
+    }
+
+    /**
      * 사용자의 미읽은 알림 목록을 페이지네이션하여 조회합니다
      *
      * @param userId 사용자 ID
@@ -125,21 +142,6 @@ public class NotificationService {
         return notificationRepository
                 .findByUserIdAndIsReadFalseOrderBySentAtDesc(userId, pageable)
                 .map(NotificationDto::from);
-    }
-
-    /**
-     * 시스템 이벤트 발생 시 알림을 생성합니다
-     * 티켓 구매, 환불, 행사 시작 등의 이벤트에서 호출됩니다
-     *
-     * @param userId 사용자 ID
-     * @param type 알림 유형
-     * @param content 알림 내용
-     * @return 생성된 알림 DTO
-     */
-    @Transactional
-    public NotificationDto createSystemNotification(Long userId, NotificationEnum type, String content) {
-        // 기존 createNotification 메서드 활용
-        return createNotification(userId, type, content);
     }
 
     /**
