@@ -10,7 +10,6 @@ import org.codeNbug.mainserver.domain.event.service.CommonEventService;
 import org.codeNbug.mainserver.domain.event.service.EventViewCountUpdateScheduler;
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -42,8 +41,7 @@ public class EventController {
 		@RequestParam(name = "keyword", required = false) String keyword,
 		@Valid @RequestBody(required = false) EventListFilter filter,
 		Pageable pageable) {
-		PageRequest page = PageRequest.of(pageable.getPageNumber() - 1, pageable.getPageSize());
-		Page<EventListResponse> eventList = commonEventService.getEvents(keyword, filter, page);
+		Page<EventListResponse> eventList = commonEventService.getEvents(keyword, filter, pageable);
 
 		return ResponseEntity.ok(RsData.success("event list 조회 성공.", eventList));
 	}
