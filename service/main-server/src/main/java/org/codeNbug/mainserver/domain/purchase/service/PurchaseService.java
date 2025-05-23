@@ -170,7 +170,9 @@ public class PurchaseService {
 						purchase.getAmount(),
 						methodEnum.name()
 				);
-				notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle, notificationContent);
+				String targetUrl = String.format("/purchases/%d", purchase.getId());
+
+				notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle, notificationContent, targetUrl);
 			} catch (Exception e) {
 				log.error("결제 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
 					userId, purchase.getId(), e.getMessage(), e);
@@ -321,7 +323,9 @@ public class PurchaseService {
 					"환불 처리가 완료되었습니다.\n환불 금액: %d원",
 					refundAmount
 			);
-			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle, notificationContent);
+			String targetUrl = String.format("/purchases/%d", purchase.getId());
+
+			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle, notificationContent, targetUrl);
 		} catch (Exception e) {
 			log.error("환불 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
 				userId, purchase.getId(), e.getMessage(), e);
