@@ -39,14 +39,15 @@ public class SeatTransactionService {
 			seat.reserve();
 			seatRepository.save(seat);
 			log.info("[reserveSeat] seat id {}가 예매되었습니다. 예매 상태: {}", seat.getId(), seat.isAvailable());
-
-			String cacheKey = "seatLayout:" + eventId;
-			redisTemplate.delete(cacheKey);
-			log.info("[reserveSeat] 행사 id {} 정보가 redis cache에서 삭제되었습니다.", eventId);
 		} catch (Exception e) {
 			// 예외 발생 시 즉시 락 해제
 			redisLockService.unlock(lockKey, lockValue);
+			seat.cancelReserve();
 			throw e;
 		}
+
+		String cacheKey = "seatLayout:" + eventId;
+		redisTemplate.delete(cacheKey);
+		log.info("[reserveSeat] 행사 id {} 정보가 redis cache에서 삭제되었습니다.", eventId);
 	}
 }
