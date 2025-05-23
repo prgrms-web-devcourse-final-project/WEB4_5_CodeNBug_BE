@@ -127,7 +127,9 @@ class NotificationRealTimeServiceTest {
         NotificationDto notification = NotificationDto.builder()
                 .id(1L)
                 .type(NotificationEnum.SYSTEM)
+                .title("테스트 알림 제목")
                 .content("테스트 알림")
+                .targetUrl("/test/notification/url")
                 .sentAt(LocalDateTime.now())
                 .isRead(false)
                 .build();
@@ -175,10 +177,12 @@ class NotificationRealTimeServiceTest {
         Long notificationId = 1L;
         Long userId = 1L;
         NotificationEnum type = NotificationEnum.SYSTEM;
+        String title = "테스트 알림 제목";
         String content = "테스트 알림";
+        String targetUrl = "/notification/test/url";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, "테스트 알림 제목", content, LocalDateTime.now(), false, NotificationStatus.PENDING);
-
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, title, content,
+                LocalDateTime.now(), false, NotificationStatus.PENDING, targetUrl);
         // emitterService 설정 - 사용자가 연결되어 있음
         SseEmitter mockEmitter = mock(SseEmitter.class);
 
@@ -212,9 +216,12 @@ class NotificationRealTimeServiceTest {
         Long notificationId = 1L;
         Long userId = 1L;
         NotificationEnum type = NotificationEnum.SYSTEM;
+        String title = "테스트 알림 제목";
         String content = "테스트 알림";
+        String targetUrl = "/test/url";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, "테스트 알림 제목", content, LocalDateTime.now(), false, NotificationStatus.PENDING);
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, title, content,
+                LocalDateTime.now(), false, NotificationStatus.PENDING, targetUrl);
 
         // userConnectionsMap은 비어있으므로 사용자가 연결되어 있지 않음
 
@@ -234,9 +241,12 @@ class NotificationRealTimeServiceTest {
         Long notificationId = 1L;
         Long userId = 1L;
         NotificationEnum type = NotificationEnum.SYSTEM;
+        String title = "테스트 알림 제목";
         String content = "테스트 알림";
+        String targetUrl = "/test/failed/url";
 
-        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, "테스트 알림 제목", content, LocalDateTime.now(), false, NotificationStatus.PENDING);
+        NotificationEventDto eventDto = new NotificationEventDto(notificationId, userId, type, title, content,
+                LocalDateTime.now(), false, NotificationStatus.PENDING, targetUrl);
 
         // 직접적인 예외 발생 시나리오 구성
         NotificationEmitterService mockEmitterService = mock(NotificationEmitterService.class);
@@ -283,7 +293,15 @@ class NotificationRealTimeServiceTest {
      * 테스트용 Notification 객체 생성 도우미 메서드
      */
     private Notification createNotification(Long id, Long userId, NotificationEnum type, String content) {
-        Notification notification = new Notification(userId, type, "테스트 알림 제목", content);
+        return createNotification(id, userId, type, "테스트 알림 제목", content, "/default/test/url");
+    }
+
+    /**
+     * 테스트용 Notification 객체 생성 도우미 메서드 (targetUrl 포함 버전)
+     */
+    private Notification createNotification(Long id, Long userId, NotificationEnum type, String title, String content, String targetUrl) {
+        Notification notification = new Notification(userId, type, title, content, targetUrl);
+
 
         // 리플렉션으로 private 필드 설정
         try {

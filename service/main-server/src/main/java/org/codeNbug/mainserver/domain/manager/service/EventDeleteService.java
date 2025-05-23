@@ -66,11 +66,13 @@ public class EventDeleteService {
 			for (Purchase purchase : purchases) {
 				try {
 					Long userId = purchase.getUser().getUserId();
+					String targetUrl = "/purchases";
 					notificationService.createNotification(
 						userId,
 						NotificationEnum.EVENT,
 						notificationTitle,
-						notificationContent
+						notificationContent,
+						targetUrl
 					);
 				} catch (Exception e) {
 					log.error("행사 취소 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
