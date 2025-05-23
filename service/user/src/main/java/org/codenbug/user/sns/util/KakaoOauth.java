@@ -81,9 +81,9 @@ public class KakaoOauth implements SocialOauth {
      */
     @Override
     public String getOauthRedirectURL(String redirectUrl) {
-        // 리다이렉트 URL이 null이거나 유효하지 않으면 기본값 사용
-        if (redirectUrl == null || !isValidRedirectUrl(redirectUrl)) {
-            log.warn("제공된 리다이렉트 URL이 유효하지 않습니다: {}, 기본값 사용", redirectUrl);
+        // 리다이렉트 URL이 null인 경우에만 기본값 사용
+        if (redirectUrl == null || redirectUrl.trim().isEmpty()) {
+            log.warn("리다이렉트 URL이 null이거나 비어있습니다. 기본값 사용");
             return getOauthRedirectURL();
         }
         
@@ -99,7 +99,7 @@ public class KakaoOauth implements SocialOauth {
                 .map(x -> x.getKey() + "=" + x.getValue())
                 .collect(Collectors.joining("&"));
 
-        log.info("커스텀 리다이렉트 URL 사용: {}", redirectUrl);
+        log.info("커스텀 리다이렉트 URL 사용 (모든 도메인 허용): {}", redirectUrl);
         log.info(params.toString());
         // 최종 리다이렉트 URL 반환
         return KAKAO_SNS_BASE_URL + "?" + parameterString;
@@ -149,8 +149,9 @@ public class KakaoOauth implements SocialOauth {
      */
     @Override
     public String requestAccessToken(String code, String redirectUrl) {
-        if (redirectUrl == null || !isValidRedirectUrl(redirectUrl)) {
-            log.warn("제공된 리다이렉트 URL이 유효하지 않습니다: {}, 기본값 사용", redirectUrl);
+        // 리다이렉트 URL이 null인 경우에만 기본값 사용
+        if (redirectUrl == null || redirectUrl.trim().isEmpty()) {
+            log.warn("리다이렉트 URL이 null이거나 비어있습니다. 기본값 사용");
             return requestAccessToken(code);
         }
         
@@ -172,16 +173,29 @@ public class KakaoOauth implements SocialOauth {
         // HTTP 요청 엔티티 생성 (헤더와 바디 포함)
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
 
-        log.info("커스텀 리다이렉트 URL로 액세스 토큰 요청: {}", redirectUrl);
-        // POST 요청 실행 및 응답 수신
-        ResponseEntity<String> responseEntity =
-                restTemplate.postForEntity(KAKAO_SNS_TOKEN_BASE_URL, requestEntity, String.class);
+        log.info("커스텀 리다이렉트 URL로 액세스 토큰 요청 (모든 도메인 허용): {}", redirectUrl);
+        log.info("요청 파라미터: code={}, client_id={}, redirect_uri={}", 
+                code.substring(0, Math.min(10, code.length())) + "...", 
+                KAKAO_SNS_CLIENT_ID, redirectUrl);
+        
+        try {
+            // POST 요청 실행 및 응답 수신
+            ResponseEntity<String> responseEntity =
+                    restTemplate.postForEntity(KAKAO_SNS_TOKEN_BASE_URL, requestEntity, String.class);
 
-        // 응답 상태 확인 및 결과 반환
-        if (responseEntity.getStatusCode() == HttpStatus.OK) {
-            return responseEntity.getBody();  // 성공 시 응답 바디 반환
+            // 응답 상태 확인 및 결과 반환
+            if (responseEntity.getStatusCode() == HttpStatus.OK) {
+                log.info("카카오 토큰 요청 성공");
+                return responseEntity.getBody();  // 성공 시 응답 바디 반환
+            } else {
+                log.error("카카오 토큰 요청 실패 - 응답 코드: {}, 응답 본문: {}", 
+                        responseEntity.getStatusCode(), responseEntity.getBody());
+                return "카카오 로그인 요청 처리 실패 - 응답 코드: " + responseEntity.getStatusCode();
+            }
+        } catch (Exception e) {
+            log.error("카카오 토큰 요청 중 예외 발생: {}", e.getMessage(), e);
+            return "카카오 로그인 요청 처리 중 예외 발생: " + e.getMessage();
         }
-        return "카카오 로그인 요청 처리 실패";  // 실패 시 에러 메시지 반환
     }
 
     /**
@@ -238,11 +252,33 @@ public class KakaoOauth implements SocialOauth {
     private boolean isValidRedirectUrl(String redirectUrl) {
         // null 체크
         if (redirectUrl == null) {
+            log.warn("리다이렉트 URL이 null입니다.");
             return false;
         }
         
+        log.info("리다이렉트 URL 검증 중: {}", redirectUrl);
+        log.info("모든 도메인 허용 모드 - 유효성 검사 통과");
+        
+        // 모든 도메인 허용 (기존 도메인 검증 로직 비활성화)
+        return true;
+        
+        /*
+        // 기존 도메인 검증 로직 (주석처리)
+        log.info("허용된 도메인들: {}", allowedDomains);
+        
         // 허용된 도메인 목록 검증
-        return allowedDomains.stream()
-                .anyMatch(redirectUrl::contains);
+        boolean isValid = allowedDomains.stream()
+                .anyMatch(domain -> {
+                    boolean matches = redirectUrl.contains(domain);
+                    log.debug("도메인 '{}' 검증 - 포함 여부: {}", domain, matches);
+                    return matches;
+                });
+        
+        if (!isValid) {
+            log.error("유효하지 않은 리다이렉트 URL: {}. 허용된 도메인: {}", redirectUrl, allowedDomains);
+        }
+        
+        return isValid;
+        */
     }
 }
