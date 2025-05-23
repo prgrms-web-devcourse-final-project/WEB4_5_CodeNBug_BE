@@ -465,6 +465,7 @@ public class UserService {
                 );
                 
                 // 변경사항 저장 및 응답 반환
+                userRepository.save(user);
                 return UserProfileResponse.fromEntity(user);
             }
             // SNS 사용자인 경우
