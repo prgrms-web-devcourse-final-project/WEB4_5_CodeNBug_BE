@@ -204,6 +204,7 @@ public class PurchaseService {
 	 * @param pageable 페이지네이션 정보
 	 * @return 구매 이력 목록 응답 DTO
 	 */
+	@Transactional
 	public PurchaseHistoryListResponse getPurchaseHistoryList(Long userId, Pageable pageable) {
 		Page<Purchase> purchases = purchaseRepository.findByUserUserIdAndPaymentStatusInOrderByPurchaseDateDesc(
 			userId,
@@ -232,6 +233,7 @@ public class PurchaseService {
 	 * @param purchaseId 구매 ID
 	 * @return 구매 이력 상세 응답 DTO
 	 */
+	@Transactional
 	public PurchaseHistoryDetailResponse getPurchaseHistoryDetail(Long userId, Long purchaseId) {
 		Purchase purchase = purchaseRepository.findById(purchaseId)
 			.orElseThrow(() -> new IllegalArgumentException("구매 정보를 찾을 수 없습니다."));
