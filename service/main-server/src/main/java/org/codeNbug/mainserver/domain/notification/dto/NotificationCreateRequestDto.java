@@ -26,4 +26,6 @@ public class NotificationCreateRequestDto {
 
     @NotEmpty(message = "알림 내용은 필수입니다")
     private String content;
+
+    private String targetUrl;
 }

@@ -34,6 +34,9 @@ public class Notification {
     @Column(nullable = true, length = 500)
     private String content;
 
+    @Column(nullable = true, length = 500)
+    private String targetUrl;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime sentAt;
@@ -46,11 +49,12 @@ public class Notification {
     private NotificationStatus status;
 
     @Builder
-    public Notification(Long userId, NotificationEnum type, String title, String content) {
+    public Notification(Long userId, NotificationEnum type, String title, String content, String targetUrl) {
         this.userId = userId;
         this.type = type;
         this.title = title;
         this.content = content;
+        this.targetUrl = targetUrl;
         this.isRead = false;
         this.status = NotificationStatus.PENDING;
     }
@@ -62,6 +66,7 @@ public class Notification {
         this.type = type;
         this.title = extractTitleFromContent(content);
         this.content = content;
+        this.targetUrl = null;
         this.isRead = false;
         this.status = NotificationStatus.PENDING;
     }
