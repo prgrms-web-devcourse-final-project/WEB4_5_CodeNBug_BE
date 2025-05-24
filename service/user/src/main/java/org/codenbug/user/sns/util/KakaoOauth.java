@@ -16,6 +16,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -186,10 +189,20 @@ public class KakaoOauth implements SocialOauth {
         // HTTP 요청 엔티티 생성 (헤더와 바디 포함)
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
 
-        log.info("커스텀 리다이렉트 URL로 액세스 토큰 요청: {}", redirectUrl);
-        log.info("요청 파라미터: code={}, client_id={}, redirect_uri={}", 
-                code.substring(0, Math.min(10, code.length())) + "...", 
-                KAKAO_SNS_CLIENT_ID, redirectUrl);
+        log.info("=== 카카오 액세스 토큰 요청 시작 ===");
+        log.info("요청 URL: {}", KAKAO_SNS_TOKEN_BASE_URL);
+        log.info("Client ID: {}", KAKAO_SNS_CLIENT_ID);
+        log.info("Redirect URI: {}", redirectUrl);
+        log.info("Authorization Code: {}...", code.length() > 10 ? code.substring(0, 10) + "..." : code);
+        log.info("기본 Callback URL (설정값): {}", KAKAO_SNS_CALLBACK_URL);
+        
+        // redirect_uri 일치 여부 확인
+        if (!redirectUrl.equals(KAKAO_SNS_CALLBACK_URL)) {
+            log.warn(">>> redirect_uri 불일치 감지! <<<");
+            log.warn("요청된 redirect_uri: {}", redirectUrl);
+            log.warn("설정된 callback_url: {}", KAKAO_SNS_CALLBACK_URL);
+            log.warn("카카오 개발자 콘솔에 '{}' 가 Redirect URI로 등록되어 있는지 확인하세요!", redirectUrl);
+        }
         
         try {
             // POST 요청 실행 및 응답 수신
@@ -203,11 +216,26 @@ public class KakaoOauth implements SocialOauth {
             } else {
                 log.error("카카오 토큰 요청 실패 - 응답 코드: {}, 응답 본문: {}", 
                         responseEntity.getStatusCode(), responseEntity.getBody());
+                
+                // 카카오 API 에러 응답 파싱 시도
+                String errorResponse = parseKakaoErrorResponse(responseEntity.getBody());
+                
                 return createErrorResponse("카카오 로그인 요청 처리 실패 - 응답 코드: " + responseEntity.getStatusCode(), 
-                                         responseEntity.getBody());
+                                         errorResponse);
             }
         } catch (Exception e) {
-            log.error("카카오 토큰 요청 중 예외 발생: {}", e.getMessage(), e);
+            log.error("=== 카카오 토큰 요청 중 예외 발생 ===");
+            log.error("예외 타입: {}", e.getClass().getSimpleName());
+            log.error("예외 메시지: {}", e.getMessage());
+            if (e.getCause() != null) {
+                log.error("원인: {}", e.getCause().getMessage());
+            }
+            log.error("=== 카카오 개발자 콘솔 확인 사항 ===");
+            log.error("1. Redirect URI 등록 확인: {}", redirectUrl);
+            log.error("2. 클라이언트 ID 확인: {}", KAKAO_SNS_CLIENT_ID);
+            log.error("3. 클라이언트 시크릿 설정 확인");
+            log.error("4. 애플리케이션 상태 확인 (서비스 중인지)");
+            
             return createErrorResponse("카카오 로그인 요청 처리 중 예외 발생", e.getMessage());
         }
     }
@@ -303,8 +331,70 @@ public class KakaoOauth implements SocialOauth {
      * @return 에러 응답 문자열
      */
     private String createErrorResponse(String errorMessage, String additionalInfo) {
-        // JSON 형태로 에러 응답을 생성하여 파싱 시 에러를 방지
-        return String.format("{\"error\": \"%s\", \"error_description\": \"%s\"}", 
-                            errorMessage, additionalInfo != null ? additionalInfo : "");
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", errorMessage);
+            errorResponse.put("error_description", additionalInfo != null ? additionalInfo : "");
+            
+            return objectMapper.writeValueAsString(errorResponse);
+        } catch (Exception e) {
+            log.error("에러 응답 JSON 생성 실패: {}", e.getMessage(), e);
+            // JSON 생성 실패 시 fallback
+            return "{\"error\": \"JSON 생성 오류\", \"error_description\": \"에러 응답 생성 중 문제가 발생했습니다.\"}";
+        }
+    }
+
+    /**
+     * 카카오 API 에러 응답을 파싱하여 사용자에게 도움이 되는 메시지를 생성
+     * @param responseBody 카카오 API 에러 응답 본문
+     * @return 파싱된 에러 메시지
+     */
+    private String parseKakaoErrorResponse(String responseBody) {
+        if (responseBody == null || responseBody.trim().isEmpty()) {
+            return "카카오 API에서 빈 응답을 받았습니다.";
+        }
+        
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode errorNode = objectMapper.readTree(responseBody);
+            
+            String error = errorNode.has("error") ? errorNode.get("error").asText() : "unknown_error";
+            String errorDescription = errorNode.has("error_description") ? errorNode.get("error_description").asText() : "";
+            String errorCode = errorNode.has("error_code") ? errorNode.get("error_code").asText() : "";
+            
+            StringBuilder message = new StringBuilder();
+            message.append("카카오 API 에러 - ");
+            message.append("에러: ").append(error);
+            
+            if (!errorCode.isEmpty()) {
+                message.append(" (코드: ").append(errorCode).append(")");
+            }
+            
+            if (!errorDescription.isEmpty()) {
+                message.append(", 설명: ").append(errorDescription);
+            }
+            
+            // 일반적인 카카오 에러에 대한 해결 방법 제안
+            if ("invalid_grant".equals(error)) {
+                message.append("\n해결방법: ");
+                if (errorCode.equals("KOE320")) {
+                    message.append("1. 카카오 개발자 콘솔에서 Redirect URI 설정 확인, ");
+                    message.append("2. authorization code 재사용 여부 확인, ");
+                    message.append("3. authorization code 만료(10분) 여부 확인");
+                } else {
+                    message.append("authorization code 또는 redirect_uri를 확인하세요.");
+                }
+            } else if ("invalid_client".equals(error)) {
+                message.append("\n해결방법: 카카오 개발자 콘솔에서 클라이언트 ID/Secret 설정을 확인하세요.");
+            }
+            
+            log.error("파싱된 카카오 에러 응답: {}", message.toString());
+            return message.toString();
+            
+        } catch (Exception e) {
+            log.error("카카오 API 에러 응답 파싱 실패: {}", e.getMessage(), e);
+            return "카카오 API 응답: " + responseBody;
+        }
     }
 }
