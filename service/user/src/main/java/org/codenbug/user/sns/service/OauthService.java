@@ -72,15 +72,62 @@ public class OauthService {
 
 	// JSON에서 액세스 토큰만 추출하는 메서드
 	private String extractAccessTokenFromJson(String accessTokenJson) {
+		// 응답이 null이거나 비어있는지 확인
+		if (accessTokenJson == null || accessTokenJson.trim().isEmpty()) {
+			logger.error(">> 액세스 토큰 응답이 null이거나 비어있습니다.");
+			return null;
+		}
+
+		// 응답 내용 로깅 (디버깅용)
+		logger.info(">> 액세스 토큰 응답 내용: {}", accessTokenJson);
+
+		// 응답이 JSON 형태인지 간단히 확인
+		String trimmed = accessTokenJson.trim();
+		if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+			logger.error(">> 응답이 JSON 형태가 아닙니다. 응답 내용: {}", accessTokenJson);
+			
+			// HTML 에러 페이지인지 확인
+			if (trimmed.toLowerCase().contains("<html") || trimmed.toLowerCase().contains("<!doctype")) {
+				logger.error(">> HTML 에러 페이지가 반환되었습니다. 카카오 OAuth 설정(redirect_uri, client_id 등)을 확인해주세요.");
+				throw new RuntimeException("카카오 OAuth 설정 오류: HTML 에러 페이지가 반환되었습니다. redirect_uri와 카카오 애플리케이션 설정을 확인해주세요.");
+			}
+			
+			// 한글 에러 메시지인지 확인
+			if (trimmed.contains("카카오") || trimmed.contains("오류") || trimmed.contains("실패")) {
+				logger.error(">> 카카오에서 한글 에러 메시지가 반환되었습니다: {}", trimmed);
+				throw new RuntimeException("카카오 OAuth 인증 실패: " + trimmed);
+			}
+			
+			throw new RuntimeException("유효하지 않은 응답 형식입니다: " + trimmed);
+		}
+
 		// JSON을 파싱하여 액세스 토큰만 추출
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			JsonNode jsonNode = objectMapper.readTree(accessTokenJson);
-			// 여기서 필요한 토큰만 반환
-			return jsonNode.get("access_token") != null ? jsonNode.get("access_token").asText() : null;
+			
+			// access_token 필드 확인
+			if (jsonNode.has("access_token")) {
+				String accessToken = jsonNode.get("access_token").asText();
+				logger.info(">> 액세스 토큰 추출 성공");
+				return accessToken;
+			} else {
+				logger.error(">> JSON 응답에 access_token 필드가 없습니다. 응답: {}", accessTokenJson);
+				
+				// 에러 정보가 있는지 확인
+				if (jsonNode.has("error")) {
+					String error = jsonNode.get("error").asText();
+					String errorDescription = jsonNode.has("error_description") ? 
+						jsonNode.get("error_description").asText() : "설명 없음";
+					logger.error(">> OAuth 에러 - error: {}, description: {}", error, errorDescription);
+					throw new RuntimeException("OAuth 인증 실패: " + error + " - " + errorDescription);
+				}
+				
+				return null;
+			}
 		} catch (JsonProcessingException e) {
-			e.printStackTrace();
-			return null; // 실패할 경우 null 반환
+			logger.error(">> JSON 파싱 실패. 응답 내용: {}, 에러: {}", accessTokenJson, e.getMessage(), e);
+			throw new RuntimeException("액세스 토큰 응답 파싱 실패: " + e.getMessage(), e);
 		}
 	}
 

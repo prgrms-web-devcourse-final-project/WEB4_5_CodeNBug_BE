@@ -130,19 +130,32 @@ public class KakaoOauth implements SocialOauth {
         // HTTP 요청 엔티티 생성 (헤더와 바디 포함)
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
 
-        // POST 요청 실행 및 응답 수신
-        ResponseEntity<String> responseEntity =
-                restTemplate.postForEntity(KAKAO_SNS_TOKEN_BASE_URL, requestEntity, String.class);
+        log.info("카카오 액세스 토큰 요청 시작 - redirect_uri: {}, client_id: {}", 
+                KAKAO_SNS_CALLBACK_URL, KAKAO_SNS_CLIENT_ID);
 
-        // 응답 상태 확인 및 결과 반환
-        if (responseEntity.getStatusCode() == HttpStatus.OK) {
-            return responseEntity.getBody();  // 성공 시 응답 바디 반환
+        try {
+            // POST 요청 실행 및 응답 수신
+            ResponseEntity<String> responseEntity =
+                    restTemplate.postForEntity(KAKAO_SNS_TOKEN_BASE_URL, requestEntity, String.class);
+
+            // 응답 상태 확인 및 결과 반환
+            if (responseEntity.getStatusCode() == HttpStatus.OK) {
+                log.info("카카오 액세스 토큰 요청 성공");
+                return responseEntity.getBody();  // 성공 시 응답 바디 반환
+            } else {
+                log.error("카카오 액세스 토큰 요청 실패 - 응답 코드: {}, 응답 본문: {}", 
+                        responseEntity.getStatusCode(), responseEntity.getBody());
+                return createErrorResponse("카카오 로그인 요청 처리 실패 - 응답 코드: " + responseEntity.getStatusCode(), 
+                                         responseEntity.getBody());
+            }
+        } catch (Exception e) {
+            log.error("카카오 액세스 토큰 요청 중 예외 발생: {}", e.getMessage(), e);
+            return createErrorResponse("카카오 로그인 요청 처리 중 예외 발생", e.getMessage());
         }
-        return "카카오 로그인 요청 처리 실패";  // 실패 시 에러 메시지 반환
     }
     
     /**
-     * 인증 코드를 이용하여 카카오 액세스 토큰을 요청하는 메소드 (커스텀 리다이렉트 URL 사용)
+     * 인증 코드를 이용하여 카카오 액세스 토큰을 요청하는 메서드 (커스텀 리다이렉트 URL 사용)
      * @param code 카카오 인증 후 받은 인증 코드
      * @param redirectUrl 커스텀 리다이렉트 URL
      * @return 카카오 서버의 응답 (액세스 토큰 포함) 또는 에러 메시지
@@ -173,7 +186,7 @@ public class KakaoOauth implements SocialOauth {
         // HTTP 요청 엔티티 생성 (헤더와 바디 포함)
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
 
-        log.info("커스텀 리다이렉트 URL로 액세스 토큰 요청 (모든 도메인 허용): {}", redirectUrl);
+        log.info("커스텀 리다이렉트 URL로 액세스 토큰 요청: {}", redirectUrl);
         log.info("요청 파라미터: code={}, client_id={}, redirect_uri={}", 
                 code.substring(0, Math.min(10, code.length())) + "...", 
                 KAKAO_SNS_CLIENT_ID, redirectUrl);
@@ -190,11 +203,12 @@ public class KakaoOauth implements SocialOauth {
             } else {
                 log.error("카카오 토큰 요청 실패 - 응답 코드: {}, 응답 본문: {}", 
                         responseEntity.getStatusCode(), responseEntity.getBody());
-                return "카카오 로그인 요청 처리 실패 - 응답 코드: " + responseEntity.getStatusCode();
+                return createErrorResponse("카카오 로그인 요청 처리 실패 - 응답 코드: " + responseEntity.getStatusCode(), 
+                                         responseEntity.getBody());
             }
         } catch (Exception e) {
             log.error("카카오 토큰 요청 중 예외 발생: {}", e.getMessage(), e);
-            return "카카오 로그인 요청 처리 중 예외 발생: " + e.getMessage();
+            return createErrorResponse("카카오 로그인 요청 처리 중 예외 발생", e.getMessage());
         }
     }
 
@@ -280,5 +294,17 @@ public class KakaoOauth implements SocialOauth {
         
         return isValid;
         */
+    }
+
+    /**
+     * 에러 응답을 생성하는 헬퍼 메서드
+     * @param errorMessage 에러 메시지
+     * @param additionalInfo 추가 정보
+     * @return 에러 응답 문자열
+     */
+    private String createErrorResponse(String errorMessage, String additionalInfo) {
+        // JSON 형태로 에러 응답을 생성하여 파싱 시 에러를 방지
+        return String.format("{\"error\": \"%s\", \"error_description\": \"%s\"}", 
+                            errorMessage, additionalInfo != null ? additionalInfo : "");
     }
 }
