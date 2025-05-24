@@ -167,8 +167,8 @@ public class PurchaseService {
 			try {
 				String notificationTitle = String.format("[%s] 결제 완료", purchase.getOrderName());
 				String notificationContent = String.format("결제가 완료되었습니다.\n금액: %d원\n결제수단: %s",
-						purchase.getAmount(),
-						methodEnum.name()
+					purchase.getAmount(),
+					methodEnum.name()
 				);
 				String targetUrl = String.format("/purchases/%d", purchase.getId());
 
@@ -249,6 +249,7 @@ public class PurchaseService {
 
 		PurchaseHistoryDetailResponse.PurchaseDto purchaseDto = PurchaseHistoryDetailResponse.PurchaseDto.builder()
 			.purchaseId(purchase.getId())
+			.paymentKey(purchase.getPaymentUuid())
 			.eventId(eventId)
 			.itemName(purchase.getOrderName())
 			.amount(purchase.getAmount())
@@ -315,13 +316,13 @@ public class PurchaseService {
 		// 환불 완료 알림 생성
 		try {
 			int refundAmount = canceledPaymentInfo.getCancels().stream()
-					.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
-					.sum();
+				.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+				.sum();
 
 			String notificationTitle = String.format("[%s] 환불 완료", purchase.getOrderName());
 			String notificationContent = String.format(
-					"환불 처리가 완료되었습니다.\n환불 금액: %d원",
-					refundAmount
+				"환불 처리가 완료되었습니다.\n환불 금액: %d원",
+				refundAmount
 			);
 			String targetUrl = String.format("/purchases/%d", purchase.getId());
 
@@ -420,14 +421,14 @@ public class PurchaseService {
 			// 각 사용자에게 환불 알림 전송
 			try {
 				int refundAmount = canceledPaymentInfo.getCancels().stream()
-						.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
-						.sum();
+					.mapToInt(CanceledPaymentInfo.CancelDetail::getCancelAmount)
+					.sum();
 
 				String notificationTitle = String.format("[%s] 매니저 환불 처리", purchase.getOrderName());
 				String notificationContent = String.format(
-						"매니저에 의해 환불이 처리되었습니다.\n사유: %s\n환불 금액: %d원",
-						request.getReason(),
-						refundAmount
+					"매니저에 의해 환불이 처리되었습니다.\n사유: %s\n환불 금액: %d원",
+					request.getReason(),
+					refundAmount
 				);
 
 				// 각 구매자에게 개별 알림 전송
