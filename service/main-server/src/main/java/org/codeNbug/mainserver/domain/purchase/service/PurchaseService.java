@@ -170,7 +170,7 @@ public class PurchaseService {
 					purchase.getAmount(),
 					methodEnum.name()
 				);
-				String targetUrl = String.format("/purchases/%d", purchase.getId());
+				String targetUrl = String.format("/my");
 
 				notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle,
 					notificationContent, targetUrl);
@@ -327,7 +327,7 @@ public class PurchaseService {
 				"환불 처리가 완료되었습니다.\n환불 금액: %d원",
 				refundAmount
 			);
-			String targetUrl = String.format("/purchases/%d", purchase.getId());
+			String targetUrl = String.format("/my");
 
 			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle,
 				notificationContent, targetUrl);

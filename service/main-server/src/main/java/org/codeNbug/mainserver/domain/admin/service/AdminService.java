@@ -571,7 +571,7 @@ public class AdminService {
             // 모든 구매자에게 행사 취소 알림 전송
             String notificationTitle = String.format("[%s] 행사 취소 안내", event.getInformation().getTitle());
             String notificationContent = "예매하신 행사가 취소되었습니다. 예매 내역을 확인해주세요.";
-            String targetUrl = String.format("/purchases");
+            String targetUrl = String.format("/my");
 
             for (Purchase purchase : purchases) {
                 try {
