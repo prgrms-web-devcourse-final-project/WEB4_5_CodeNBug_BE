@@ -87,7 +87,8 @@ public class OauthService {
 
 	// 액세스 토큰을 사용하여 사용자 정보를 가져오고, 사용자 정보가 있으면 저장하는 메서드
 	@Transactional
-	public UserResponse requestAccessTokenAndSaveUser(SocialLoginType socialLoginType, String code) {
+	public UserResponse requestAccessTokenAndSaveUser(SocialLoginType socialLoginType, String code) throws
+		JsonProcessingException {
 		// 1. 액세스 토큰을 포함한 JSON 응답을 요청
 		String accessTokenJson = this.requestAccessToken(socialLoginType, code);
 		logger.info(">> 소셜 로그인 액세스 토큰 응답: {}", accessTokenJson);
