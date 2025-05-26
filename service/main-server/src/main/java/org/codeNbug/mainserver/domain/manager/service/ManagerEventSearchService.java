@@ -50,6 +50,8 @@ public class ManagerEventSearchService {
                         .status(event.getStatus())
                         .startDate(event.getInformation().getEventStart())
                         .endDate(event.getInformation().getEventEnd())
+                        .bookingStart(event.getBookingStart())
+                        .bookingEnd(event.getBookingEnd())
                         .location(event.getInformation().getLocation())
                         .hallName(event.getInformation().getHallName())
                         .isDeleted(event.getIsDeleted())
