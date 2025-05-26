@@ -329,7 +329,7 @@ public class OauthService {
 	}
 
 	// 사용자 정보를 파싱하여 SnsUser 객체 생성
-	private SnsUser parseUserInfo(String userInfo, SocialLoginType socialLoginType) {
+	private SnsUser parseUserInfo(String userInfo, SocialLoginType socialLoginType) throws JsonProcessingException {
 		JsonNode jsonObject = objectMapper.readTree(userInfo);
 		log.info("{}", jsonObject);
 
