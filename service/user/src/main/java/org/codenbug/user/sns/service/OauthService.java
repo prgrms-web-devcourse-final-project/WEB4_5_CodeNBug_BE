@@ -29,9 +29,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OauthService {
 	private final List<SocialOauth> socialOauthList; // 다양한 소셜 로그인 OAuth 처리 객체
 	private final SnsUserRepository snsUserRepository; // 사용자 정보를 저장하는 레포지토리
@@ -43,7 +45,7 @@ public class OauthService {
 		SocialOauth socialOauth = this.findSocialOauthByType(socialLoginType); // 주어진 소셜 로그인 타입에 맞는 OAuth 객체 찾기
 		return socialOauth.getOauthRedirectURL(); // 해당 OAuth 객체의 리디렉션 URL 반환
 	}
-	
+
 	// 소셜 로그인 요청 URL을 반환하는 메서드 (커스텀 리다이렉트 URL 사용)
 	public String request(SocialLoginType socialLoginType, String redirectUrl) {
 		SocialOauth socialOauth = this.findSocialOauthByType(socialLoginType); // 주어진 소셜 로그인 타입에 맞는 OAuth 객체 찾기
@@ -59,7 +61,7 @@ public class OauthService {
 		SocialOauth socialOauth = this.findSocialOauthByType(socialLoginType); // 주어진 소셜 로그인 타입에 맞는 OAuth 객체 찾기
 		return socialOauth.requestAccessToken(code); // 액세스 토큰 요청
 	}
-	
+
 	// 인증 코드로 액세스 토큰을 요청하는 메서드 (커스텀 리다이렉트 URL 사용)
 	public String requestAccessToken(SocialLoginType socialLoginType, String code, String redirectUrl) {
 		SocialOauth socialOauth = this.findSocialOauthByType(socialLoginType); // 주어진 소셜 로그인 타입에 맞는 OAuth 객체 찾기
@@ -106,7 +108,7 @@ public class OauthService {
 
 		// 4. 사용자 정보를 파싱하여 SnsUser 객체 생성
 		SnsUser user = parseUserInfo(userInfo, socialLoginType);
-		logger.info(">> 파싱된 사용자 정보: socialId={}, name={}, provider={}, email={}", 
+		logger.info(">> 파싱된 사용자 정보: socialId={}, name={}, provider={}, email={}",
 			user.getSocialId(), user.getName(), user.getProvider(), user.getEmail());
 
 		// 5. 기존 사용자 확인 후 처리
@@ -118,13 +120,13 @@ public class OauthService {
 			SnsUser existing = existingUser.get();
 			logger.info(">> 기존 사용자 확인: id={}, socialId={}", existing.getId(), existing.getSocialId());
 			existing.setUpdatedAt(new Timestamp(System.currentTimeMillis())); // 수정 시간 갱신
-			
+
 			// 필요한 필드 업데이트
 			existing.setName(user.getName());
 			if (user.getEmail() != null && !user.getEmail().isEmpty()) {
 				existing.setEmail(user.getEmail());
 			}
-			
+
 			try {
 				savedUser = snsUserRepository.save(existing);
 				logger.info(">> 기존 사용자 정보 업데이트 성공: id={}", savedUser.getId());
@@ -163,7 +165,8 @@ public class OauthService {
 
 	// 액세스 토큰을 사용하여 사용자 정보를 가져오고, 사용자 정보가 있으면 저장하는 메서드 (커스텀 리다이렉트 URL 사용)
 	@Transactional
-	public UserResponse requestAccessTokenAndSaveUser(SocialLoginType socialLoginType, String code, String redirectUrl) {
+	public UserResponse requestAccessTokenAndSaveUser(SocialLoginType socialLoginType, String code,
+		String redirectUrl) {
 		// 1. 액세스 토큰을 포함한 JSON 응답을 요청 (커스텀 리다이렉트 URL 사용)
 		String accessTokenJson = this.requestAccessToken(socialLoginType, code, redirectUrl);
 		logger.info(">> 소셜 로그인 액세스 토큰 응답 (커스텀 리다이렉트 URL 사용): {}", accessTokenJson);
@@ -183,7 +186,7 @@ public class OauthService {
 
 		// 4. 사용자 정보를 파싱하여 SnsUser 객체 생성
 		SnsUser user = parseUserInfo(userInfo, socialLoginType);
-		logger.info(">> 파싱된 사용자 정보: socialId={}, name={}, provider={}, email={}", 
+		logger.info(">> 파싱된 사용자 정보: socialId={}, name={}, provider={}, email={}",
 			user.getSocialId(), user.getName(), user.getProvider(), user.getEmail());
 
 		// 5. 기존 사용자 확인 후 처리
@@ -195,13 +198,13 @@ public class OauthService {
 			SnsUser existing = existingUser.get();
 			logger.info(">> 기존 사용자 확인: id={}, socialId={}", existing.getId(), existing.getSocialId());
 			existing.setUpdatedAt(new Timestamp(System.currentTimeMillis())); // 수정 시간 갱신
-			
+
 			// 필요한 필드 업데이트
 			existing.setName(user.getName());
 			if (user.getEmail() != null && !user.getEmail().isEmpty()) {
 				existing.setEmail(user.getEmail());
 			}
-			
+
 			try {
 				savedUser = snsUserRepository.save(existing);
 				logger.info(">> 기존 사용자 정보 업데이트 성공: id={}", savedUser.getId());
@@ -329,6 +332,7 @@ public class OauthService {
 	// 사용자 정보를 파싱하여 SnsUser 객체 생성
 	private SnsUser parseUserInfo(String userInfo, SocialLoginType socialLoginType) {
 		JsonObject jsonObject = JsonParser.parseString(userInfo).getAsJsonObject();
+		log.info("{}", jsonObject);
 
 		// socialId와 name을 소셜 로그인 타입별로 분리
 		String socialId = "";
