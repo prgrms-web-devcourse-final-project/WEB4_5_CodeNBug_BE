@@ -301,6 +301,8 @@ class UserControllerTest {
 		// given
 		UserUpdateRequest updateRequest = UserUpdateRequest.builder()
 				.name("수정된이름")
+				.age(30)
+				.sex("여성")
 				.phoneNum("010-9999-8888")
 				.location("서울시 송파구")
 				.build();
@@ -309,8 +311,8 @@ class UserControllerTest {
 				.id(1L)
 				.email(testEmail)
 				.name("수정된이름")
-				.age(25)
-				.sex("남성")
+				.age(30)
+				.sex("여성")
 				.phoneNum("010-9999-8888")
 				.location("서울시 송파구")
 				.isSnsUser(false)
@@ -331,6 +333,8 @@ class UserControllerTest {
 				.andExpect(jsonPath("$.code").value("200-SUCCESS"))
 				.andExpect(jsonPath("$.msg").value("프로필 수정 성공"))
 				.andExpect(jsonPath("$.data.name").value("수정된이름"))
+				.andExpect(jsonPath("$.data.age").value(30))
+				.andExpect(jsonPath("$.data.sex").value("여성"))
 				.andExpect(jsonPath("$.data.phoneNum").value("010-9999-8888"))
 				.andExpect(jsonPath("$.data.location").value("서울시 송파구"));
 	}
@@ -341,6 +345,8 @@ class UserControllerTest {
 		// given
 		UserUpdateRequest invalidRequest = UserUpdateRequest.builder()
 				.name("")
+				.age(30)
+				.sex("여성")
 				.phoneNum("010-9999-8888")
 				.location("서울시 송파구")
 				.build();
