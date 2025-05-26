@@ -172,7 +172,8 @@ public class PurchaseService {
 				);
 				String targetUrl = String.format("/purchases/%d", purchase.getId());
 
-				notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle, notificationContent, targetUrl);
+				notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle,
+					notificationContent, targetUrl);
 			} catch (Exception e) {
 				log.error("결제 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
 					userId, purchase.getId(), e.getMessage(), e);
@@ -264,6 +265,8 @@ public class PurchaseService {
 				.toList())
 			.build();
 
+		log.info("purchase paymentKey: {}", purchaseDto.getPaymentKey());
+
 		return PurchaseHistoryDetailResponse.builder()
 			.purchases(List.of(purchaseDto))
 			.build();
@@ -326,7 +329,8 @@ public class PurchaseService {
 			);
 			String targetUrl = String.format("/purchases/%d", purchase.getId());
 
-			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle, notificationContent, targetUrl);
+			notificationService.createNotification(userId, NotificationEnum.PAYMENT, notificationTitle,
+				notificationContent, targetUrl);
 		} catch (Exception e) {
 			log.error("환불 완료 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",
 				userId, purchase.getId(), e.getMessage(), e);
