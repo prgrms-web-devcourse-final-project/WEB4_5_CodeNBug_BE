@@ -166,7 +166,7 @@ public class OauthService {
 	// 액세스 토큰을 사용하여 사용자 정보를 가져오고, 사용자 정보가 있으면 저장하는 메서드 (커스텀 리다이렉트 URL 사용)
 	@Transactional
 	public UserResponse requestAccessTokenAndSaveUser(SocialLoginType socialLoginType, String code,
-		String redirectUrl) {
+		String redirectUrl) throws JsonProcessingException {
 		// 1. 액세스 토큰을 포함한 JSON 응답을 요청 (커스텀 리다이렉트 URL 사용)
 		String accessTokenJson = this.requestAccessToken(socialLoginType, code, redirectUrl);
 		logger.info(">> 소셜 로그인 액세스 토큰 응답 (커스텀 리다이렉트 URL 사용): {}", accessTokenJson);
