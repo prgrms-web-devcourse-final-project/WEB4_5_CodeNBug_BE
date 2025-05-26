@@ -25,8 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +37,7 @@ public class OauthService {
 	private final SnsUserRepository snsUserRepository; // 사용자 정보를 저장하는 레포지토리
 	private final TokenService tokenService; // JWT 토큰 생성 서비스 추가
 	private static final Logger logger = LoggerFactory.getLogger(OauthService.class);
+	private final ObjectMapper objectMapper;
 
 	// 소셜 로그인 요청 URL을 반환하는 메서드
 	public String request(SocialLoginType socialLoginType) {
@@ -331,7 +330,7 @@ public class OauthService {
 
 	// 사용자 정보를 파싱하여 SnsUser 객체 생성
 	private SnsUser parseUserInfo(String userInfo, SocialLoginType socialLoginType) {
-		JsonObject jsonObject = JsonParser.parseString(userInfo).getAsJsonObject();
+		JsonNode jsonObject = objectMapper.readTree(userInfo);
 		log.info("{}", jsonObject);
 
 		// socialId와 name을 소셜 로그인 타입별로 분리
@@ -340,19 +339,19 @@ public class OauthService {
 		String email = "";
 
 		if (socialLoginType == SocialLoginType.GOOGLE) {
-			socialId = jsonObject.get("sub").getAsString(); // Google은 "sub"를 ID로 사용
-			name = jsonObject.get("name").getAsString();    // Google에서 제공하는 이름
+			socialId = jsonObject.get("sub").asText(); // Google은 "sub"를 ID로 사용
+			name = jsonObject.get("name").asText();    // Google에서 제공하는 이름
 			if (jsonObject.has("email")) {
-				email = jsonObject.get("email").getAsString(); // Google에서 제공하는 이메일
+				email = jsonObject.get("email").asText(); // Google에서 제공하는 이메일
 			}
 		} else if (socialLoginType == SocialLoginType.KAKAO) {
-			socialId = jsonObject.get("id").getAsString(); // Kakao는 "id"를 사용자 ID로 사용
-			name = jsonObject.getAsJsonObject("properties").get("nickname").getAsString(); // Kakao에서 제공하는 nickname
+			socialId = jsonObject.get("id").asText(); // Kakao는 "id"를 사용자 ID로 사용
+			name = jsonObject.get("properties").get("nickname").asText(); // Kakao에서 제공하는 nickname
 
 			// Kakao는 'kakao_account' 객체 안에 'email' 필드가 있음
 			if (jsonObject.has("kakao_account") &&
-				jsonObject.getAsJsonObject("kakao_account").has("email")) {
-				email = jsonObject.getAsJsonObject("kakao_account").get("email").getAsString();
+				jsonObject.get("kakao_account").has("email")) {
+				email = jsonObject.get("kakao_account").get("email").asText();
 			}
 		}
 
