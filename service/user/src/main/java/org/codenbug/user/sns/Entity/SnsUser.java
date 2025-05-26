@@ -110,8 +110,10 @@ public class SnsUser {
      * @param phoneNum 새 전화번호
      * @param location 새 위치
      */
-    public void update(String name, String phoneNum, String location) {
+    public void update(String name, Integer age, String sex, String phoneNum, String location) {
         this.name = name;
+        this.age = age;
+        this.sex = sex;
         this.phoneNum = phoneNum;
         this.location = location;
         this.updatedAt = new Timestamp(System.currentTimeMillis());
