@@ -111,8 +111,10 @@ public class User {
     /**
      * 사용자 정보를 업데이트합니다.
      */
-    public void update(String name, String phoneNum, String location) {
+    public void update(String name, Integer age, String sex, String phoneNum, String location) {
         this.name = name;
+        this.age = age;
+        this.sex = sex;
         this.phoneNum = phoneNum;
         this.location = location;
     }

@@ -344,6 +344,8 @@ class UserServiceTest {
             // given
             UserUpdateRequest request = UserUpdateRequest.builder()
                     .name("수정된이름")
+                    .age(30)
+                    .sex("여성")
                     .phoneNum("010-9999-8888")
                     .location("서울시 송파구")
                     .build();
@@ -354,6 +356,8 @@ class UserServiceTest {
             // then
             assertNotNull(response);
             assertEquals(request.getName(), response.getName());
+            assertEquals(request.getAge(), response.getAge());
+            assertEquals(request.getSex(), response.getSex());
             assertEquals(request.getPhoneNum(), response.getPhoneNum());
             assertEquals(request.getLocation(), response.getLocation());
         }
@@ -364,6 +368,8 @@ class UserServiceTest {
             // given
             UserUpdateRequest request = UserUpdateRequest.builder()
                     .name("김")
+                    .age(30)
+                    .sex("여성")
                     .phoneNum("010-9999-8888")
                     .location("서울시 송파구")
                     .build();
@@ -384,6 +390,8 @@ class UserServiceTest {
             // given
             UserUpdateRequest request = UserUpdateRequest.builder()
                     .name("가".repeat(51))
+                    .age(30)
+                    .sex("여성")
                     .phoneNum("010-9999-8888")
                     .location("서울시 송파구")
                     .build();
@@ -404,6 +412,8 @@ class UserServiceTest {
             // given
             UserUpdateRequest request = UserUpdateRequest.builder()
                     .name("수정된이름")
+                    .age(30)
+                    .sex("여성")
                     .phoneNum("1234")
                     .location("서울시 송파구")
                     .build();
@@ -424,6 +434,8 @@ class UserServiceTest {
             // given
             UserUpdateRequest request = UserUpdateRequest.builder()
                     .name("수정된이름")
+                    .age(30)
+                    .sex("여성")
                     .phoneNum("010-9999-8888")
                     .location("서")
                     .build();
@@ -444,6 +456,8 @@ class UserServiceTest {
             // given
             UserUpdateRequest request = UserUpdateRequest.builder()
                     .name("수정된이름")
+                    .age(30)
+                    .sex("여성")
                     .phoneNum("010-9999-8888")
                     .location("가".repeat(101))
                     .build();
@@ -456,6 +470,50 @@ class UserServiceTest {
             assertTrue(violations.stream().anyMatch(violation -> 
                 violation.getPropertyPath().toString().equals("location") &&
                 violation.getMessage().contains("2자 이상 100자 이하여야 합니다")));
+        }
+
+        @Test
+        @DisplayName("나이가 null인 경우 실패")
+        void 프로필수정_나이_null() {
+            // given
+            UserUpdateRequest request = UserUpdateRequest.builder()
+                    .name("수정된이름")
+                    .age(null)
+                    .sex("여성")
+                    .phoneNum("010-9999-8888")
+                    .location("서울시 송파구")
+                    .build();
+
+            // when
+            Set<jakarta.validation.ConstraintViolation<UserUpdateRequest>> violations = validator.validate(request);
+
+            // then
+            assertFalse(violations.isEmpty());
+            assertTrue(violations.stream().anyMatch(violation ->
+                    violation.getPropertyPath().toString().equals("age") &&
+                            violation.getMessage().contains("나이는 필수 입력 항목입니다")));
+        }
+
+        @Test
+        @DisplayName("성별이 빈 값인 경우 실패")
+        void 프로필수정_성별_빈값() {
+            // given
+            UserUpdateRequest request = UserUpdateRequest.builder()
+                    .name("수정된이름")
+                    .age(30)
+                    .sex("")
+                    .phoneNum("010-9999-8888")
+                    .location("서울시 송파구")
+                    .build();
+
+            // when
+            Set<jakarta.validation.ConstraintViolation<UserUpdateRequest>> violations = validator.validate(request);
+
+            // then
+            assertFalse(violations.isEmpty());
+            assertTrue(violations.stream().anyMatch(violation ->
+                    violation.getPropertyPath().toString().equals("sex") &&
+                            violation.getMessage().contains("성별은 필수 입력 항목입니다")));
         }
     }
 

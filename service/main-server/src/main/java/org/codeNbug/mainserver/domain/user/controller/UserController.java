@@ -261,8 +261,8 @@ public class UserController {
 	@PutMapping("/me")
 	public ResponseEntity<RsData<UserProfileResponse>> updateProfile(
 		@Valid @RequestBody UserUpdateRequest request) {
-		log.info(">> 사용자 프로필 수정 요청: name={}, phoneNum={}, location={}",
-			request.getName(), request.getPhoneNum(), request.getLocation());
+		log.info(">> 사용자 프로필 수정 요청: name={}, age={}, sex={}, phoneNum={}, location={}",
+			request.getName(), request.getAge(), request.getSex(), request.getPhoneNum(), request.getLocation());
 
 		// 프로필 수정 처리
 		UserProfileResponse response = userService.updateProfile(request);
