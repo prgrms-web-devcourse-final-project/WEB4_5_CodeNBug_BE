@@ -66,7 +66,7 @@ public class EventDeleteService {
 			for (Purchase purchase : purchases) {
 				try {
 					Long userId = purchase.getUser().getUserId();
-					String targetUrl = "/purchases";
+					String targetUrl = String.format("/my");;
 					notificationService.createNotification(
 						userId,
 						NotificationEnum.EVENT,
