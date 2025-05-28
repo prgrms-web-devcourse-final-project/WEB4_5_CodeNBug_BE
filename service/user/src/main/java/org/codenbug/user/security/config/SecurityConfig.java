@@ -131,6 +131,7 @@ public class SecurityConfig {
 				.requestMatchers("/webhook/**").permitAll()
 				// Swagger UI 관련 경로 허용
 				.requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+				.requestMatchers("/imgs/**").permitAll()
 				// 나머지 경로는 인증 필요
 				.anyRequest().authenticated())
 			.exceptionHandling(exceptionHandling -> exceptionHandling
