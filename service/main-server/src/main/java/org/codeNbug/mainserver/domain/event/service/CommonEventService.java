@@ -1,6 +1,8 @@
 package org.codeNbug.mainserver.domain.event.service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.dto.EventInfoResponse;
 import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
@@ -89,13 +91,21 @@ public class CommonEventService {
 
 	public List<EventListResponse> getRecommends(Long count) {
 		// redis cache에서 조회수 상위 10개의 id 가져오기
-
-		List<Long> idList = redisTemplate.opsForZSet().reverseRangeByScoreWithScores("viewCount:top", 0, count - 1)
-			.stream().map(item -> Long.parseLong(item.getValue().toString().split(":")[1])).toList();
+		Map<Long, Integer> viewCountCache = new LinkedHashMap<>();
+		List<Long> idList = redisTemplate.opsForZSet().reverseRangeWithScores("viewCount:top", 0, count - 1)
+			.stream().map(item -> {
+				viewCountCache.put(Long.parseLong(item.getValue().toString().split(":")[1]),
+					item.getScore().intValue());
+				return Long.parseLong(item.getValue().toString().split(":")[1]);
+			}).toList();
 
 		// id를 기준으로 조회
 		return jpaCommonEventRepository.findAllById(idList)
-			.stream().map(item -> new EventListResponse(item, item.getMinPrice(), item.getMaxPrice()))
+			.stream().map(item -> {
+				EventListResponse resp = new EventListResponse(item, item.getMinPrice(), item.getMaxPrice());
+				resp.setViewCount(viewCountCache.get(item.getEventId()));
+				return resp;
+			}).sorted((a, b) -> b.getViewCount() - a.getViewCount())
 			.toList();
 	}
 }
