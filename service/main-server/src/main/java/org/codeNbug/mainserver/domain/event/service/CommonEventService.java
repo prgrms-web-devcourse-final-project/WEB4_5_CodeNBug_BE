@@ -81,7 +81,7 @@ public class CommonEventService {
 			redisTemplate.opsForZSet().add("viewCount:top", "event:" + id, event.getViewCount());
 		}
 		Integer incrementedViewCount = redisTemplate.opsForZSet()
-			.incrementScore("viewCount:top", "event:" + id, 1)
+			.incrementScore("viewCount:top", "event:" + id, 1D)
 			.intValue();
 
 		EventInfoResponse eventInfoResponse = new EventInfoResponse(

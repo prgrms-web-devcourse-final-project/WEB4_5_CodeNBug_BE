@@ -134,16 +134,12 @@ class CommonEventServiceTest {
 
 		when(jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(eventId))
 			.thenReturn(java.util.Optional.empty());
-		when(redisTemplate.opsForZSet()).thenReturn(zSetOperations);
 
-		when(zSetOperations.incrementScore(eq("viewCount:top"), eq("event:" + eventId), eq(1D)))
-			.thenReturn((double)1L);
 
 		// when & then
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
 			() -> commonEventService.getEvent(eventId));
 		assertEquals("해당 id의 event는 없습니다.", exception.getMessage());
 		verify(jpaCommonEventRepository).findByEventIdAndIsDeletedFalse(eventId);
-		verify(redisTemplate.opsForZSet()).incrementScore(eq("viewCount:top"), eq("event:" + eventId), eq(1D));
 	}
 }
