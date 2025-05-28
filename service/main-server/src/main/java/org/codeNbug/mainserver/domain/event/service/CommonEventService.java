@@ -72,13 +72,18 @@ public class CommonEventService {
 	}
 
 	public EventInfoResponse getEvent(Long id) {
+		Event event = jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(id)
+			.orElseThrow(() -> new IllegalArgumentException("해당 id의 event는 없습니다."));
+
+		if (redisTemplate.opsForZSet().score("viewCount:top", "event:" + id) == null) {
+			redisTemplate.opsForZSet().add("viewCount:top", "event:" + id, event.getViewCount());
+		}
 		Integer incrementedViewCount = redisTemplate.opsForZSet()
 			.incrementScore("viewCount:top", "event:" + id, 1)
 			.intValue();
 
 		EventInfoResponse eventInfoResponse = new EventInfoResponse(
-			jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(id)
-				.orElseThrow(() -> new IllegalArgumentException("해당 id의 event는 없습니다.")), incrementedViewCount);
+			event, incrementedViewCount);
 		return eventInfoResponse;
 	}
 
