@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -52,7 +53,6 @@ public class EventController {
 		return ResponseEntity.ok(RsData.success("Event categories retrieved successfully", categories));
 	}
 
-
 	@GetMapping("/events/{id}/seats")
 	public ResponseEntity<RsData<Integer>> getAvailableSeatCount(
 		@PathVariable(name = "id") Long eventId
@@ -73,5 +73,14 @@ public class EventController {
 	public ResponseEntity<RsData<Void>> updateViewCount() {
 		eventViewCountUpdateScheduler.updateViewCount();
 		return ResponseEntity.ok(RsData.success("업데이트 성공"));
+	}
+
+	@GetMapping("/events/recommend")
+	public ResponseEntity<RsData<List<EventListResponse>>> getRecommendedEvents(
+		@Min(value = 1, message = "가져올 개수는 1보다 커야 합니다.") @RequestParam(name = "count", defaultValue = "10") Long count
+	) {
+		List<EventListResponse> recommends = commonEventService.getRecommends(count);
+
+		return ResponseEntity.ok(RsData.success("추천 이벤트 조회 성공.", recommends));
 	}
 }

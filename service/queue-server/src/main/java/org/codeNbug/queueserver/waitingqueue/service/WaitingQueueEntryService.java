@@ -53,9 +53,11 @@ public class WaitingQueueEntryService {
 	 */
 	private void enter(Long userId, Long eventId) {
 
+		// 대기열 큐 idx 추가
 		Long idx = simpleRedisTemplate.opsForValue()
 			.increment(RedisConfig.WAITING_QUEUE_IDX_KEY_NAME);
 
+		// 유저가 대기열에 있었는지 확인하기 위한 hash 값 조회
 		Boolean isEntered = simpleRedisTemplate.opsForHash()
 			.hasKey(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId, userId.toString());
 
@@ -65,6 +67,8 @@ public class WaitingQueueEntryService {
 
 		assert idx != null;
 
+		// { idx: "idx", userId: "userId", eventId: "eventId", "instanceId": instanceId}
+		// 로 key가 WAITING인 stream에 저장하고 recordId를 반환
 		RecordId recordId = simpleRedisTemplate.opsForStream()
 			.add(StreamRecords.mapBacked(
 				Map.of(QUEUE_MESSAGE_IDX_KEY_NAME, idx, QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
@@ -72,6 +76,7 @@ public class WaitingQueueEntryService {
 			).withStreamKey(WAITING_QUEUE_KEY_NAME));
 
 		assert recordId != null;
+		// 유저가 대기열에 있는지 확인하기 위한 hash 값 업데이트
 		simpleRedisTemplate.opsForHash()
 			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId, userId.toString(), recordId.getValue());
 
