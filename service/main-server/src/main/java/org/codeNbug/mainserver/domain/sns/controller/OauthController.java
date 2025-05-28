@@ -1,5 +1,8 @@
 package org.codeNbug.mainserver.domain.sns.controller;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+
 import org.codeNbug.mainserver.global.dto.RsData;
 import org.codenbug.common.util.CookieUtil;
 import org.codenbug.user.redis.service.TokenService;
@@ -57,10 +60,12 @@ public class OauthController {
         log.info(">> 콜백 시 사용된 리다이렉트 URL: {}", redirectUrl);
 
         try {
+
+            String decodedCode = URLDecoder.decode(code, StandardCharsets.UTF_8);
             // 액세스 토큰을 통해 사용자 정보를 받아오고 JWT 토큰 생성 (리다이렉트 URL 전달)
-            UserResponse userResponse = redirectUrl != null 
-                    ? oauthService.requestAccessTokenAndSaveUser(socialLoginType, code, redirectUrl)
-                    : oauthService.requestAccessTokenAndSaveUser(socialLoginType, code);
+            UserResponse userResponse = redirectUrl != null
+                ? oauthService.requestAccessTokenAndSaveUser(socialLoginType, decodedCode, redirectUrl)
+                : oauthService.requestAccessTokenAndSaveUser(socialLoginType, decodedCode);
 
             // 쿠키에 토큰 저장 (UserController.login 메서드와 유사하게)
             cookieUtil.setAccessTokenCookie(response, userResponse.getAccessToken());

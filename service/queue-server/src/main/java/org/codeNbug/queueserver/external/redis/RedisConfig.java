@@ -17,7 +17,7 @@ public class RedisConfig {
 	public static final String WAITING_QUEUE_GROUP_NAME = "WAITING_QUEUE";
 	// waiting queue redis stream 키 이름
 	public static final String WAITING_QUEUE_KEY_NAME = "WAITING";
-	public static final Integer ENTRY_QUEUE_CAPACITY = 1000;
+	public static final Integer ENTRY_QUEUE_CAPACITY = 100;
 	// 메시지의 idx 값을 저장하기 위한 space의 key값
 	public static final String WAITING_QUEUE_IDX_KEY_NAME = "WAITING_QUEUE_IDX";
 	// entry queue의 현재 인원을  저장하기 위한 space의 key값
