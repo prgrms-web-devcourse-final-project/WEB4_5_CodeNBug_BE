@@ -20,7 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.ZSetOperations;
 
 @ExtendWith(MockitoExtension.class)
 class CommonEventServiceTest {
@@ -32,7 +32,7 @@ class CommonEventServiceTest {
 	@Mock
 	private RedisTemplate<String, Object> redisTemplate;
 	@Mock
-	private ValueOperations<String, Object> valueOperations;
+	private ZSetOperations<String, Object> zSetOperations;
 	@InjectMocks
 	private CommonEventService commonEventService;
 
@@ -134,16 +134,16 @@ class CommonEventServiceTest {
 
 		when(jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(eventId))
 			.thenReturn(java.util.Optional.empty());
-		when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+		when(redisTemplate.opsForZSet()).thenReturn(zSetOperations);
 
-		when(valueOperations.increment(eq("viewCount:" + eventId), eq(1L)))
-			.thenReturn(1L);
+		when(zSetOperations.incrementScore(eq("viewCount:top"), eq("event:" + eventId), eq(1D)))
+			.thenReturn((double)1L);
 
 		// when & then
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
 			() -> commonEventService.getEvent(eventId));
 		assertEquals("해당 id의 event는 없습니다.", exception.getMessage());
 		verify(jpaCommonEventRepository).findByEventIdAndIsDeletedFalse(eventId);
-		verify(redisTemplate.opsForValue()).increment(eq("viewCount:" + eventId), eq(1L));
+		verify(redisTemplate.opsForZSet()).incrementScore(eq("viewCount:top"), eq("event:" + eventId), eq(1D));
 	}
 }
