@@ -8,7 +8,7 @@ spring:
     hikari:
       maximum-pool-size: 100      # (CPU 코어 × 2) 내에서 시작
       minimum-idle: 10
-      connection-timeout: 2000    # 2 s 로 줄여 응답 빨리 실패
+      connection-timeout: 6000    # 2 s 로 줄여 응답 빨리 실패
       leak-detection-threshold: 10000
   jpa:
     hibernate:
