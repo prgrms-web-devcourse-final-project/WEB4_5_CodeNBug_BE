@@ -62,6 +62,10 @@ class ManagerEventSearchServiceTest {
                 .userId(1L)
                 .email("manager@example.com")
                 .build();
+        LocalDateTime eventStart = LocalDateTime.now();
+        LocalDateTime eventEnd = LocalDateTime.now().plusDays(1);
+        LocalDateTime bookingStart = LocalDateTime.now().minusDays(7);
+        LocalDateTime bookingEnd = LocalDateTime.now().plusHours(12);
 
         Event event1 = new Event(
                 EventCategoryEnum.CONCERT,
@@ -72,13 +76,13 @@ class ManagerEventSearchServiceTest {
                         .restrictions("")
                         .location("서울")
                         .hallName("올림픽홀")
-                        .eventStart(LocalDateTime.now())
-                        .eventEnd(LocalDateTime.now().plusDays(1))
+                        .eventStart(eventStart)
+                        .eventEnd(eventEnd)
                         .seatCount(100)
                         .thumbnailUrl("http://image1")
                         .build(),
-                LocalDateTime.now(),
-                LocalDateTime.now().plusDays(1),
+                bookingStart,
+                bookingEnd,
                 0,
                 null,
                 null,
@@ -97,13 +101,13 @@ class ManagerEventSearchServiceTest {
                         .restrictions("")
                         .location("부산")
                         .hallName("사직구장")
-                        .eventStart(LocalDateTime.now())
-                        .eventEnd(LocalDateTime.now().plusDays(1))
+                        .eventStart(eventStart)
+                        .eventEnd(eventEnd)
                         .seatCount(200)
                         .thumbnailUrl("http://image2")
                         .build(),
-                LocalDateTime.now(),
-                LocalDateTime.now().plusDays(1),
+                bookingStart,
+                bookingEnd,
                 0,
                 null,
                 null,
@@ -132,6 +136,15 @@ class ManagerEventSearchServiceTest {
         assertThat(first.getThumbnailUrl()).isEqualTo("http://image1");
         assertThat(first.getStatus()).isEqualTo(EventStatusEnum.OPEN);
         assertThat(first.getIsDeleted()).isFalse();
+
+        // 행사 기간 검증 추가
+        assertThat(first.getStartDate()).isEqualTo(eventStart);
+        assertThat(first.getEndDate()).isEqualTo(eventEnd);
+
+        // 예매 기간 검증 추가
+        assertThat(first.getBookingStart()).isEqualTo(bookingStart);
+        assertThat(first.getBookingEnd()).isEqualTo(bookingEnd);
+
     }
 
     @Test
