@@ -63,7 +63,7 @@ public class KakaoOauth implements SocialOauth {
         params.put("response_type", "code");  // OAuth 인증 코드 요청
         params.put("client_id", KAKAO_SNS_CLIENT_ID);  // 클라이언트 ID
         params.put("redirect_uri", KAKAO_SNS_CALLBACK_URL);  // 콜백 URL
-        params.put("scope", "account_email");  // 이메일 정보 요청 권한 추가
+        params.put("scope", "profile_nickname, profile_image, account_email");  // 닉네임, 프로필 사진, 이메일 정보 요청 권한
 
         // Map의 파라미터들을 URL 쿼리 스트링 형식으로 변환
         String parameterString = params.entrySet().stream()
@@ -95,7 +95,7 @@ public class KakaoOauth implements SocialOauth {
         params.put("response_type", "code");  // OAuth 인증 코드 요청
         params.put("client_id", KAKAO_SNS_CLIENT_ID);  // 클라이언트 ID
         params.put("redirect_uri", redirectUrl);  // 커스텀 콜백 URL
-        params.put("scope", "account_email");  // 이메일 정보 요청 권한 추가
+        params.put("scope", "profile_nickname,profile_image,account_email");  // 닉네임, 프로필 사진, 이메일 정보 요청 권한
 
         // Map의 파라미터들을 URL 쿼리 스트링 형식으로 변환
         String parameterString = params.entrySet().stream()
