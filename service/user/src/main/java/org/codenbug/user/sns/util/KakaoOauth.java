@@ -16,8 +16,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +63,7 @@ public class KakaoOauth implements SocialOauth {
         params.put("response_type", "code");  // OAuth 인증 코드 요청
         params.put("client_id", KAKAO_SNS_CLIENT_ID);  // 클라이언트 ID
         params.put("redirect_uri", KAKAO_SNS_CALLBACK_URL);  // 콜백 URL
-        params.put("scope", "account_email");  // 이메일 정보 요청 권한 추가
+        // params.put("scope", "account_email");  // 이메일 정보 요청 권한 추가
 
         // Map의 파라미터들을 URL 쿼리 스트링 형식으로 변환
         String parameterString = params.entrySet().stream()
