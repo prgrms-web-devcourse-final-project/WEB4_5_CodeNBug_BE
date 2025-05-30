@@ -1,9 +1,10 @@
 package org.codeNbug.queueserver.waitingqueue.service;
 
+import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.codeNbug.queueserver.external.redis.RedisConfig;
 import org.codeNbug.queueserver.waitingqueue.entity.SseConnection;
 import org.codeNbug.queueserver.waitingqueue.entity.Status;
 import org.springframework.data.redis.connection.stream.RecordId;
@@ -47,18 +48,20 @@ public class SseEmitterService {
 			// entry_queue_count를 1 감소시킨 것을 다시 증가
 			if (status.equals(Status.IN_ENTRY)) {
 				redisTemplate.opsForHash()
-					.increment(RedisConfig.ENTRY_QUEUE_COUNT_KEY_NAME, parsedEventId, 1);
+					.increment(ENTRY_QUEUE_COUNT_KEY_NAME, parsedEventId, 1);
+				redisTemplate.opsForHash()
+					.delete(ENTRY_TOKEN_STORAGE_KEY_NAME, userId.toString());
 			} else if (status.equals(Status.IN_QUEUE)) {
 				String recordIdString = redisTemplate.opsForHash()
-					.get(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + parsedEventId,
+					.get(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + parsedEventId,
 						userId.toString())
 					.toString();
 				RecordId recordId = RecordId.of(recordIdString);
 
 				redisTemplate.opsForStream()
-					.delete(RedisConfig.WAITING_QUEUE_KEY_NAME + ":" + eventId, recordId);
+					.delete(WAITING_QUEUE_KEY_NAME + ":" + eventId, recordId);
 				redisTemplate.opsForHash()
-					.delete(RedisConfig.WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + parsedEventId,
+					.delete(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + parsedEventId,
 						userId.toString());
 			}
 			emitterMap.remove(userId);
