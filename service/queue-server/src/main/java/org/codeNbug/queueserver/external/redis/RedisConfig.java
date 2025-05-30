@@ -77,17 +77,6 @@ public class RedisConfig {
 			redisTemplate.opsForStream()
 				.createGroup(WAITING_QUEUE_KEY_NAME, WAITING_QUEUE_GROUP_NAME + ":" + instanceId);
 		}
-		// 메시지 idx 데이터가 없다면 생성.
-		if (redisTemplate.opsForValue().get(WAITING_QUEUE_IDX_KEY_NAME) == null) {
-			redisTemplate.opsForValue()
-				.set(WAITING_QUEUE_IDX_KEY_NAME, 0L);
-		}
-		// entry queue count 데이터가 없다면 생성
-		if (redisTemplate.opsForValue().get(ENTRY_QUEUE_COUNT_KEY_NAME) == null) {
-			redisTemplate.opsForValue()
-				.set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
-		}
-		redisTemplate.opsForValue().set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
 		return redisTemplate;
 	}
 }

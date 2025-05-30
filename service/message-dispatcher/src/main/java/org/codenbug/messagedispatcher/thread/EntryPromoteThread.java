@@ -3,6 +3,7 @@ package org.codenbug.messagedispatcher.thread;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.codenbug.messagedispatcher.redis.RedisConfig;
 import org.springframework.data.redis.connection.stream.Consumer;
@@ -30,9 +31,11 @@ public class EntryPromoteThread {
 	@Scheduled(cron = "* * * * * *")
 	public void promoteToEntryQueue() {
 		// promote할 갯수 얻음
+
+		Set<String> keys = redisTemplate.keys(RedisConfig.ENTRY_QUEUE_COUNT_KEY_NAME + ":*");
+
 		Long count = Long.parseLong(Objects.requireNonNull(redisTemplate.opsForValue()
 			.get(RedisConfig.ENTRY_QUEUE_COUNT_KEY_NAME)).toString());
-
 		// 갯수만큼 waiting queue에서 가져옴
 		List<MapRecord<String, Object, Object>> promoteTarget = redisTemplate.opsForStream()
 			.read(Consumer.from(

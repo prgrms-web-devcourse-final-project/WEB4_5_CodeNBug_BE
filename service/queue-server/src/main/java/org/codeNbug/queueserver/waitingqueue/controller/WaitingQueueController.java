@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
@@ -47,7 +49,7 @@ public class WaitingQueueController {
 	@RoleRequired({UserRole.USER})
 	@GetMapping(value = "/events/{id}/tickets/waiting", produces = MediaType.TEXT_EVENT_STREAM_VALUE
 		+ ";charset=UTF-8")
-	public SseEmitter entryWaiting(@PathVariable("id") Long eventId) {
+	public SseEmitter entryWaiting(@PathVariable("id") Long eventId) throws JsonProcessingException {
 		return waitingQueueEntryService.entry(eventId);
 	}
 }
