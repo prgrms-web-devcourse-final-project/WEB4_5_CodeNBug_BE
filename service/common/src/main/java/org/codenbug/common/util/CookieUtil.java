@@ -36,7 +36,7 @@ public class CookieUtil {
 		Cookie cookie = new Cookie(ACCESS_TOKEN_COOKIE_NAME, token);
 		cookie.setMaxAge((int)(accessTokenExpiration / 1000)); // milliseconds to seconds
 		cookie.setPath(COOKIE_PATH);
-		// cookie.setDomain(cookieDomain);
+		cookie.setDomain(cookieDomain);
 		cookie.setHttpOnly(true);
 
 		// 개발 환경 확인 (localhost에서는 secure=false로 설정)
@@ -78,7 +78,7 @@ public class CookieUtil {
 		Cookie cookie = new Cookie(REFRESH_TOKEN_COOKIE_NAME, token);
 		cookie.setMaxAge((int)(refreshTokenExpiration / 1000)); // milliseconds to seconds
 		cookie.setPath(COOKIE_PATH);
-		// cookie.setDomain(cookieDomain);
+		cookie.setDomain(cookieDomain);
 		cookie.setHttpOnly(true);
 
 		// 개발 환경 확인 (localhost에서는 secure=false로 설정)
