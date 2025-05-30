@@ -66,7 +66,7 @@ public class WaitingQueueEntryService {
 	 * @param eventId 행사의 id
 	 */
 	private void enter(Long userId, Long eventId) throws JsonProcessingException {
-
+		// 총 좌석수 얻기
 		RestTemplate restTemplate = new RestTemplate();
 
 		ResponseEntity<String> forEntity = restTemplate.getForEntity(
@@ -80,7 +80,7 @@ public class WaitingQueueEntryService {
 			.get("seatCount")
 			.asInt();
 
-		if (simpleRedisTemplate.keys(ENTRY_QUEUE_COUNT_KEY_NAME + ":" + eventId.toString()).isEmpty()) {
+		if (!simpleRedisTemplate.opsForHash().hasKey(ENTRY_QUEUE_COUNT_KEY_NAME, eventId.toString())) {
 			simpleRedisTemplate.opsForHash()
 				.put(ENTRY_QUEUE_COUNT_KEY_NAME, eventId.toString(), seatCount);
 		}
@@ -106,7 +106,7 @@ public class WaitingQueueEntryService {
 			.add(StreamRecords.mapBacked(
 				Map.of(QUEUE_MESSAGE_IDX_KEY_NAME, idx, QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
 					QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, QUEUE_MESSAGE_INSTANCE_ID_KEY_NAME, instanceId)
-			).withStreamKey(WAITING_QUEUE_KEY_NAME));
+			).withStreamKey(WAITING_QUEUE_KEY_NAME + ":" + eventId.toString()));
 
 		assert recordId != null;
 		// 유저가 대기열에 있는지 확인하기 위한 hash 값 업데이트
