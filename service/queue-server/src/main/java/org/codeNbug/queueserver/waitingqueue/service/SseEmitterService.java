@@ -39,8 +39,10 @@ public class SseEmitterService {
 			// 커넥션 정보 얻기
 			SseConnection sseConnection = emitterMap.get(userId);
 			Status status = sseConnection.getStatus();
+
 			// 커넥션 정보로부터 이벤트 아이디 얻기
 			String parsedEventId = sseConnection.getEventId().toString();
+
 			// 대기열 탈출 상태에서 커넥션이 종료되었다면
 			// entry_queue_count를 1 감소시킨 것을 다시 증가
 			if (status.equals(Status.IN_ENTRY)) {
