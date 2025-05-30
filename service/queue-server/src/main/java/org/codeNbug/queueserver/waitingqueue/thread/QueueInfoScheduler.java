@@ -41,15 +41,22 @@ public class QueueInfoScheduler {
 		Map<Long, SseConnection> emitterMap = emitterService.getEmitterMap();
 
 		// redis waiting queue의 모든 요소를 가져옵니다
+		redisTemplate.keys(WAITING_QUEUE_KEY_NAME + ":*").forEach(key -> {
+			doPrintInfo(emitterMap, key);
+		});
+
+	}
+
+	private void doPrintInfo(Map<Long, SseConnection> emitterMap, String key) {
 		StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
-		List<MapRecord<String, Object, Object>> waitingList = streamOps.range(WAITING_QUEUE_KEY_NAME,
+		// eventId에 해당하는 모든 stream 가져오기
+		List<MapRecord<String, Object, Object>> waitingList = streamOps.range(key,
 			Range.unbounded());
 
 		if (waitingList == null || waitingList.isEmpty()) {
 			return;
 		}
 
-		// queue의 첫번째 요소의 idx 가져옵니다.
 		Long firstIdx = Long.parseLong(
 			waitingList.getFirst().getValue().get(QUEUE_MESSAGE_IDX_KEY_NAME).toString());
 

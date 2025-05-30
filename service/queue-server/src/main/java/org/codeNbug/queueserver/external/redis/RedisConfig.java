@@ -32,6 +32,7 @@ public class RedisConfig {
 	public static final String DISPATCH_QUEUE_CHANNEL_NAME = "DISPATCH";
 	public static final String WAITING_QUEUE_IN_USER_RECORD_KEY_NAME = "WAITING_USER_ID";
 	public static final String ENTRY_TOKEN_STORAGE_KEY_NAME = "ENTRY_TOKEN";
+	public static final String WAITING_QUEUE_START_IDX_KEY = "WAITING_QUEUE_START_IDX";
 	private static final String ENTRY_USER_STREAM_GROUP = "ENTRY_CONSUMER_GROUP";
 
 	@Value("${custom.instance-id}")
@@ -63,31 +64,6 @@ public class RedisConfig {
 		redisTemplate.setValueSerializer(jsonSerializer);
 		redisTemplate.afterPropertiesSet();
 
-		// 컨슈머 그룹이 없으면 새로운 컨슈머 그룹 생성
-		try {
-			if (!redisTemplate.opsForStream()
-				.groups(WAITING_QUEUE_KEY_NAME).stream().anyMatch(
-					xInfoGroup -> xInfoGroup.groupName().equals(WAITING_QUEUE_GROUP_NAME + ":" + instanceId)
-				)) {
-				redisTemplate.opsForStream()
-					.createGroup(WAITING_QUEUE_KEY_NAME, WAITING_QUEUE_GROUP_NAME + ":" + instanceId);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-			redisTemplate.opsForStream()
-				.createGroup(WAITING_QUEUE_KEY_NAME, WAITING_QUEUE_GROUP_NAME + ":" + instanceId);
-		}
-		// 메시지 idx 데이터가 없다면 생성.
-		if (redisTemplate.opsForValue().get(WAITING_QUEUE_IDX_KEY_NAME) == null) {
-			redisTemplate.opsForValue()
-				.set(WAITING_QUEUE_IDX_KEY_NAME, 0L);
-		}
-		// entry queue count 데이터가 없다면 생성
-		if (redisTemplate.opsForValue().get(ENTRY_QUEUE_COUNT_KEY_NAME) == null) {
-			redisTemplate.opsForValue()
-				.set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
-		}
-		redisTemplate.opsForValue().set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
 		return redisTemplate;
 	}
 }

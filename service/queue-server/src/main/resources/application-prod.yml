@@ -14,3 +14,6 @@ spring:
 cookie:
   domain: localhost
   secure: false  # dev 환경에서는 false, prod 환경에서는 true로 설정
+custom:
+  backend:
+    url: https://api.main.ticketone.site
