@@ -5,12 +5,15 @@ import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 import java.util.Map;
 
 import org.codeNbug.queueserver.external.redis.RedisConfig;
-import org.codenbug.user.domain.user.entity.User;
 import org.codenbug.user.domain.user.repository.UserRepository;
+import org.codenbug.user.security.exception.AuthenticationFailedException;
+import org.codenbug.user.security.service.CustomUserDetails;
+import org.codenbug.user.security.service.SnsUserDetails;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -83,9 +86,20 @@ public class WaitingQueueEntryService {
 	}
 
 	private Long getLoggedInUserId() {
-		String email = SecurityContextHolder.getContext().getAuthentication().getName();
-		User user = userRepository.findByEmail(email)
-			.orElseThrow(() -> new RuntimeException("인증된 사용자를 찾을 수 없습니다."));
-		return user.getUserId();
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		if (authentication == null || !authentication.isAuthenticated()) {
+			throw new AuthenticationFailedException("인증된 사용자를 찾을 수 없습니다.");
+		}
+
+		Object principal = authentication.getPrincipal();
+
+		if (principal instanceof CustomUserDetails) {
+			return ((CustomUserDetails)principal).getUserId();
+		} else if (principal instanceof SnsUserDetails) {
+			return ((SnsUserDetails)principal).getUserId();
+		} else {
+			throw new AuthenticationFailedException("지원되지 않는 사용자 유형입니다.");
+		}
 	}
 }
