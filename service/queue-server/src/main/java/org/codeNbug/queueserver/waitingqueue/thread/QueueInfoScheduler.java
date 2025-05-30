@@ -41,26 +41,31 @@ public class QueueInfoScheduler {
 		Map<Long, SseConnection> emitterMap = emitterService.getEmitterMap();
 
 		// redis waiting queue의 모든 요소를 가져옵니다
+		redisTemplate.keys(WAITING_QUEUE_KEY_NAME + ":*").forEach(key -> {
+			doPrintInfo(emitterMap, key);
+		});
+
+	}
+
+	private void doPrintInfo(Map<Long, SseConnection> emitterMap, String key) {
 		StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
-		List<MapRecord<String, Object, Object>> waitingList = streamOps.range(WAITING_QUEUE_KEY_NAME,
+		// eventId에 해당하는 모든 stream 가져오기
+		List<MapRecord<String, Object, Object>> waitingList = streamOps.range(key,
 			Range.unbounded());
 
 		if (waitingList == null || waitingList.isEmpty()) {
 			return;
 		}
 
-
+		Long firstIdx = Long.parseLong(
+			waitingList.getFirst().getValue().get(QUEUE_MESSAGE_IDX_KEY_NAME).toString());
 
 		// 대기열 큐에 있는 모든 유저들에게 대기열 순번과 userId, eventId를 전송합니다.
 		for (MapRecord<String, Object, Object> record : waitingList) {
+			// 대기열 큐 메시지로부터 데이터를 파싱합니다.
 			Long userId = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_USER_ID_KEY_NAME).toString());
 			Long eventId = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_EVENT_ID_KEY_NAME).toString());
 			Long idx = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_IDX_KEY_NAME).toString());
-
-			Long firstIdx = Long.parseLong(
-				redisTemplate.opsForHash().get(WAITING_QUEUE_START_IDX_KEY, eventId.toString()).toString());
-
-			// 대기열 큐 메시지로부터 데이터를 파싱합니다.
 
 			if (!emitterMap.containsKey(userId)) {
 				log.debug("user %d가 연결이 끊어진 상태입니다.".formatted(userId));
