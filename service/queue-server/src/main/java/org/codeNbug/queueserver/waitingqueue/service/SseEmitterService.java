@@ -51,8 +51,8 @@ public class SseEmitterService {
 			if (status.equals(Status.IN_PROGRESS)) {
 				redisTemplate.opsForHash()
 					.increment(ENTRY_QUEUE_COUNT_KEY_NAME, parsedEventId, 1);
-				redisTemplate.opsForHash()
-					.delete(ENTRY_TOKEN_STORAGE_KEY_NAME, userId.toString());
+				// redisTemplate.opsForHash()
+				// 	.delete(ENTRY_TOKEN_STORAGE_KEY_NAME, userId.toString());
 			} else if (status.equals(Status.IN_ENTRY)) {
 				String recordIdString = redisTemplate.opsForHash()
 					.get(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + parsedEventId,
