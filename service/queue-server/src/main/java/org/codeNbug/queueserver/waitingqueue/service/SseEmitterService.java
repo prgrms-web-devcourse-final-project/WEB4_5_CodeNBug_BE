@@ -46,12 +46,12 @@ public class SseEmitterService {
 
 			// 대기열 탈출 상태에서 커넥션이 종료되었다면
 			// entry_queue_count를 1 감소시킨 것을 다시 증가
-			if (status.equals(Status.IN_ENTRY)) {
+			if (status.equals(Status.IN_PROGRESS)) {
 				redisTemplate.opsForHash()
 					.increment(ENTRY_QUEUE_COUNT_KEY_NAME, parsedEventId, 1);
 				redisTemplate.opsForHash()
 					.delete(ENTRY_TOKEN_STORAGE_KEY_NAME, userId.toString());
-			} else if (status.equals(Status.IN_QUEUE)) {
+			} else if (status.equals(Status.IN_ENTRY)) {
 				String recordIdString = redisTemplate.opsForHash()
 					.get(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + parsedEventId,
 						userId.toString())
@@ -83,7 +83,7 @@ public class SseEmitterService {
 		}
 
 		// 전역 공간에 emitter 저장
-		emitterMap.put(userId, new SseConnection(emitter, Status.IN_QUEUE, eventId));
+		emitterMap.put(userId, new SseConnection(emitter, Status.IN_ENTRY, eventId));
 
 		return emitter;
 	}
