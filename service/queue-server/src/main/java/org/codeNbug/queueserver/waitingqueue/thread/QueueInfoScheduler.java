@@ -73,12 +73,13 @@ public class QueueInfoScheduler {
 			}
 
 			// 파싱한 userId로 sse 연결 객체를 가져옵니다.
-			SseEmitter emitter = emitterMap.get(userId).getEmitter();
+			SseConnection sseConnection = emitterMap.get(userId);
+			SseEmitter emitter = sseConnection.getEmitter();
 			// 대기열 순번을 계산하고 sse 메시지를 전송합니다.
 			try {
 				emitter.send(
 					SseEmitter.event()
-						.data(Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
+						.data(Map.of("status", sseConnection.getStatus(), QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
 							QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, "order", idx - firstIdx + 1))
 				);
 			} catch (Exception e) {
