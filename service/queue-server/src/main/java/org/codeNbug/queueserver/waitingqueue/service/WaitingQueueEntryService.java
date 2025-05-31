@@ -11,8 +11,6 @@ import org.codenbug.user.security.exception.AuthenticationFailedException;
 import org.codenbug.user.security.service.CustomUserDetails;
 import org.codenbug.user.security.service.SnsUserDetails;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.connection.stream.RecordId;
-import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -86,8 +84,6 @@ public class WaitingQueueEntryService {
 		ResponseEntity<String> forEntity = restTemplate.getForEntity(
 			url + "/api/v1/events/" + eventId, String.class);
 
-		System.out.println("forEntity.getBody().toString() = " + forEntity.getBody().toString());
-
 		int seatCount = objectMapper.readTree(forEntity.getBody())
 			.get("data")
 			.get("information")
@@ -114,18 +110,24 @@ public class WaitingQueueEntryService {
 
 		assert idx != null;
 
-		// { idx: "idx", userId: "userId", eventId: "eventId", "instanceId": instanceId}
-		// 로 key가 WAITING인 stream에 저장하고 recordId를 반환
-		RecordId recordId = simpleRedisTemplate.opsForStream()
-			.add(StreamRecords.mapBacked(
-				Map.of(QUEUE_MESSAGE_IDX_KEY_NAME, idx, QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
-					QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, QUEUE_MESSAGE_INSTANCE_ID_KEY_NAME, instanceId)
-			).withStreamKey(WAITING_QUEUE_KEY_NAME + ":" + eventId.toString()));
+		// { idx , userId}
+		// 로 key가 WAITING:<eventId>인 zset에 저장
+		simpleRedisTemplate.opsForZSet()
+			.add(WAITING_QUEUE_KEY_NAME + ":" + eventId, objectMapper.writeValueAsString(
+					Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId)),
+				idx);
 
-		assert recordId != null;
+		// 나머지 정보를 hash에 저장
+		simpleRedisTemplate.opsForHash()
+			.put("WAITING_QUEUE_RECORD:" + eventId, userId.toString(), objectMapper.writeValueAsString(
+				Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
+					QUEUE_MESSAGE_IDX_KEY_NAME, idx,
+					QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId,
+					QUEUE_MESSAGE_INSTANCE_ID_KEY_NAME, instanceId)
+			));
 		// 유저가 대기열에 있는지 확인하기 위한 hash 값 업데이트
 		simpleRedisTemplate.opsForHash()
-			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId, userId.toString(), recordId.getValue());
+			.put(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId, userId.toString(), idx);
 
 	}
 

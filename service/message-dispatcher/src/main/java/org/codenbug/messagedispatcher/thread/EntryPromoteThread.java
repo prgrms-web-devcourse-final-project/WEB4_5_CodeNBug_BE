@@ -5,14 +5,15 @@ import static org.codenbug.messagedispatcher.redis.RedisConfig.*;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.data.domain.Range;
-import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,45 +22,49 @@ import lombok.extern.slf4j.Slf4j;
 public class EntryPromoteThread {
 
 	private final RedisTemplate<String, Object> redisTemplate;
+	private final ObjectMapper objectMapper;
 
-	public EntryPromoteThread(RedisTemplate<String, Object> redisTemplate) {
+	public EntryPromoteThread(RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
 		this.redisTemplate = redisTemplate;
+		this.objectMapper = objectMapper;
 	}
 
 	@Scheduled(cron = "* * * * * *")
 	public void promoteToEntryQueue() {
 		// 1) waiting 스트림의 모든 레코드를 조회
 		redisTemplate.keys(WAITING_QUEUE_KEY_NAME + ":*").forEach(key -> {
-			doPromote(key);
+			try {
+				doPromote(key);
+			} catch (JsonProcessingException e) {
+				throw new RuntimeException(e);
+			}
 		});
 	}
 
-	private void doPromote(String key) {
-		// waiting stream에 consumer group이 없다면 만들어 줘야 함.
-		try {
-			if (redisTemplate.opsForStream()
-				.groups(key)
-				.stream()
-				.noneMatch(xInfoGroup -> xInfoGroup.groupName().equals(WAITING_QUEUE_GROUP_NAME))) {
-				redisTemplate.opsForStream().createGroup(key, WAITING_QUEUE_GROUP_NAME);
-			}
-
-		} catch (Exception e) {
-			redisTemplate.opsForStream().createGroup(key, WAITING_QUEUE_GROUP_NAME);
-		}
-
+	private void doPromote(String key) throws JsonProcessingException {
 		StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
 		HashOperations<String, String, Object> hashOps = redisTemplate.opsForHash();
 
 		// 해당 키의 스트림 내의 모든 메시지 얻기
-		List<MapRecord<String, Object, Object>> records =
-			streamOps.range(key, Range.unbounded());
+		List<Object> records =
+			redisTemplate.opsForZSet()
+				.range(key, 0, -1).stream().map(
+					item -> {
+						try {
+							return redisTemplate.opsForHash()
+								.get("WAITING_QUEUE_RECORD:" + key.split(":")[1].toString(),
+									objectMapper.readTree(item.toString()).get("userId").toString());
+						} catch (JsonProcessingException e) {
+							throw new RuntimeException(e);
+						}
+					}
+				).toList();
 
-		for (MapRecord<String, Object, Object> record : records) {
+		for (Object record : records) {
 			// 메시지 내 데이터 파싱
-			Long userId = Long.parseLong(record.getValue().get("userId").toString());
-			Long eventId = Long.parseLong(record.getValue().get("eventId").toString());
-			String instanceId = String.valueOf(record.getValue().get("instanceId"));
+			Long userId = Long.parseLong(objectMapper.readTree(record.toString()).get("userId").toString());
+			Long eventId = Long.parseLong(objectMapper.readTree(record.toString()).get("eventId").toString());
+			String instanceId = String.valueOf(objectMapper.readTree(record.toString()).get("instanceId"));
 
 			// 이 waiting 스트림 메시지에 해당하는 유저가 이벤트의 entry queue에 들어갈수 있는지 검사
 			// 해당 event의 entry queue count를 조회
@@ -77,12 +82,10 @@ public class EntryPromoteThread {
 						Map.of("userId", userId, "eventId", eventId, "instanceId", instanceId)
 					).withStreamKey(ENTRY_QUEUE_KEY_NAME));
 
-				// 3) 스트림 ACK
-				streamOps.acknowledge(key, WAITING_QUEUE_GROUP_NAME,
-					record.getId());
-
 				// 4) 스트림에서 해당 레코드 삭제
-				streamOps.delete(key, record.getId());
+				redisTemplate.opsForZSet().remove(key,
+					objectMapper.writeValueAsString(Map.of("userId", userId)));
+				redisTemplate.opsForHash().delete("WAITING_QUEUE_RECORD:" + eventId.toString(), userId.toString());
 
 				hashOps.delete(WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId.toString(),
 					userId.toString());
