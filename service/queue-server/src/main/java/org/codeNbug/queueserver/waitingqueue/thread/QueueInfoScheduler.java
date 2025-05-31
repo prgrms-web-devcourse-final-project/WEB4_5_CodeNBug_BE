@@ -97,7 +97,7 @@ public class QueueInfoScheduler {
 			try {
 				emitter.send(
 					SseEmitter.event()
-						.data(".")
+						.comment("heartBeat")
 				);
 			} catch (Exception e) {
 				emitter.complete();

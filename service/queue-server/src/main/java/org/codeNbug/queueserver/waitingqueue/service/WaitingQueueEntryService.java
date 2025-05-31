@@ -2,8 +2,10 @@ package org.codeNbug.queueserver.waitingqueue.service;
 
 import static org.codeNbug.queueserver.external.redis.RedisConfig.*;
 
+import java.io.IOException;
 import java.util.Map;
 
+import org.codeNbug.queueserver.waitingqueue.entity.SseConnection;
 import org.codenbug.user.domain.user.repository.UserRepository;
 import org.codenbug.user.security.exception.AuthenticationFailedException;
 import org.codenbug.user.security.service.CustomUserDetails;
@@ -66,6 +68,18 @@ public class WaitingQueueEntryService {
 	 * @param eventId 행사의 id
 	 */
 	private void enter(Long userId, Long eventId) throws JsonProcessingException {
+
+		Map<Long, SseConnection> emitterMap = sseEmitterService.getEmitterMap();
+		emitterMap.forEach((id, emitterConnection) -> {
+			try {
+				emitterConnection.getEmitter().send(SseEmitter.event()
+					.comment("heartBeat")
+					.build());
+			} catch (IOException e) {
+				System.out.println("error");
+				emitterConnection.getEmitter().complete();
+			}
+		});
 		// 총 좌석수 얻기
 		RestTemplate restTemplate = new RestTemplate();
 
