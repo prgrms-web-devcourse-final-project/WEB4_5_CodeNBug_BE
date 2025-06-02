@@ -8,9 +8,9 @@
 
 |                                                        김지우                                                        |                최재우                 |                박종현                 |                박현모                 |                장선호                 
 |:-----------------------------------------------------------------------------------------------------------------:|:----------------------------------:|:----------------------------------:|:----------------------------------:|:----------------------------------:|
-| <img src="https://github.com/user-attachments/assets/dbecdb79-a05d-48e0-b4ee-149284d8aef4" alt="김지우" width="150"> | <img src="" alt="최재우" width="150"> | <img src="" alt="박종현" width="150"> | <img src="" alt="박현모" width="150"> | <img src="" alt="장선호" width="150"> |
+| <img src="https://github.com/user-attachments/assets/dbecdb79-a05d-48e0-b4ee-149284d8aef4" alt="김지우" width="150"> | <img src="" alt="최재우" width="150"> | <img src="https://github.com/user-attachments/assets/1a83e793-7709-415a-9f5b-e09b7ab20eca" alt="박종현" width="150"> | <img src="" alt="박현모" width="150"> | <img src="" alt="장선호" width="150"> |
 |                                                        TL                                                         |                 PO                 |                 TM                 |                 TM                 |                 TM                 |
-|                                      [GitHub](https://github.com/omegafrog)                                       |             [GitHub]()             |             [GitHub]()             |             [GitHub]()             |             [GitHub]()             |
+|                                      [GitHub](https://github.com/omegafrog)                                       |             [GitHub]()             |             [GitHub](https://github.com/joungGo)             |             [GitHub]()             |             [GitHub]()             |
 
 <br/>
 <br/>
