@@ -35,7 +35,9 @@ public class SseEmitterService {
 	}
 
 	public SseEmitter add(Long userId, Long eventId) {
-
+		if (emitterMap.containsKey(userId)) {
+			throw new RuntimeException("다른 대기열에 이미 들어와 있습니다.");
+		}
 		// 새로운 emitter 생성
 		SseEmitter emitter = new SseEmitter(0L);
 		// emitter연결이 끊어질 때 만약 entry상태라면 entry count를 1 증가
