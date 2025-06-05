@@ -2,13 +2,20 @@ package org.codenbug.messagedispatcher.thread;
 
 import static org.codenbug.messagedispatcher.redis.RedisConfig.*;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StreamOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -23,26 +30,72 @@ public class EntryPromoteThread {
 
 	private final RedisTemplate<String, Object> redisTemplate;
 	private final ObjectMapper objectMapper;
+	private final DefaultRedisScript<Long> promoteAllScript;
 
 	public EntryPromoteThread(RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
 		this.redisTemplate = redisTemplate;
 		this.objectMapper = objectMapper;
+		promoteAllScript = new DefaultRedisScript<>();
+		promoteAllScript.setScriptText(loadLuaScriptFromResource("promote_all_waiting_for_event.lua"));
+		promoteAllScript.setResultType(Long.class);
+	}
+
+	private String loadLuaScriptFromResource(String scriptName) {
+		try (InputStream is =
+				 new ClassPathResource(scriptName).getInputStream();
+			 BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
+			return reader.lines().collect(Collectors.joining("\n"));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
 	}
 
 	@Scheduled(cron = "* * * * * *")
 	public void promoteToEntryQueue() {
 		// 1) waiting 스트림의 모든 레코드를 조회
-		redisTemplate.keys(WAITING_QUEUE_KEY_NAME + ":*").forEach(key -> {
-			try {
-				doPromote(key);
-			} catch (JsonProcessingException e) {
-				throw new RuntimeException(e);
+		redisTemplate.multi();
+		try {
+			List<String> keys = redisTemplate.keys(WAITING_QUEUE_KEY_NAME + ":*").stream().collect(Collectors.toList());
+			for (String key : keys) {
+				String eventId = key.split(":")[1];
+				String entryCountHashKey = ENTRY_QUEUE_COUNT_KEY_NAME;                    // ex: "ENTRY_QUEUE_COUNT"
+				String waitingRecordHash =
+					"WAITING_QUEUE_RECORD:" + eventId;            // ex: "WAITING_QUEUE_RECORD:42"
+				String waitingZsetKey = WAITING_QUEUE_KEY_NAME + ":" + eventId;       // ex: "waiting:42"
+				String waitingInUserHash =
+					WAITING_QUEUE_IN_USER_RECORD_KEY_NAME + ":" + eventId; // ex: "WAITING_QUEUE_IN_USER_RECORD:42"
+				String entryStreamKey = ENTRY_QUEUE_KEY_NAME;                         // ex: "ENTRY_QUEUE"
+
+				List<String> scriptKeys = List.of(
+					entryCountHashKey,
+					waitingRecordHash,
+					waitingZsetKey,
+					waitingInUserHash,
+					entryStreamKey
+				);
+
+				// ARGV는 [eventId] 하나만 필요
+				Long result = redisTemplate.execute(
+					promoteAllScript,
+					scriptKeys,
+					Long.parseLong(eventId)
+				);
+				if (result == null) {
+					throw new RuntimeException("promoteToEntryQueue failed");
+				}
+				if (result == 0L) {
+					throw new RuntimeException("promoteToEntryQueue failed");
+				}
 			}
-		});
+		} catch (Exception e) {
+			log.info(e.getMessage());
+			redisTemplate.discard();
+		}
+		redisTemplate.exec();
 	}
 
 	private void doPromote(String key) throws JsonProcessingException {
-		StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
+
 		HashOperations<String, String, Object> hashOps = redisTemplate.opsForHash();
 
 		// 해당 키의 스트림 내의 모든 메시지 얻기
