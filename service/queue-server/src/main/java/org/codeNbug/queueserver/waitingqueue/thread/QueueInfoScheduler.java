@@ -21,11 +21,11 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class QueueInfoScheduler {
 
-	private final RedisTemplate<String, Object> redisTemplate;
+	private final RedisTemplate<String, String> redisTemplate;
 	private final SseEmitterService emitterService;
 	private final ObjectMapper objectMapper;
 
-	public QueueInfoScheduler(RedisTemplate<String, Object> redisTemplate, SseEmitterService emitterService,
+	public QueueInfoScheduler(RedisTemplate<String, String> redisTemplate, SseEmitterService emitterService,
 		ObjectMapper objectMapper) {
 		this.redisTemplate = redisTemplate;
 		this.emitterService = emitterService;
@@ -61,7 +61,7 @@ public class QueueInfoScheduler {
 					try {
 						return redisTemplate.opsForHash()
 							.get("WAITING_QUEUE_RECORD:" + key.split(":")[1].toString(),
-								objectMapper.readTree(item.toString()).get("userId").toString());
+								objectMapper.readTree(item.toString()).get("userId").asText());
 					} catch (JsonProcessingException e) {
 						throw new RuntimeException(e);
 					}
@@ -75,11 +75,20 @@ public class QueueInfoScheduler {
 		for (Object record : waitingList) {
 			// 대기열 큐 메시지로부터 데이터를 파싱합니다.
 			Long userId = Long.parseLong(
-				objectMapper.readTree(record.toString()).get(QUEUE_MESSAGE_USER_ID_KEY_NAME).toString());
+				objectMapper.readTree(record.toString())
+					.get(QUEUE_MESSAGE_USER_ID_KEY_NAME)
+					.toString()
+					.replaceAll("\"", ""));
 			Long eventId = Long.parseLong(
-				objectMapper.readTree(record.toString()).get(QUEUE_MESSAGE_EVENT_ID_KEY_NAME).toString());
+				objectMapper.readTree(record.toString())
+					.get(QUEUE_MESSAGE_EVENT_ID_KEY_NAME)
+					.toString()
+					.replaceAll("\"", ""));
 			Long idx = Long.parseLong(
-				objectMapper.readTree(record.toString()).get(QUEUE_MESSAGE_IDX_KEY_NAME).toString());
+				objectMapper.readTree(record.toString())
+					.get(QUEUE_MESSAGE_IDX_KEY_NAME)
+					.toString()
+					.replaceAll("\"", ""));
 
 			if (!emitterMap.containsKey(userId)) {
 				log.debug("user %d가 연결이 끊어진 상태입니다.".formatted(userId));
@@ -97,7 +106,7 @@ public class QueueInfoScheduler {
 							QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, "order",
 							redisTemplate.opsForZSet()
 								.rank(WAITING_QUEUE_KEY_NAME + ":" + eventId,
-									objectMapper.writeValueAsString(Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId)))
+									"{\"userId\":\"%s\"}".formatted(userId))
 								+ 1))
 				);
 			} catch (Exception e) {

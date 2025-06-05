@@ -96,9 +96,7 @@ public class WaitingQueueEntryService {
 		}
 
 
-		// 대기열 큐 idx 추가
-		Long idx = simpleRedisTemplate.opsForHash()
-			.increment(WAITING_QUEUE_IDX_KEY_NAME, eventId.toString(), 1);
+
 
 		// 유저가 대기열에 있었는지 확인하기 위한 hash 값 조회
 		Boolean isEntered = simpleRedisTemplate.opsForHash()
@@ -107,23 +105,25 @@ public class WaitingQueueEntryService {
 		if (isEntered) {
 			return;
 		}
-
+		// 대기열 큐 idx 추가
+		Long idx = simpleRedisTemplate.opsForHash()
+			.increment(WAITING_QUEUE_IDX_KEY_NAME, eventId.toString(), 1);
 		assert idx != null;
 
 		// { idx , userId}
 		// 로 key가 WAITING:<eventId>인 zset에 저장
 		simpleRedisTemplate.opsForZSet()
-			.add(WAITING_QUEUE_KEY_NAME + ":" + eventId, objectMapper.writeValueAsString(
-					Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId)),
+			.add(WAITING_QUEUE_KEY_NAME + ":" + eventId,
+				Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId.toString()),
 				idx);
 
 		// 나머지 정보를 hash에 저장
 		simpleRedisTemplate.opsForHash()
-			.put("WAITING_QUEUE_RECORD:" + eventId, userId.toString(), objectMapper.writeValueAsString(
-				Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
-					QUEUE_MESSAGE_IDX_KEY_NAME, idx,
-					QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId,
-					QUEUE_MESSAGE_INSTANCE_ID_KEY_NAME, instanceId)
+			.put("WAITING_QUEUE_RECORD:" + eventId, userId.toString(),
+				Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId.toString(),
+					QUEUE_MESSAGE_IDX_KEY_NAME, idx.toString(),
+					QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId.toString(),
+					QUEUE_MESSAGE_INSTANCE_ID_KEY_NAME, instanceId.toString()
 			));
 		// 유저가 대기열에 있는지 확인하기 위한 hash 값 업데이트
 		simpleRedisTemplate.opsForHash()
