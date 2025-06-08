@@ -22,6 +22,7 @@ public class NotificationDto {
     private NotificationEnum type;
     private String title;
     private String content;
+    private String targetUrl;
     private LocalDateTime sentAt;
     private boolean isRead;
 
@@ -31,6 +32,7 @@ public class NotificationDto {
                 .type(notification.getType())
                 .title(notification.getTitle())
                 .content(notification.getContent())
+                .targetUrl(notification.getTargetUrl())
                 .sentAt(notification.getSentAt())
                 .isRead(notification.isRead())
                 .build();

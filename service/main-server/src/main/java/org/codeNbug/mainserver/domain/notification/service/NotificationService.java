@@ -82,7 +82,7 @@ public class NotificationService {
      * @throws BadRequestException 사용자를 찾을 수 없는 경우
      */
     @Transactional
-    public NotificationDto createNotification(Long userId, NotificationEnum type, String title, String content) {
+    public NotificationDto createNotification(Long userId, NotificationEnum type, String title, String content, String targetUrl) {
         log.debug("알림 생성 시작: userId={}, type={}, title={}", userId, type, title);
 
         // 사용자 존재 여부 검증
@@ -97,6 +97,7 @@ public class NotificationService {
                 .type(type)
                 .title(title)
                 .content(content)
+                .targetUrl(targetUrl)
                 .build();
 
         // 저장
@@ -115,6 +116,12 @@ public class NotificationService {
         return notificationDto;
     }
 
+    // 오버로드된 메서드 - targetUrl 없이 호출할 경우
+    @Transactional
+    public NotificationDto createNotification(Long userId, NotificationEnum type, String title, String content) {
+        return createNotification(userId, type, title, content, null);
+    }
+
     /**
      * 하위 호환성을 위한 메서드 (기존 코드)
      */
@@ -127,7 +134,7 @@ public class NotificationService {
                 .content(content)
                 .build();
 
-        return createNotification(userId, type, tempNotification.getTitle(), content);
+        return createNotification(userId, type, tempNotification.getTitle(), content, null);
     }
 
     /**

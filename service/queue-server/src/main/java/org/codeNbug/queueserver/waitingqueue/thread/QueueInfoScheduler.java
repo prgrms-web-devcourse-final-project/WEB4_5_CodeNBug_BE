@@ -7,13 +7,13 @@ import java.util.Map;
 
 import org.codeNbug.queueserver.waitingqueue.entity.SseConnection;
 import org.codeNbug.queueserver.waitingqueue.service.SseEmitterService;
-import org.springframework.data.domain.Range;
-import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StreamOperations;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,13 +21,15 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class QueueInfoScheduler {
 
-	private final RedisTemplate<String, Object> redisTemplate;
+	private final RedisTemplate<String, String> redisTemplate;
 	private final SseEmitterService emitterService;
+	private final ObjectMapper objectMapper;
 
-	public QueueInfoScheduler(RedisTemplate<String, Object> redisTemplate, SseEmitterService emitterService) {
+	public QueueInfoScheduler(RedisTemplate<String, String> redisTemplate, SseEmitterService emitterService,
+		ObjectMapper objectMapper) {
 		this.redisTemplate = redisTemplate;
 		this.emitterService = emitterService;
-
+		this.objectMapper = objectMapper;
 	}
 
 	/**
@@ -41,24 +43,52 @@ public class QueueInfoScheduler {
 		Map<Long, SseConnection> emitterMap = emitterService.getEmitterMap();
 
 		// redis waiting queue의 모든 요소를 가져옵니다
-		StreamOperations<String, Object, Object> streamOps = redisTemplate.opsForStream();
-		List<MapRecord<String, Object, Object>> waitingList = streamOps.range(WAITING_QUEUE_KEY_NAME,
-			Range.unbounded());
+		redisTemplate.keys(WAITING_QUEUE_KEY_NAME + ":*").forEach(key -> {
+			try {
+				doPrintInfo(emitterMap, key);
+			} catch (JsonProcessingException e) {
+				throw new RuntimeException(e);
+			}
+		});
+
+	}
+
+	private void doPrintInfo(Map<Long, SseConnection> emitterMap, String key) throws JsonProcessingException {
+		// eventId에 해당하는 모든 stream 가져오기
+		List<Object> waitingList = redisTemplate.opsForZSet()
+			.range(key, 0, -1).stream().map(
+				item -> {
+					try {
+						return redisTemplate.opsForHash()
+							.get("WAITING_QUEUE_RECORD:" + key.split(":")[1].toString(),
+								objectMapper.readTree(item.toString()).get("userId").asText());
+					} catch (JsonProcessingException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			).toList();
 
 		if (waitingList == null || waitingList.isEmpty()) {
 			return;
 		}
-
-		// queue의 첫번째 요소의 idx 가져옵니다.
-		Long firstIdx = Long.parseLong(
-			waitingList.getFirst().getValue().get(QUEUE_MESSAGE_IDX_KEY_NAME).toString());
-
 		// 대기열 큐에 있는 모든 유저들에게 대기열 순번과 userId, eventId를 전송합니다.
-		for (MapRecord<String, Object, Object> record : waitingList) {
+		for (Object record : waitingList) {
 			// 대기열 큐 메시지로부터 데이터를 파싱합니다.
-			Long userId = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_USER_ID_KEY_NAME).toString());
-			Long eventId = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_EVENT_ID_KEY_NAME).toString());
-			Long idx = Long.parseLong(record.getValue().get(QUEUE_MESSAGE_IDX_KEY_NAME).toString());
+			Long userId = Long.parseLong(
+				objectMapper.readTree(record.toString())
+					.get(QUEUE_MESSAGE_USER_ID_KEY_NAME)
+					.toString()
+					.replaceAll("\"", ""));
+			Long eventId = Long.parseLong(
+				objectMapper.readTree(record.toString())
+					.get(QUEUE_MESSAGE_EVENT_ID_KEY_NAME)
+					.toString()
+					.replaceAll("\"", ""));
+			Long idx = Long.parseLong(
+				objectMapper.readTree(record.toString())
+					.get(QUEUE_MESSAGE_IDX_KEY_NAME)
+					.toString()
+					.replaceAll("\"", ""));
 
 			if (!emitterMap.containsKey(userId)) {
 				log.debug("user %d가 연결이 끊어진 상태입니다.".formatted(userId));
@@ -66,13 +96,18 @@ public class QueueInfoScheduler {
 			}
 
 			// 파싱한 userId로 sse 연결 객체를 가져옵니다.
-			SseEmitter emitter = emitterMap.get(userId).getEmitter();
+			SseConnection sseConnection = emitterMap.get(userId);
+			SseEmitter emitter = sseConnection.getEmitter();
 			// 대기열 순번을 계산하고 sse 메시지를 전송합니다.
 			try {
 				emitter.send(
 					SseEmitter.event()
-						.data(Map.of(QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
-							QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, "order", idx - firstIdx + 1))
+						.data(Map.of("status", sseConnection.getStatus(), QUEUE_MESSAGE_USER_ID_KEY_NAME, userId,
+							QUEUE_MESSAGE_EVENT_ID_KEY_NAME, eventId, "order",
+							redisTemplate.opsForZSet()
+								.rank(WAITING_QUEUE_KEY_NAME + ":" + eventId,
+									"{\"userId\":\"%s\"}".formatted(userId))
+								+ 1))
 				);
 			} catch (Exception e) {
 				emitter.complete();
@@ -89,7 +124,7 @@ public class QueueInfoScheduler {
 			try {
 				emitter.send(
 					SseEmitter.event()
-						.data(".")
+						.comment("heartBeat")
 				);
 			} catch (Exception e) {
 				emitter.complete();

@@ -1,6 +1,8 @@
 package org.codeNbug.mainserver.domain.event.service;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.codeNbug.mainserver.domain.event.dto.EventInfoResponse;
 import org.codeNbug.mainserver.domain.event.dto.request.EventListFilter;
@@ -72,11 +74,38 @@ public class CommonEventService {
 	}
 
 	public EventInfoResponse getEvent(Long id) {
-		Integer incrementedViewCount = redisTemplate.opsForValue().increment("viewCount:" + id, 1).intValue();
+		Event event = jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(id)
+			.orElseThrow(() -> new IllegalArgumentException("해당 id의 event는 없습니다."));
+
+		if (redisTemplate.opsForZSet().score("viewCount:top", "event:" + id) == null) {
+			redisTemplate.opsForZSet().add("viewCount:top", "event:" + id, event.getViewCount());
+		}
+		Integer incrementedViewCount = redisTemplate.opsForZSet()
+			.incrementScore("viewCount:top", "event:" + id, 1D)
+			.intValue();
 
 		EventInfoResponse eventInfoResponse = new EventInfoResponse(
-			jpaCommonEventRepository.findByEventIdAndIsDeletedFalse(id)
-				.orElseThrow(() -> new IllegalArgumentException("해당 id의 event는 없습니다.")), incrementedViewCount);
+			event, incrementedViewCount);
 		return eventInfoResponse;
+	}
+
+	public List<EventListResponse> getRecommends(Long count) {
+		// redis cache에서 조회수 상위 10개의 id 가져오기
+		Map<Long, Integer> viewCountCache = new LinkedHashMap<>();
+		List<Long> idList = redisTemplate.opsForZSet().reverseRangeWithScores("viewCount:top", 0, count - 1)
+			.stream().map(item -> {
+				viewCountCache.put(Long.parseLong(item.getValue().toString().split(":")[1]),
+					item.getScore().intValue());
+				return Long.parseLong(item.getValue().toString().split(":")[1]);
+			}).toList();
+
+		// id를 기준으로 조회
+		return jpaCommonEventRepository.findAllById(idList)
+			.stream().map(item -> {
+				EventListResponse resp = new EventListResponse(item, item.getMinPrice(), item.getMaxPrice());
+				resp.setViewCount(viewCountCache.get(item.getEventId()));
+				return resp;
+			}).sorted((a, b) -> b.getViewCount() - a.getViewCount())
+			.toList();
 	}
 }

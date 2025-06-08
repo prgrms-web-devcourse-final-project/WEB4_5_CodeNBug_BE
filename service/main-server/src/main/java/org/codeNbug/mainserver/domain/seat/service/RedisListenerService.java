@@ -18,7 +18,7 @@ public class RedisListenerService implements MessageListener {
 
 	private final SeatRepository seatRepository;
 	private final EventRepository eventRepository;
-	private static final String lockKeyPrefix = "seat:lock:";
+	private static final String SEAT_LOCK_KEY_PREFIX = "seat:lock:";
 
 	/**
 	 * Redis에서 TTL 만료된 키 이벤트를 수신하여,
@@ -31,7 +31,7 @@ public class RedisListenerService implements MessageListener {
 	public void onMessage(Message message, byte[] pattern) {
 		String messageBody = new String(message.getBody());
 
-		if (messageBody.startsWith(lockKeyPrefix)) {
+		if (messageBody.startsWith(SEAT_LOCK_KEY_PREFIX)) {
 			String[] parts = messageBody.split(":");
 
 			if (parts.length < 5) {
@@ -46,7 +46,7 @@ public class RedisListenerService implements MessageListener {
 					.orElseThrow(() -> new RuntimeException("[onMessage] 존재하지 않는 행사입니다."));
 				Seat seat = seatRepository.findById(seatId)
 					.orElseThrow(() -> new IllegalArgumentException("[onMessage] 좌석이 존재하지 않습니다."));
-				seat.setAvailable(true);
+				seat.cancelReserve();
 				seatRepository.save(seat);
 
 				System.out.println("[onMessage] TTL 만료로 좌석 " + seatId + "의 상태가 available = true 로 변경되었습니다.");

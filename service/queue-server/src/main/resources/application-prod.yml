@@ -5,8 +5,15 @@ spring:
       host: env-redis-1
   datasource:
     url: jdbc:mysql://env-mysql-1:3306/ticketone
-
+    hikari:
+      minimum-idle: 10
+      connection-timeout: 5000    # 2 s 로 줄여 응답 빨리 실패
+      leak-detection-threshold: 10000
+      maximum-pool-size: 100
 
 cookie:
   domain: localhost
   secure: false  # dev 환경에서는 false, prod 환경에서는 true로 설정
+custom:
+  backend:
+    url: https://api.main.ticketone.site

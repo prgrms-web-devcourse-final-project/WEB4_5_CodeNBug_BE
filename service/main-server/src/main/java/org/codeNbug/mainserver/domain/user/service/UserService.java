@@ -448,8 +448,8 @@ public class UserService {
      */
     @Transactional
     public UserProfileResponse updateProfile(UserUpdateRequest request) {
-        log.debug(">> 사용자 프로필 수정 시작: name={}, phoneNum={}, location={}", 
-                 request.getName(), request.getPhoneNum(), request.getLocation());
+        log.debug(">> 사용자 프로필 수정 시작: name={}, age={}, sex={}, phoneNum={}, location={}",
+                 request.getName(), request.getAge(), request.getSex(), request.getPhoneNum(), request.getLocation());
         
         try {
             // 일반 사용자인 경우
@@ -460,11 +460,14 @@ public class UserService {
                 // 사용자 정보 업데이트
                 user.update(
                         request.getName(),
+                        request.getAge(),
+                        request.getSex(),
                         request.getPhoneNum(),
                         request.getLocation()
                 );
                 
                 // 변경사항 저장 및 응답 반환
+                userRepository.save(user);
                 return UserProfileResponse.fromEntity(user);
             }
             // SNS 사용자인 경우
@@ -475,6 +478,8 @@ public class UserService {
                 // SNS 사용자 정보 업데이트
                 snsUser.update(
                         request.getName(),
+                        request.getAge(),
+                        request.getSex(),
                         request.getPhoneNum(),
                         request.getLocation()
                 );

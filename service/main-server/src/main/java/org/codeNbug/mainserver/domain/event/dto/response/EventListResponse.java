@@ -10,6 +10,7 @@ import org.codeNbug.mainserver.domain.event.entity.EventStatusEnum;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /**
  * DTO for {@link org.codeNbug.mainserver.domain.event.entity.Event}
@@ -22,6 +23,7 @@ public class EventListResponse implements Serializable {
 	EventInformationDto information;
 	LocalDateTime bookingStart;
 	LocalDateTime bookingEnd;
+	@Setter
 	Integer viewCount;
 	EventStatusEnum status;
 	Boolean seatSelectable;

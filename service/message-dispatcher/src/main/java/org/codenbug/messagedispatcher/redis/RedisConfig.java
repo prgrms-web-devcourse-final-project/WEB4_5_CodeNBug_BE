@@ -40,17 +40,6 @@ public class RedisConfig {
 		// 컨슈머 그룹이 없으면 새로운 컨슈머 그룹 생성
 		try {
 			if (redisTemplate.opsForStream()
-				.groups(WAITING_QUEUE_KEY_NAME)
-				.stream()
-				.noneMatch(xInfoGroup -> xInfoGroup.groupName().equals(WAITING_QUEUE_GROUP_NAME))) {
-				redisTemplate.opsForStream().createGroup(WAITING_QUEUE_KEY_NAME, WAITING_QUEUE_GROUP_NAME);
-			}
-
-		} catch (Exception e) {
-			redisTemplate.opsForStream().createGroup(WAITING_QUEUE_KEY_NAME, WAITING_QUEUE_GROUP_NAME);
-		}
-		try {
-			if (redisTemplate.opsForStream()
 				.groups(ENTRY_QUEUE_KEY_NAME)
 				.stream()
 				.noneMatch(xInfoGroup -> xInfoGroup.groupName().equals(ENTRY_QUEUE_GROUP_NAME))) {
@@ -59,8 +48,6 @@ public class RedisConfig {
 		} catch (Exception e) {
 			redisTemplate.opsForStream().createGroup(ENTRY_QUEUE_KEY_NAME, ENTRY_QUEUE_GROUP_NAME);
 		}
-		redisTemplate.opsForValue().set(ENTRY_QUEUE_COUNT_KEY_NAME, ENTRY_QUEUE_CAPACITY);
-
 		return redisTemplate;
 	}
 

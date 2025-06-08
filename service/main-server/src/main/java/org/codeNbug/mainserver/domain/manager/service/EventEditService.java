@@ -96,11 +96,13 @@ public class EventEditService {
 				for (Purchase purchase : purchases) {
 					try {
 						Long userId = purchase.getUser().getUserId();
+						String targetUrl = String.format("/events/%d", eventId);
 						notificationService.createNotification(
 							userId,
 							NotificationEnum.EVENT,
 							notificationTitle,
-							notificationContent
+							notificationContent,
+							targetUrl
 						);
 					} catch (Exception e) {
 						log.error("행사 정보 변경 알림 전송 실패. 사용자ID: {}, 구매ID: {}, 오류: {}",

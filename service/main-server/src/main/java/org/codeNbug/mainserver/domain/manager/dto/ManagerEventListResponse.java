@@ -20,8 +20,15 @@ public class ManagerEventListResponse {
     private EventCategoryEnum category;
     private String thumbnailUrl;
     private EventStatusEnum status;
+
+    // 행사 기간
     private LocalDateTime startDate;
     private LocalDateTime endDate;
+
+    // 예매 기간
+    private LocalDateTime bookingStart;
+    private LocalDateTime bookingEnd;
+
     private String location;
     private String hallName;
     private Boolean isDeleted;

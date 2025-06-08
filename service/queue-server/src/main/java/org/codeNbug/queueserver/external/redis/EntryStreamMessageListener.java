@@ -109,7 +109,7 @@ public class EntryStreamMessageListener implements StreamListener<String, MapRec
 			return;
 		}
 
-		sseConnection.setStatus(Status.IN_ENTRY);
+		sseConnection.setStatus(Status.IN_PROGRESS);
 		SseEmitter emitter = sseConnection.getEmitter();
 
 		String token = entryAuthService.generateEntryAuthToken(Map.of("eventId", eventId, "userId", userId),

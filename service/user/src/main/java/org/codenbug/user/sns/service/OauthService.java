@@ -72,16 +72,114 @@ public class OauthService {
 
 	// JSON에서 액세스 토큰만 추출하는 메서드
 	private String extractAccessTokenFromJson(String accessTokenJson) {
+		// 응답이 null이거나 비어있는지 확인
+		if (accessTokenJson == null || accessTokenJson.trim().isEmpty()) {
+			logger.error(">> 액세스 토큰 응답이 null이거나 비어있습니다.");
+			return null;
+		}
+
+		// 응답 내용 로깅 (디버깅용)
+		logger.info(">> 액세스 토큰 응답 내용: {}", accessTokenJson);
+
+		// 응답이 JSON 형태인지 간단히 확인
+		String trimmed = accessTokenJson.trim();
+		if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+			logger.error(">> 응답이 JSON 형태가 아닙니다. 응답 내용: {}", accessTokenJson);
+			
+			// HTML 에러 페이지인지 확인
+			if (trimmed.toLowerCase().contains("<html") || trimmed.toLowerCase().contains("<!doctype")) {
+				logger.error(">> HTML 에러 페이지가 반환되었습니다. 카카오 OAuth 설정(redirect_uri, client_id 등)을 확인해주세요.");
+				throw new RuntimeException("카카오 OAuth 설정 오류: HTML 에러 페이지가 반환되었습니다. redirect_uri와 카카오 애플리케이션 설정을 확인해주세요.");
+			}
+			
+			// 한글 에러 메시지인지 확인
+			if (trimmed.contains("카카오") || trimmed.contains("오류") || trimmed.contains("실패")) {
+				logger.error(">> 카카오에서 한글 에러 메시지가 반환되었습니다: {}", trimmed);
+				throw new RuntimeException("카카오 OAuth 인증 실패: " + trimmed);
+			}
+			
+			throw new RuntimeException("유효하지 않은 응답 형식입니다: " + trimmed);
+		}
+
 		// JSON을 파싱하여 액세스 토큰만 추출
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 			JsonNode jsonNode = objectMapper.readTree(accessTokenJson);
-			// 여기서 필요한 토큰만 반환
-			return jsonNode.get("access_token") != null ? jsonNode.get("access_token").asText() : null;
+			
+			// access_token 필드 확인
+			if (jsonNode.has("access_token")) {
+				String accessToken = jsonNode.get("access_token").asText();
+				logger.info(">> 액세스 토큰 추출 성공");
+				return accessToken;
+			} else {
+				logger.error(">> JSON 응답에 access_token 필드가 없습니다. 응답: {}", accessTokenJson);
+				
+				// 에러 정보가 있는지 확인
+				if (jsonNode.has("error")) {
+					String error = jsonNode.get("error").asText();
+					String errorDescription = jsonNode.has("error_description") ? 
+						jsonNode.get("error_description").asText() : "설명 없음";
+					String errorCode = jsonNode.has("error_code") ? 
+						jsonNode.get("error_code").asText() : "";
+					
+					logger.error(">> OAuth 에러 - error: {}, description: {}, code: {}", error, errorDescription, errorCode);
+					
+					// 사용자에게 도움이 되는 구체적인 에러 메시지 생성
+					String userFriendlyMessage = createUserFriendlyErrorMessage(error, errorDescription, errorCode);
+					throw new RuntimeException(userFriendlyMessage);
+				}
+				
+				return null;
+			}
 		} catch (JsonProcessingException e) {
-			e.printStackTrace();
-			return null; // 실패할 경우 null 반환
+			logger.error(">> JSON 파싱 실패. 응답 내용: {}, 에러: {}", accessTokenJson, e.getMessage(), e);
+			
+			// JSON 파싱 에러의 경우 원본 응답을 분석해서 더 유용한 메시지 제공
+			if (accessTokenJson.contains("error") && accessTokenJson.contains("invalid_grant")) {
+				throw new RuntimeException("카카오 OAuth 인증 실패: authorization code가 유효하지 않거나 만료되었습니다. " +
+					"카카오 개발자 콘솔에서 Redirect URI 설정을 확인하거나 새로운 authorization code로 다시 시도해주세요.");
+			}
+			
+			throw new RuntimeException("액세스 토큰 응답 파싱 실패: " + e.getMessage(), e);
 		}
+	}
+	
+	/**
+	 * 카카오 API 에러를 사용자가 이해하기 쉬운 메시지로 변환
+	 */
+	private String createUserFriendlyErrorMessage(String error, String errorDescription, String errorCode) {
+		StringBuilder message = new StringBuilder("카카오 로그인 실패: ");
+		
+		switch (error) {
+			case "invalid_grant":
+				if ("KOE320".equals(errorCode)) {
+					message.append("인증 코드를 찾을 수 없습니다. ");
+					message.append("다음 사항을 확인해주세요:\n");
+					message.append("1. 카카오 개발자 콘솔에서 Redirect URI가 올바르게 설정되었는지 확인\n");
+					message.append("2. authorization code가 이미 사용되었는지 확인 (한 번만 사용 가능)\n");
+					message.append("3. authorization code가 만료되었는지 확인 (10분 유효)");
+				} else {
+					message.append("인증 정보가 유효하지 않습니다. ").append(errorDescription);
+				}
+				break;
+			case "invalid_client":
+				message.append("카카오 애플리케이션 설정 오류입니다. 클라이언트 ID 또는 Secret을 확인해주세요.");
+				break;
+			case "invalid_request":
+				message.append("요청 형식이 올바르지 않습니다. ").append(errorDescription);
+				break;
+			case "unauthorized_client":
+				message.append("허가되지 않은 클라이언트입니다. 카카오 개발자 콘솔에서 애플리케이션 상태를 확인해주세요.");
+				break;
+			default:
+				message.append(error).append(" - ").append(errorDescription);
+		}
+		
+		if (!errorCode.isEmpty()) {
+			message.append(" (에러 코드: ").append(errorCode).append(")");
+		}
+		
+		return message.toString();
 	}
 
 	// 액세스 토큰을 사용하여 사용자 정보를 가져오고, 사용자 정보가 있으면 저장하는 메서드
